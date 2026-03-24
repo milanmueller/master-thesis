@@ -19,3 +19,5 @@ indent.log
 # Titlepage: ignore source files but keep the rendered PDF
 titlepage/*
 !titlepage/Thesis_Titlepage.pdf
+# Local: For local, non public data (like notes from discussions)
+local/*
