@@ -1,5 +1,4 @@
 output/*
-!output/*.pdf
 indent.log
 .direnv
 *.log
