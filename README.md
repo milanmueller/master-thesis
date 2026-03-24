@@ -1,3 +1,6 @@
+# Repository for my Master Thesis
+Based on the [Fachschaft's template for Theses](https://github.com/leanderbuerkin/latex-template-uni-freiburg?tab=readme-ov-file).
+
 # Unofficial Uni Freiburg Thesis-Template
 
 This is a minimal template for a [german or english bachelor's or master's thesis](output/main.pdf).
@@ -30,6 +33,34 @@ sudo apt update && sudo apt install texlive-full texlive-extra-utils
 
 VSC should ask you to install it.
 If not, go to Extensions by pressing CTRL + SHIFT + X and search @recommended.
+
+## Building the Document
+
+### Automated Build Script
+
+This repository includes an automated build script that compiles both the titlepage and main document:
+
+```bash
+# Run the build script
+bash build.sh
+
+# Clean auxiliary files after building
+bash clean.sh
+```
+
+The build script:
+1. Compiles the titlepage separately from `titlepage/Thesis_Titlepage.tex`
+2. Compiles the main document with all references, glossaries, and bibliography
+3. Includes the titlepage PDF in the final output
+4. Runs multiple passes to resolve all references
+
+### GitHub Actions
+
+The repository is configured with GitHub Actions to automatically build the PDF on every commit to `main` or `develop` branches. The compiled PDF is available as a downloadable artifact in the Actions tab for 90 days.
+
+### Manual Compilation with VSC
+
+You can also compile the document manually using Visual Studio Code with the LaTeX Workshop extension (see Prerequisites section below).
 
 ## Usage
 

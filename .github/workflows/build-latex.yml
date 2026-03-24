@@ -1,0 +1,52 @@
+name: Build LaTeX Document
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Verify titlepage PDF exists
+      run: |
+        if [ ! -f "titlepage/Thesis_Titlepage.pdf" ]; then
+          echo "Error: titlepage/Thesis_Titlepage.pdf not found in repository"
+          echo "The pre-built titlepage PDF must be committed to the repository"
+          exit 1
+        fi
+        echo "Titlepage PDF found"
+
+    - name: Install LaTeX
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y texlive-latex-extra texlive-fonts-extra texlive-science texlive-lang-german biber latexmk
+
+    - name: Compile LaTeX document
+      run: |
+        chmod +x build.sh
+        bash build.sh
+
+    - name: Upload PDF artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: thesis-pdf
+        path: main.pdf
+        retention-days: 90
+
+    - name: Check for compilation warnings
+      if: always()
+      run: |
+        if [ -f main.log ]; then
+          echo "### LaTeX Compilation Log Warnings ###"
+          grep -i "warning" main.log || echo "No warnings found"
+        fi

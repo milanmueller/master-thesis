@@ -1,3 +1,22 @@
 output/*
 !output/*.pdf
 indent.log
+.direnv
+*.log
+*.aux
+*.glo
+*.glg
+*.lof
+*.lot
+*.lol
+*.out
+*.pdf
+*.slg
+*.slo
+*.sls
+*.toc
+*.gls
+*.ist
+# Titlepage: ignore source files but keep the rendered PDF
+titlepage/*
+!titlepage/Thesis_Titlepage.pdf

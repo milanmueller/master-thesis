@@ -8,11 +8,16 @@
 
 \begin{document}
 
+% Include the separately compiled titlepage
+\includepdf[pages=-]{titlepage/Thesis_Titlepage.pdf}
+
 \pagenumbering{gobble}
 \include{sections/cover}
 \include{sections/information}
-\todo[inline]{Enter your data int the Declaration.}
+\todo[inline]{Enter your data in the Declaration.}
 \iflanguage{english}{\include{sections/declaration_english}}{\include{sections/declaration_german}}
+\iflanguage{english}{\include{sections/aiusage_english}}{\include{sections/aiusage_german}}
+\include{sections/acknowledgements}
 \include{sections/acknowledgements}
 
 \include{sections/quote}
