@@ -1,6 +1,23 @@
 # Repository for my Master Thesis
 Based on the [Fachschaft's template for Theses](https://github.com/leanderbuerkin/latex-template-uni-freiburg?tab=readme-ov-file).
 
+# Project Description
+TODO
+
+# Milestones
+- [ ] Implementation in Isabelle:
+  - [ ] Support for integers - previous implementation only supports natural numbers so far
+  - [ ] Base exchange between arbitrary bases - first we start with a naive, fast version
+  - [ ] Conversion to string, i.e. printing (using conversion to base 10)
+- [ ] Port Pastèque to Isabelle-LLVM
+  - [ ] Rewrite parser in c, to eliminate SML dependence
+  - [ ] (optional) Add support for integer sharing
+- [ ] Experiment/Evaluation - compare the performance of
+  - [ ] Pastèque using the SML backend
+  - [ ] Pastèque using the LLVM backend
+  - [ ] (optional) Pastèque using LLVM with GMP bindings
+- [ ] Write Thesis
+
 # Unofficial Uni Freiburg Thesis-Template
 
 This is a minimal template for a [german or english bachelor's or master's thesis](output/main.pdf).

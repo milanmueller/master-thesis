@@ -1,26 +1,27 @@
 % Choose your language: The main language should be mentioned last.
-% Add a % in front of the next to rows to tell the compiler which row NOT to use. 
-% \documentclass[hidelinks, a4paper, 12pt, english, ngerman]{article}  % german thesis
-\documentclass[hidelinks, a4paper, 12pt, ngerman, english]{article}  % english thesis
+% Add a % in front of the next to rows to tell the compiler which row
+% NOT to use.
+% \documentclass[hidelinks, a4paper, 12pt, english, ngerman]{article}
+%  % german thesis
+\documentclass[hidelinks, a4paper, 12pt, ngerman, english]{article}
+% english thesis
 
 \input{setup}
 \input{references/glossary}
 
 \begin{document}
 
+\pagenumbering{gobble}
 % Include the separately compiled titlepage
 \includepdf[pages=-]{titlepage/Thesis_Titlepage.pdf}
-
-\pagenumbering{gobble}
-\include{sections/cover}
 \include{sections/information}
-\todo[inline]{Enter your data in the Declaration.}
+% \todo[inline]{Enter your data in the Declaration.}
 \iflanguage{english}{\include{sections/declaration_english}}{\include{sections/declaration_german}}
 \iflanguage{english}{\include{sections/aiusage_english}}{\include{sections/aiusage_german}}
 \include{sections/acknowledgements}
-\include{sections/acknowledgements}
+% \include{sections/acknowledgements}
 
-\include{sections/quote}
+% \include{sections/quote}
 \include{sections/abstract}
 \include{sections/zusammenfassung}
 
