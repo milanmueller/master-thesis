@@ -1,0 +1,12 @@
+[submodule "isabelle/isabelle-emacs"]
+	path = isabelle/isabelle-emacs
+	url = https://github.com/m-fleury/isabelle-emacs.git
+[submodule "isabelle/IsaFoL"]
+	path = isabelle/IsaFoL
+	url = https://github.com/IsaFoL/IsaFoL.git
+[submodule "isabelle/isabelle_llvm"]
+	path = isabelle/isabelle_llvm
+	url = https://github.com/lammich/isabelle_llvm.git
+[submodule "isabelle/mirror-afp-2025-1"]
+	path = isabelle/mirror-afp-2025-1
+	url = https://github.com/isabelle-prover/mirror-afp-2025-1.git

@@ -1,0 +1,18 @@
+*.thy~
+*.thy#
+.direnv
+lib
+.isabelle
+*.out
+*.md~
+bin
+notes
+
+# Doom Emacs: track the submodule (.emacs/doom) and user config (.emacs/user/)
+# ignore everything else (runtime caches, compiled lisp, auto-saves, ...)
+.emacs/*
+!.emacs/user
+.emacs/user/*
+!.emacs/user/init.el
+!.emacs/user/config.el
+!.emacs/user/packages.el
