@@ -16,6 +16,8 @@ indent.log
 *.toc
 *.gls
 *.ist
+# Tectonic build directory
+build/
 # Titlepage: ignore source files but keep the rendered PDF
 titlepage/*
 !titlepage/Thesis_Titlepage.pdf

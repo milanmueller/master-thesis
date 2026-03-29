@@ -11,14 +11,9 @@
 \usepackage[skip=8mm]{parskip} % 8 mm between paragraphs
 \usepackage[onehalfspacing]{setspace} % onehalfspacing = line spacing of 1.5
 % The following three commands should reduce overfull hbox warnings and weird looking spacing.
+% Note: XeTeX (used by Tectonic) only supports protrusion, not expansion or tracking
 \usepackage[
-    final,
-    nopatch=footnote,
-    activate={true, nocompatibility},
-    protrusion=true,
-    expansion=true,
-    tracking=true,
-    kerning=true
+    protrusion=true
 ]{microtype}
 \microtypecontext{spacing=nonfrench}
 \sloppy

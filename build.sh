@@ -7,7 +7,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}Starting LaTeX compilation workflow...${NC}"
+echo -e "${GREEN}Starting LaTeX compilation with Tectonic...${NC}"
 
 # Step 1: Check titlepage
 echo -e "${YELLOW}Step 1: Checking titlepage...${NC}"
@@ -18,32 +18,16 @@ if [ ! -f "titlepage/Thesis_Titlepage.pdf" ]; then
 fi
 echo -e "${GREEN}Titlepage PDF found${NC}"
 
-# Step 2: Compile main document
-echo -e "${YELLOW}Step 2: Compiling main document...${NC}"
-pdflatex -interaction=nonstopmode main.tex || {
-    echo -e "${RED}Failed to compile main document (first pass)${NC}"
-    exit 1
-}
+# Step 2: Build with Tectonic (V1 mode for compatibility)
+echo -e "${YELLOW}Step 2: Building document with Tectonic...${NC}"
 
-# Run biber for bibliography if .bcf file exists
-if [ -f main.bcf ]; then
-    echo -e "${YELLOW}Running biber for bibliography...${NC}"
-    biber main || echo -e "${YELLOW}Biber failed or no citations found${NC}"
+# Check if user wants to keep intermediate files for debugging
+if [ "$1" == "--keep-intermediates" ]; then
+    echo -e "${YELLOW}Keeping intermediate files for debugging...${NC}"
+    tectonic --keep-intermediates --print main.tex
+else
+    tectonic --print main.tex
 fi
-
-# Run makeglossaries if glossary is used
-if [ -f main.glo ]; then
-    echo -e "${YELLOW}Running makeglossaries...${NC}"
-    makeglossaries main || echo -e "${YELLOW}Makeglossaries failed or not needed${NC}"
-fi
-
-# Second pass for references
-echo -e "${YELLOW}Running second pass...${NC}"
-pdflatex -interaction=nonstopmode main.tex
-
-# Third pass to ensure everything is resolved
-echo -e "${YELLOW}Running third pass...${NC}"
-pdflatex -interaction=nonstopmode main.tex
 
 echo -e "${GREEN}Compilation completed successfully!${NC}"
 echo -e "${GREEN}Output: main.pdf${NC}"
