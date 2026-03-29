@@ -41,7 +41,7 @@ Note that the titlepage is only included as a rendered pdf. The latex code for t
 
 ## GitHub Actions
 
-The repository is configured with GitHub Actions to automatically build the PDF on every commit to `main` or `develop` branches.
+The repository is configured with GitHub Actions to automatically build the PDF on every commit to `main`.
 The latest version of the thesis PDF is automatically published via GitHub Pages and is permanently available at:
 
 **https://milanmueller.github.io/master-thesis/main.pdf**
