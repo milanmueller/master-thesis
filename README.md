@@ -75,6 +75,14 @@ The build script:
 
 The repository is configured with GitHub Actions to automatically build the PDF on every commit to `main` or `develop` branches. The compiled PDF is available as a downloadable artifact in the Actions tab for 90 days.
 
+### Accessing the PDF
+
+The latest version of the thesis PDF is automatically published via GitHub Pages and is permanently available at:
+
+**https://milanmueller.github.io/master-thesis/main.pdf**
+
+This URL always points to the most recent build from the `main` branch.
+
 ### Manual Compilation with VSC
 
 You can also compile the document manually using Visual Studio Code with the LaTeX Workshop extension (see Prerequisites section below).
