@@ -1,1 +1,22 @@
 \section{Motivation}\label{sec:motivation}
+
+One of the main challenges that every non-trivial software project is certain to face eventually, is the existence of unforeseen errors.
+Examples of such errors include out-of-bounds errors, use-after-free errors, or semantic errors in overlooked edge-cases, leading to crashes or otherwise unintended program behavior\todo{source of claim}. \\
+In critical systems, e.g. authentication engines or medical applications, such errors might lead to severe issues like exposure of sensitive data to bad actors\todo{Some example data breach}, or even pose danger to human lives\todo{The malfunctioning radiation device}.\\
+To detect such errors preemptively, professional software development typically involves extensive testing of the developed product, ranging from unit tests to more sophisticated and automated approaches like fuzzing\todo{Reference}. \\
+While testing is a powerful strategy for detecting errors, even simple programs might have state spaces too large to obtain full coverage of all possible inputs in testing.
+This natural limitation of testing based quality assurance motivates the use of formal methods for verifying correctness of computer programs.
+
+Tools for formal verification of programs might attempt to automatically prove correctness of an existing program, with regards to a given specification, by generating an abstract model of the program's source code, with formally defined semantics, and then applying various strategies to obtain correctness proofs for the abstract model, typically utilizing automatic decision procedures like SMT solvers, which in turn utilize SAT solvers for deciding satisfiability.\todo{Examples, References, more concrete}
+One notable issue with this approach is the fact that decision procedures themselves might produces false results, which motivates the use of proof certificates, emitted by the decision procedure, with which third-party proof checkers can validate the produced results.\todo{Reference}
+Conversely, there is an incentive to formally verify such proof checkers as they face the same potential correctness issues as any other software.
+
+In this thesis we consider an interactive approach to developing formally verified programs, using the interactive theorem prover Isabelle/HOL \cite{isabelle} with the framework Isabelle-LLVM \cite{isabelle-llvm}, developed by Peter Lammich, which extends Lammich's previous tool Sepref \cite{sepref} with the ability to generate LLVM code from the verified programs.\\
+Sepref was used in developing Pas\`{e}que \cite{pasteque}, a verified proof checker for the practical algebraic calculus (PAC), by Mathias Fleury. \\
+With Sepref, it is possible to generate Standard-ML code for Pas\`{e}que. Migrating Pas\`{e}que to Isabelle-LLVM, and thus generating LLVM code, which we expect to be faster than Standard ML, was not possible due to lack of support for arbitrarily large numbers in LLVM.
+While it is now possible to use the c-library gmp \cite{gmp} in Isabelle-LLVM, doing so effectively adds gmp to the trusted code base, incentivizing the implementation of a native library for big numbers in Isabelle-LLVM. \\
+Building on previous work by Mihai Spinei\todo{Reference}, the aim of this thesis is to migrate Pas\`{e}que to Isabelle-LLVM which requires us to implement base exchange for big numbers\todo{More on implementation, which algorithm?} to allow us to print them.
+
+Section \ref{sec:fundamentals} introduces Isabelle/HOL alongside the aforementioned Isabelle-LLVM, and presents a formalization of big numbers which we then use to give a formal specification for our base exchange algorithm.
+Section \ref{sec:methodology} discusses the implementation of the base exchange algorithm and the migration of Pas\`{e}que from Standard ML to LLVM.
+In Section \ref{sec:evaluation}, we then compare Pas\`{e}que's performance with the LLVM backend to the Standard ML backend.

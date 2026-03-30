@@ -16,6 +16,9 @@ indent.log
 *.toc
 *.gls
 *.ist
+*-blx.bib
+*.bbl
+*.run.xml
 # Tectonic build directory
 build/
 # Titlepage: ignore source files but keep the rendered PDF

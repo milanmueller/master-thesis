@@ -24,9 +24,9 @@ echo -e "${YELLOW}Step 2: Building document with Tectonic...${NC}"
 # Check if user wants to keep intermediate files for debugging
 if [ "$1" == "--keep-intermediates" ]; then
     echo -e "${YELLOW}Keeping intermediate files for debugging...${NC}"
-    tectonic --keep-intermediates --print main.tex
+    tectonic -X compile --keep-intermediates --print main.tex
 else
-    tectonic --print main.tex
+    tectonic -X compile --print main.tex
 fi
 
 echo -e "${GREEN}Compilation completed successfully!${NC}"

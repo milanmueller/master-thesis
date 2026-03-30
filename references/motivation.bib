@@ -1,7 +1,142 @@
 @book{latex-template,
-  author    = {Leander Bürkin},
-  title     = {LaTeX-Template},
-  year      = {2025},
-  publisher = {Fachschaft TF Freiburg}
+	author = {Leander Bürkin},
+	title = {LaTeX-Template},
+	year = {2025},
+	publisher = {Fachschaft TF Freiburg},
 }
+@inproceedings{isabelle,
+	author = {Tobias Nipkow and Markus Wenzel and Lawrence C. Paulson},
+	title = {Isabelle/HOL: A Proof Assistant for Higher-Order Logic},
+	booktitle = {Lecture Notes in Computer Science},
+	year = {2002},
+	publisher = {Springer},
+	volume = {2283},
+	doi = {10.1007/3-540-45949-9},
+}
+@article{sepref,
+	title = "Refinement to Imperative HOL",
+	abstract = "Many algorithms can be implemented most efficiently with
+	            imperative data structures. This paper presents Sepref, a
+	            stepwise refinement based tool chain for the verification of
+	            imperative algorithms in Isabelle/HOL. As a back end we use
+	            imperative HOL, which allows to generate verified imperative
+	            code. On top of imperative HOL, we develop a separation logic
+	            framework with powerful proof tactics. We use this framework to
+	            verify basic imperative data structures and to define a
+	            refinement calculus between imperative and functional programs.
+	            We provide a tool to automatically synthesize a concrete
+	            imperative program and a refinement proof from an abstract
+	            functional program, selecting implementations of abstract data
+	            types according to a user-provided configuration. As a front end
+	            to describe the abstract programs, we use the Isabelle Refinement
+	            Framework, for which many algorithms have already been
+	            formalized. Our tool chain is complemented by a large selection
+	            of verified imperative data structures. We have used Sepref for
+	            several verification projects, resulting in efficient verified
+	            implementations that are competitive with unverified ones in Java
+	            or C ++ .",
+	author = "Peter Lammich",
+	year = "2019",
+	month = apr,
+	day = "1",
+	doi = "10.1007/s10817-017-9437-1",
+	language = "English",
+	volume = "62",
+	pages = "481--503",
+	journal = "Journal of Automated Reasoning",
+	issn = "0168-7433",
+	publisher = "Springer Nature",
+	number = "4",
+}
+@inproceedings{isabelle-llvm,
+	title = "Generating Veriﬁed LLVM from Isabelle/HOL",
+	abstract = "We present a framework to generate veriﬁed LLVM programs from
+	            Isabelle/HOL. It is based on a code generator that generates LLVM
+	            text from a simpliﬁed fragment of LLVM, shallowly embedded into
+	            Isabelle/HOL. On top, we have developed a separation logic, a
+	            veriﬁcation condition generator, and an LLVM backend to the
+	            Isabelle Reﬁnement Framework. As case studies, we have produced
+	            veriﬁed LLVM implementations of binary search and the
+	            Knuth-Morris-Pratt string search algorithm. These are one order
+	            of magnitude faster than the Standard-ML implementations produced
+	            with the original Reﬁnement Framework, and on par with unveriﬁed
+	            C implementations. Adoption of the original correctness proofs to
+	            the new LLVM backend was straightforward. The trusted code base
+	            of our approach is the shallow embedding of the LLVM fragment and
+	            the code generator, which is a pretty printer combined with some
+	            straightforward compilation steps",
+	keywords = "Isabelle/HOL, LLVM, Separation Logic, Verification condition
+	            generator, Code generation",
+	author = "Peter Lammich",
+	year = "2019",
+	month = jun,
+	day = "1",
+	language = "English",
+	booktitle = "ITP 2019: Interactive Theorem Proving",
+	note = "Interactive Theorem Proving, ITP 2019 ; Conference date: 08-09-2019
+	        Through 13-09-2019",
+	url = "https://itp19.cecs.pdx.edu/",
+}
+@article{pasteque,
+	author = {Kaufmann, Daniela and Fleury, Mathias and Biere, Armin and Kauers,
+	          Manuel},
+	title = {Practical algebraic calculus and Nullstellensatz with the checkers
+	         Pacheck and Past\`{e}que and Nuss-Checker},
+	year = {2022},
+	issue_date = {Dec 2024},
+	publisher = {Kluwer Academic Publishers},
+	address = {USA},
+	volume = {64},
+	number = {1},
+	issn = {0925-9856},
+	url = {https://doi.org/10.1007/s10703-022-00391-x},
+	doi = {10.1007/s10703-022-00391-x},
+	abstract = {Automated reasoning techniques based on computer algebra have
+	            seen renewed interest in recent years and are for example heavily
+	            used in formal verification of arithmetic circuits. However, the
+	            verification process might contain errors. Generating and
+	            checking proof certificates is important to increase the trust in
+	            automated reasoning tools. For algebraic reasoning, two proof
+	            systems, Nullstellensatz and polynomial calculus, are available
+	            and are well-known in proof complexity. A Nullstellensatz proof
+	            captures whether a polynomial can be represented as a linear
+	            combination of a given set of polynomials by providing the
+	            co-factors of the linear combination. Proofs in polynomial
+	            calculus dynamically capture that a polynomial can be derived
+	            from a given set of polynomials using algebraic ideal theory. In
+	            this article we present the practical algebraic calculus as an
+	            instantiation of the polynomial calculus that can be checked
+	            efficiently. We further modify the practical algebraic calculus
+	            and gain LPAC (practical algebraic calculus + linear
+	            combinations) that includes linear combinations. In this way we
+	            are not only able to represent both Nullstellensatz and
+	            polynomial calculus proofs, but we are also able to blend both
+	            proof formats. Furthermore, we introduce extension rules to
+	            simulate essential rewriting techniques required in practice. For
+	            efficiency we also make use of indices for existing polynomials
+	            and include deletion rules too. We demonstrate the different
+	            proof formats on the use case of arithmetic circuit verification
+	            and discuss how these proofs can be produced as a by-product in
+	            formal verification. We present the proof checkers Pacheck, Past
+	            \`{e}que, and Nuss-Checker. Pacheck checks proofs in practical
+	            algebraic calculus more efficiently than Past\`{e}que, but the
+	            latter is formally verified using the proof assistant
+	            Isabelle/HOL. The tool Nuss-Checker is used to check proofs in
+	            the Nullstellensatz format.},
+	journal = {Form. Methods Syst. Des.},
+	month = apr,
+	pages = {73–107},
+	numpages = {35},
+	keywords = {Algebraic proof systems, Nullstellensatz proofs, Polynomial
+	            calculus, Gr\"{o}bner basis, Arithmetic circuit verification,
+	            Isabelle/HOL},
+}
+@manual{gmp,
+	title = {{GMP}: The {GNU} Multiple Precision Arithmetic Library},
+	author = {Torbjörn Granlund and the GMP development team},
+	year = {2024},
+	url = {https://gmplib.org/},
+	note = {Version 6.3.0},
+}
+
 

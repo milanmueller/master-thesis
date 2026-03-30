@@ -1,0 +1,4 @@
+[[language]]
+name = "latex"
+formatter = { command = "tex-fmt", args = ["--print", "--wrap", "120"] }
+auto-format = true
