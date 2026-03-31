@@ -33,6 +33,7 @@
               texlab
               tectonic
               tex-fmt
+              gh
               self.formatter.${system}
             ];
           };
