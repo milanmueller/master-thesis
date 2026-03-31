@@ -45,9 +45,9 @@
   (add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-two-columns)
   (add-hook 'isar-mode-hook #'lsp-isar-define-client-and-start)
 
-  (push (concat "/home/milan/git/isabelle-big-numbers/isabelle-emacs/src/Tools/emacs-lsp/yasnippet")
+  (push (expand-file-name "isabelle-emacs/src/Tools/emacs-lsp/yasnippet" (getenv "USER_HOME"))
    yas-snippet-dirs)
-  (setq lsp-isar-path-to-isabelle "/home/milan/git/isabelle-big-numbers/isabelle-emacs")
+  (setq lsp-isar-path-to-isabelle (expand-file-name "isabelle-emacs" (getenv "USER_HOME")))
   (setq lsp-isabelle-options (list "-l" "Isabelle_LLVM"))
 )
 ;; https://github.com/m-fleury/isabelle-release/issues/21

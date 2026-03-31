@@ -4,6 +4,10 @@ Based on the [Fachschaft's template for Theses](https://github.com/leanderbuerki
 # Project Description
 TODO
 
+# Project Structure
+The top level directory contains LaTeX source files for the thesis itself.
+The directory [`./isabelle`](./isabelle) contains all Isabelle theories and other contributions.
+
 # Milestones
 - [ ] Implementation in Isabelle:
   - [ ] Support for integers - previous implementation only supports natural numbers so far

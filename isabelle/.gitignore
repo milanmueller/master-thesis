@@ -12,7 +12,11 @@ notes
 # ignore everything else (runtime caches, compiled lisp, auto-saves, ...)
 .emacs/*
 !.emacs/user
+# !.emacs/doom
 .emacs/user/*
 !.emacs/user/init.el
 !.emacs/user/config.el
 !.emacs/user/packages.el
+
+# Ignore local changes to isabelle-emacs that appear due to installing isabelle components apparently
+isabelle-emacs/*

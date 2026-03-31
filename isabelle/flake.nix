@@ -41,6 +41,7 @@
               pkgs: with pkgs; [
                 bash
                 coreutils
+                git
                 glibc
                 nss
                 libGL
@@ -100,7 +101,7 @@
                   export EMACSDIR="''${USER_HOME:-.}/.emacs/doom"
                   export DOOMDIR="''${USER_HOME:-.}/.emacs/user"
                   export EMACS="${pkgs.emacs}/bin/emacs"
-                  exec ${isabelle-fhs}/bin/isabelle-fhs -c '"$EMACSDIR/bin/doom"' "$@"
+                  exec ${isabelle-fhs}/bin/isabelle-fhs -c '"$EMACSDIR/bin/doom" "$@"' doom "$@"
                 '')
                 # Doom Emacs wants this
                 symbola
