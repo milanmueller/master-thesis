@@ -34,10 +34,10 @@ jobs:
         fi
         echo "Titlepage PDF found"
 
-    - name: Install LaTeX
+    - name: Install Tectonic
       run: |
-        sudo apt-get update
-        sudo apt-get install -y texlive-latex-extra texlive-fonts-extra texlive-science texlive-lang-german biber latexmk
+        curl -fsSL https://drop-sh.fullyjustified.net | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
     - name: Compile LaTeX document
       run: |

@@ -10,3 +10,6 @@
 [submodule "isabelle/mirror-afp-2025-1"]
 	path = isabelle/mirror-afp-2025-1
 	url = https://github.com/isabelle-prover/mirror-afp-2025-1.git
+[submodule "isabelle/IsabelleBigInteger"]
+	path = isabelle/IsabelleBigInteger
+	url = git@github.com:milanmueller/IsabelleBigInteger.git
