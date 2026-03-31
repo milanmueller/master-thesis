@@ -38,10 +38,14 @@ jobs:
       run: |
         curl -fsSL https://drop-sh.fullyjustified.net | sh
         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        # Verify installation
+        $HOME/.cargo/bin/tectonic --version
 
     - name: Compile LaTeX document
       run: |
         chmod +x build.sh
+        # Ensure cargo bin is in PATH for this step
+        export PATH="$HOME/.cargo/bin:$PATH"
         bash build.sh
 
     - name: Upload PDF artifact
