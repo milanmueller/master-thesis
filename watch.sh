@@ -6,6 +6,9 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# Unset SOURCE_DATE_EPOCH to use current date in LaTeX
+unset SOURCE_DATE_EPOCH
+
 echo -e "${GREEN}Starting LaTeX watch mode with Tectonic...${NC}"
 
 # Step 1: Check titlepage

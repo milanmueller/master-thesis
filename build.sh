@@ -9,6 +9,9 @@ NC='\033[0m' # No Color
 
 echo -e "${GREEN}Starting LaTeX compilation with Tectonic...${NC}"
 
+# Unset SOURCE_DATE_EPOCH to use current date in LaTeX
+unset SOURCE_DATE_EPOCH
+
 # Step 1: Check titlepage
 echo -e "${YELLOW}Step 1: Checking titlepage...${NC}"
 if [ ! -f "titlepage/Thesis_Titlepage.pdf" ]; then
