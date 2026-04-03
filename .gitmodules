@@ -13,3 +13,6 @@
 [submodule "isabelle/IsabelleBigInteger"]
 	path = isabelle/IsabelleBigInteger
 	url = git@github.com:milanmueller/IsabelleBigInteger.git
+[submodule "isabelle/IsaFoL-Pasteque-LLVM"]
+	path = isabelle/IsaFoL-Pasteque-LLVM
+	url = git@github.com:milanmueller/IsaFoL.git
