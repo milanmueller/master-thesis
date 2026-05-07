@@ -75,6 +75,9 @@
                 clang-tools
                 clang
                 gcc
+                gmp
+                gmp.dev
+                mlton # For compiling Pastèque with the SML backend
               ];
             runScript = "bash";
           };
@@ -108,9 +111,9 @@
                 fd
                 nerd-fonts.symbols-only
                 nixfmt
-                # Isabelle specific stuff
-                (pkgs.writeShellScriptBin "jedit" ''
-                  exec ${isabelle-fhs}/bin/isabelle-fhs -c '"$USER_HOME"/isabelle-emacs/bin/isabelle jedit' "$@"
+                # Shortcuts for building and evaluation
+                (pkgs.writeShellScriptBin "mk" ''
+                  exec ${isabelle-fhs}/bin/isabelle-fhs -c "make $@"
                 '')
               ]
               ++ (pkgs.lib.optional pkgs.stdenv.isLinux isabelle-fhs);
