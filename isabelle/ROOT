@@ -1,0 +1,10 @@
+session DevBase = "Isabelle_LLVM" +
+  sessions
+	"HOL-Library"
+	"HOL-Algebra"
+	"Polynomials"
+	Nested_Multisets_Ordinals
+	"Sepref_IICF"
+	"Isabelle_LLVM"
+  theories
+	Scratch
