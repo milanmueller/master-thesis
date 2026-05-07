@@ -7,6 +7,7 @@ lib
 *.md~
 bin
 notes
+bin/*
 
 # Doom Emacs: track the submodule (.emacs/doom) and user config (.emacs/user/)
 # ignore everything else (runtime caches, compiled lisp, auto-saves, ...)

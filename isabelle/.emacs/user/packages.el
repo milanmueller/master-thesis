@@ -22,3 +22,6 @@
 
 (package! session-async)
 (package! catppuccin-theme)
+(package! base16-theme)
+(package! multiple-cursors)
+(package! helix)

@@ -24,7 +24,7 @@
        workspaces          ; tab-emulation
 
        :editor
-       (evil +everywhere)  ; vim-keybindings
+       (evil +everywhere)  ; vim-keybindings (disabled: using helix-mode instead)
        file-templates      ; snippets für leere dateien
        fold                ; code-folding
        snippets            ; snippets

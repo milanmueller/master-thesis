@@ -1,15 +1,39 @@
 ;;; config.el -*- lexical-binding: t; -*-
 
+;; Remove window titlebar/decorations
+(add-to-list 'default-frame-alist '(undecorated . t))
+
 ;; General Config
-(setq doom-theme 'doom-one)
+;; Parse OSC 4 color definitions from ~/.zshrc and populate Emacs's color table,
+;; so base16-theme 'colors source works in GUI Emacs.
+(defun my/load-terminal-colors-from-zshrc ()
+  (with-temp-buffer
+    (insert-file-contents (expand-file-name "~/.zshrc"))
+    (goto-char (point-min))
+    (while (re-search-forward
+            (rx "\\033]4;" (group (+ digit)) ";rgb:"
+                (group (= 2 hex)) "/" (group (= 2 hex)) "/" (group (= 2 hex)))
+            nil t)
+      (let* ((slot (string-to-number (match-string 1)))
+             (r    (* (string-to-number (match-string 2) 16) 257))
+             (g    (* (string-to-number (match-string 3) 16) 257))
+             (b    (* (string-to-number (match-string 4) 16) 257)))
+        (tty-color-define (format "color-%d" slot) slot (list r g b))))))
+(my/load-terminal-colors-from-zshrc)
+(add-hook 'after-make-frame-functions (lambda (_) (my/load-terminal-colors-from-zshrc)))
+
+(setq base16-theme-256-color-source 'colors)
+(setq doom-theme 'base16-gruvbox-light-hard)
 (setq display-line-numbers-type 'relative)
 (global-display-line-numbers-mode t)
 (setq shell-file-name (executable-find "bash"))
-(setq doom-theme 'catppuccin)
-(setq catppuccin-flavor 'latte)
+; (setq catppuccin-flavor 'latte)
 (setq-default tab-width 2)
 (setq window-divider-default-right-width 4
       window-divider-default-bottom-width 4)
+;; Use Helix Mode
+(use-package helix :ensure t :config (helix-mode))
+(helix-mode)
 
 ;; Isabelle Setup
 (use-package! isar-mode
@@ -48,7 +72,7 @@
   (push (expand-file-name "isabelle-emacs/src/Tools/emacs-lsp/yasnippet" (getenv "USER_HOME"))
    yas-snippet-dirs)
   (setq lsp-isar-path-to-isabelle (expand-file-name "isabelle-emacs" (getenv "USER_HOME")))
-  (setq lsp-isabelle-options (list "-l" "Isabelle_LLVM"))
+  (setq lsp-isabelle-options (list "-l" "DevBase"))
 )
 ;; https://github.com/m-fleury/isabelle-release/issues/21
 (defun ~/evil-motion-range--wrapper (fn &rest args)

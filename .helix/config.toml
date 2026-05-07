@@ -1,2 +1,5 @@
 [editor.soft-wrap]
 enable = true
+
+[keys.normal]
+C-A-i = ":pipe sed 's/.*/\\\\textit{&}/'"
