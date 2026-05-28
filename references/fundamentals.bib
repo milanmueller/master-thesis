@@ -1,0 +1,140 @@
+@article{computational-logic-origins,
+	author = {Paulson, Lawrence C.},
+	title = {Computational logic: its origins and applications},
+	journal = {Proceedings of the Royal Society A: Mathematical, Physical and
+	           Engineering Sciences},
+	volume = {474},
+	number = {2210},
+	pages = {20170872},
+	year = {2018},
+	month = {02},
+	abstract = {Computational logic is the use of computers to establish facts
+	            in a logical formalism. Originating in nineteenth century
+	            attempts to understand the nature of mathematical reasoning, the
+	            subject now comprises a wide variety of formalisms, techniques
+	            and technologies. One strand of work follows the ‘logic for
+	            computable functions (LCF) approach’ pioneered by Robin Milner,
+	            where proofs can be constructed interactively or with the help of
+	            users’ code (which does not compromise correctness). A refinement
+	            of LCF, called Isabelle, retains these advantages while providing
+	            flexibility in the choice of logical formalism and much stronger
+	            automation. The main application of these techniques has been to
+	            prove the correctness of hardware and software systems, but
+	            increasingly researchers have been applying them to mathematics
+	            itself.},
+	issn = {1364-5021},
+	doi = {10.1098/rspa.2017.0872},
+	url = {https://doi.org/10.1098/rspa.2017.0872},
+	eprint = {
+	          https://royalsocietypublishing.org/rspa/article-pdf/doi/10.1098/rspa.2017.0872/366398/rspa.2017.0872.pdf
+	          },
+}
+@article{Incompleteness-AFP,
+	author = {Lawrence C. Paulson},
+	title = {Gödel's Incompleteness Theorems},
+	journal = {Archive of Formal Proofs},
+	month = {November},
+	year = {2013},
+	note = {\url{https://isa-afp.org/entries/Incompleteness.html}, Formal proof
+	        development},
+	ISSN = {2150-914x},
+}
+@article{Prime_Number_Theorem-AFP,
+	author = {Manuel Eberl and Lawrence C. Paulson},
+	title = {The Prime Number Theorem},
+	journal = {Archive of Formal Proofs},
+	month = {September},
+	year = {2018},
+	note = {\url{https://isa-afp.org/entries/Prime_Number_Theorem.html}, Formal
+	        proof development},
+	ISSN = {2150-914x},
+}
+@article{seL4,
+	author = {Klein, Gerwin and Andronick, June and Elphinstone, Kevin and
+	          Murray, Toby and Sewell, Thomas and Kolanski, Rafal and Heiser,
+	          Gernot},
+	title = {Comprehensive formal verification of an OS microkernel},
+	year = {2014},
+	issue_date = {February 2014},
+	publisher = {Association for Computing Machinery},
+	address = {New York, NY, USA},
+	volume = {32},
+	number = {1},
+	issn = {0734-2071},
+	url = {https://doi.org/10.1145/2560537},
+	doi = {10.1145/2560537},
+	abstract = {We present an in-depth coverage of the comprehensive
+	            machine-checked formal verification of seL4, a general-purpose
+	            operating system microkernel.We discuss the kernel design we used
+	            to make its verification tractable. We then describe the
+	            functional correctness proof of the kernel's C implementation and
+	            we cover further steps that transform this result into a
+	            comprehensive formal verification of the kernel: a formally
+	            verified IPC fastpath, a proof that the binary code of the kernel
+	            correctly implements the C semantics, a proof of correct
+	            access-control enforcement, a proof of information-flow
+	            noninterference, a sound worst-case execution time analysis of
+	            the binary, and an automatic initialiser for user-level systems
+	            that connects kernel-level access-control enforcement with
+	            reasoning about system behaviour. We summarise these results and
+	            show how they integrate to form a coherent overall analysis,
+	            backed by machine-checked, end-to-end theorems.The seL4
+	            microkernel is currently not just the only general-purpose
+	            operating system kernel that is fully formally verified to this
+	            degree. It is also the only example of formal proof of this scale
+	            that is kept current as the requirements, design and
+	            implementation of the system evolve over almost a decade. We
+	            report on our experience in maintaining this evolving formally
+	            verified code base.},
+	journal = {ACM Trans. Comput. Syst.},
+	month = feb,
+	articleno = {2},
+	numpages = {70},
+	keywords = {Isabelle/HOL, L4, microkernel, operating systems, seL4},
+}
+@article{Prime-Number-Theorem-Avigad,
+	author = {Avigad, Jeremy and Donnelly, Kevin and Gray, David and Raff, Paul},
+	title = {A formally verified proof of the prime number theorem},
+	year = {2007},
+	issue_date = {December 2007},
+	publisher = {Association for Computing Machinery},
+	address = {New York, NY, USA},
+	volume = {9},
+	number = {1},
+	issn = {1529-3785},
+	url = {https://doi.org/10.1145/1297658.1297660},
+	doi = {10.1145/1297658.1297660},
+	abstract = {The prime number theorem, established by Hadamard and de la Vall
+	            \'{e}e Poussin independently in 1896, asserts that the density of
+	            primes in the positive integers is asymptotic to 1/ln x. Whereas
+	            their proofs made serious use of the methods of complex analysis,
+	            elementary proofs were provided by Selberg and Erd\"{o}s in 1948.
+	            We describe a formally verified version of Selberg's proof,
+	            obtained using the Isabelle proof assistant.},
+	journal = {ACM Trans. Comput. Logic},
+	month = dec,
+	pages = {2–es},
+	numpages = {23},
+	keywords = {Prime number theorem, formal verification},
+}
+@inproceedings{isabelle-refinement-framework,
+	author = "Lammich, Peter and Tuerk, Thomas",
+	editor = "Beringer, Lennart and Felty, Amy",
+	title = "Applying Data Refinement for Monadic Programs to Hopcroft's
+	         Algorithm",
+	booktitle = "Interactive Theorem Proving",
+	year = "2012",
+	publisher = "Springer Berlin Heidelberg",
+	address = "Berlin, Heidelberg",
+	pages = "166--182",
+	abstract = "We provide a framework for program and data refinement in
+	            Isabelle/HOL. It is based on a refinement calculus for monadic
+	            expressions and provides tools to automate canonical tasks such
+	            as verification condition generation. It produces executable
+	            programs, from which Isabelle/HOL can generate verified,
+	            efficient code in various languages, including Standard ML,
+	            Haskell and Scala.",
+	isbn = "978-3-642-32347-8",
+}
+
+

@@ -1,1 +1,37 @@
 \section{\iflanguage{english}{Fundamentals}{Grundlagen}}\label{sec:fundamentals}
+
+
+\subsection{Isabelle/HOL}
+
+The proof assistant \textit{Isabelle} \cite{isabelle} enables the writing of machine checked formal proofs for properties of mathematical objects.
+Following the LCF approach \cite{computational-logic-origins}, Isabelle employs a small kernel of logical inference rules for verifying the correctness of user-defined proofs, such that, in principle, correctness of the kernels inference engine implies correctness of the proofs. \\
+To interactively construct proofs, the user can utilize and combine a variety of proof tactics, ranging from fundamental deductive concepts, like case analysis and induction to more complex automated methods.
+An example of the later is the \texttt{smt} tactic \todo{Reference} which offloads reasoning work to an external SMT-solver and then reconstructs its returned proof artifact using other, typically simpler, proof tactics on the Isabelle side to obtain a valid proof that Isabelle's kernel will accept.
+Potential errors in a proof tactic will not lead to acceptance of an unsound proof since the kernel will check and potentially reject inference steps if they are not valid.
+By relying on only a small kernel to be correct, proofs accepted by Isabelle have a high probability of being correct, compared to other approach to computational logic which might rely on large code bases, with many inference rules and special cases, to not contain errors. \todo{Give some examples of that}
+
+The core Isabelle system, more precisely referred to as \textit{Isabelle/Pure}, is a generic theorem proving framework, meaning it can serve as a basis for implementation of different logical theories with distinct axioms.
+The most widespread instance of Isabelle is \textit{Isabelle/HOL}, which is an axiomatization of simply typed higher order logic on top of Isabelle/Pure, which is also used in this thesis.
+We will refer to Isabelle and Isabelle/HOL interchangeably in the following sections.
+
+Isabelle has been used for formalizations from various domains, including fundamentals of mathematics, e.g. Gödel's Incompleteness Theorems \cite{Incompleteness-AFP} or the Prime Number Theorem \cite{Prime-Number-Theorem-Avigad} \cite{Prime_Number_Theorem-AFP}, but also the verification of computer systems, for instance in the seL4 OS microkernel \cite{seL4}. \\
+In this thesis, we use Isabelle for the formal verification of computer programs, meaning we consider an abstract, formal model of a program and then use Isabelle's proof tactics to verify correctness properties of that model, which we then relate to correctness of the concrete program.\\
+An intrinsic challenge with this approach is the accuracy of our model, since correctness of the model is meaningless if the model does not accurately represent the behavior of the program's implementation.
+This is particularly challenging if the concrete program is an implementation in a high level language, for which it might be challenging to formally specify the language's semantics \todo{example}.
+
+We use the framework Isabelle-LLVM \cite{isabelle-llvm} which employs top-down refinement to start with an abstract model and then iteratively move towards the concrete implementation, ultimately generating verified LLVM-IR \todo{reference} code, contrary to to the previously described approach of abstracting an existing concrete program.
+
+\subsection{Isabelle-LLVM}
+
+The Isabelle-LLVM Framework enables the generation of formally verified LLVM code.
+It builds on the older Isabelle Refinement Framework \cite{isabelle-refinement-framework} which introduced a stepwise refinement approach to the verification of functional programs, tackling one of the main challenges of verifying complex computer programs: \\
+On-paper correctness proofs of programs often assume idealized operations, e.g. computing the union of two sets, which allows for simple proofs, but also adds a layer of abstraction over an actual implementation that might use complex data structures, e.g. hashing or tree-based structures, to efficiently implement the idealized operations.
+In such a case, the correctness proof, which is relative to the idealized operation, is meaningless for the concrete implementation. \\
+In turn, correctness proofs without such abstractions might be infeasibly complex to carry out, as they always need to consider the behavior the the used data structures.
+
+With the refinement approach, such proofs can be separated into multiple steps; an initial, \enquote{high-level} proof can use abstract, idealized objects like sets for overall correctness of the program.
+Then, in a second step, the proof can be refined by replacing the abstract object with a concrete data structure.
+This second step only has to prove that the concrete data structure behaves like the idealized object in every case.
+Overall correctness then follows by transitivity.
+\todo{This whole section is too abstract. Give formal description}
+

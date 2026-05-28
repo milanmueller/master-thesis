@@ -106,6 +106,9 @@
                   export EMACS="${pkgs.emacs}/bin/emacs"
                   exec ${isabelle-fhs}/bin/isabelle-fhs -c '"$EMACSDIR/bin/doom" "$@"' doom "$@"
                 '')
+                (pkgs.writeShellScriptBin "isabelle" ''
+                  exec ${isabelle-fhs}/bin/isabelle-fhs -c '"./isabelle-emacs/bin/isabelle" "$@"' isabelle "$@"
+                '')
                 # Doom Emacs wants this
                 symbola
                 fd

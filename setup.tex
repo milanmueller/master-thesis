@@ -20,18 +20,89 @@
 
 % UTILITIES
 
+\usepackage{csquotes}
 \usepackage{amsmath, amsthm, amsfonts, mathtools}
 \usepackage{siunitx}
 \usepackage{hyperref}
 \usepackage[all]{hypcap} % to show the full figure when clicking on it's reference
 \usepackage[dvipsnames]{xcolor}
 \usepackage{graphicx}
+\usepackage{eso-pic}
+\AddToShipoutPictureBG {%
+  \AtPageLowerLeft {%
+    \raisebox{0.35\paperheight}{%
+      \hspace{1cm}%
+      \rotatebox[origin=l]{45}{%
+      \textcolor{gray!20}{%
+        \fontsize{30}{36}\selectfont\bfseries
+        \begin{tabular}{@{}l@{}}
+          Very early draft! \\
+          Information might be wrong,\\
+          references might be incomplete.\\
+          Wording is most likely suboptimal
+        \end{tabular}%
+      }%
+    }%
+  }%
+  }%
+}
 \usepackage[labelfont=bf, labelsep=colon, format=hang]{caption} % Make image captions nicer
 \usepackage{booktabs} % nicer tables
 \usepackage{listings} % to include code
 \renewcommand{\lstlistingname}{Algorithm}
 \lstset{keywordstyle=\bfseries}
 \lstset{commentstyle=\color{cd_blue}\bfseries}
+
+\lstdefinelanguage{Isabelle}{%
+  keywords=[1]{theory,begin,end,imports,keywords},
+  keywords=[2]{definition,fun,function,datatype,type_synonym,record,
+    abbreviation,notation,class,instance,locale,context,interpretation,
+    sublocale,global_interpretation,inductive,coinductive,
+    primrec,primcorec,typedef,setup,declare,
+    lemma,theorem,corollary,proposition,conjecture,example,
+    value,export_code},
+  keywords=[3]{proof,qed,by,done,sorry,apply,
+    have,show,assume,obtain,let,fix,
+    from,with,using,unfolding,
+    also,finally,ultimately,next,case,then,hence,thus,and,where},
+  keywords=[4]{auto,simp,blast,force,fastforce,clarify,clarsimp,
+    rule,erule,drule,frule,intro,elim,
+    induction,induct,cases,
+    subst,unfold,arith,omega,linarith,algebra,metis,meson,smt,transfer},
+  sensitive=true,
+  morecomment=[s]{(*}{*)},
+  morecomment=[l]{--},
+  morestring=[b]",
+  literate=
+    {-->}{{$\longrightarrow$}}3
+    {<->}{{$\leftrightarrow$}}3
+    {...}{{$\ldots$}}3
+    {=>}{{$\Rightarrow$}}2
+    {->}{{$\rightarrow$}}2
+    {~=}{{$\neq$}}2
+    {<=}{{$\leq$}}2
+    {>=}{{$\geq$}}2,
+}
+
+\lstdefinestyle{isabellestyle}{%
+  language=Isabelle,
+  basicstyle=\ttfamily\small,
+  keywordstyle=[1]\color{cd_blue}\bfseries,
+  keywordstyle=[2]\color{cd_blue}\bfseries,
+  keywordstyle=[3]\color{cd_background_dark_blue}\bfseries,
+  keywordstyle=[4]\color{cd_additional_green_100_percent},
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{cd_additional_brown_100_percent},
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false,
+  frame=tb,
+  framesep=6pt,
+  backgroundcolor=\color{cd_background_sand_50_percent},
+  xleftmargin=1em,
+  xrightmargin=1em,
+  captionpos=b,
+}
 \usepackage[section]{placeins}  % To keep all figures inside there section
 \usepackage[stylemods=longextra, symbols, automake]{glossaries-extra}
 \usepackage{pdfpages} % to include PDFs
