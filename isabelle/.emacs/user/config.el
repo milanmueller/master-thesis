@@ -1,5 +1,13 @@
 ;;; config.el -*- lexical-binding: t; -*-
 
+;; Toggle comment on region or current line
+(defun my/toggle-comment ()
+  (interactive)
+  (if (use-region-p)
+      (comment-or-uncomment-region (region-beginning) (region-end))
+    (comment-line 1)))
+(global-set-key (kbd "C-/") #'my/toggle-comment)
+
 ;; Remove window titlebar/decorations
 (add-to-list 'default-frame-alist '(undecorated . t))
 
@@ -23,11 +31,11 @@
 (add-hook 'after-make-frame-functions (lambda (_) (my/load-terminal-colors-from-zshrc)))
 
 (setq base16-theme-256-color-source 'colors)
-(setq doom-theme 'base16-gruvbox-light-hard)
+(setq doom-theme 'catppuccin)
 (setq display-line-numbers-type 'relative)
 (global-display-line-numbers-mode t)
 (setq shell-file-name (executable-find "bash"))
-; (setq catppuccin-flavor 'latte)
+(setq catppuccin-flavor 'latte)
 (setq-default tab-width 2)
 (setq window-divider-default-right-width 4
       window-divider-default-bottom-width 4)
