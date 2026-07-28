@@ -2,3 +2,16 @@
 name = "latex"
 formatter = { command = "tex-fmt", args = ["--print", "--wrap", "120"] }
 auto-format = true
+
+# C driver for the PAC checker (PAC_Checker2/code). clang-format reads the
+# buffer on stdin and discovers the style from the nearest .clang-format
+# (code/.clang-format) by walking up from its working directory.
+[[language]]
+name = "c"
+formatter = { command = "clang-format" }
+auto-format = true
+
+[[language]]
+name = "cpp"
+formatter = { command = "clang-format" }
+auto-format = true
