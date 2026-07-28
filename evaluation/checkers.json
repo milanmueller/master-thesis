@@ -1,0 +1,66 @@
+{
+  "checkers": [
+    {
+      "id": "pacheck2",
+      "description": "Pacheck 2.0 (Kaufmann), C++ with GMP",
+      "binary": "pacheck",
+      "argv": ["{input}", "{proof}", "{target}"],
+      "verdict": {
+        "rules": [
+          { "stream": "stdout", "contains": "TARGET IS NOT INFERRED", "verdict": "NO_TARGET" },
+          { "stream": "stdout", "contains": "TARGET CHECKED", "verdict": "TARGET" },
+          { "stream": "stdout", "contains": "INFERENCES CHECKED", "verdict": "NO_TARGET" }
+        ],
+        "on_nonzero_exit": "INVALID",
+        "default": "UNKNOWN"
+      }
+    },
+    {
+      "id": "pasteque-sml",
+      "description": "Pasteque, Imperative-HOL/MLton backend, shared variables (Efficient)",
+      "binary": "pasteque-sml",
+      "argv": ["{input}", "{proof}", "{target}"],
+      "verdict": {
+        "comment": "always exits 0; the verdict is only on stdout",
+        "rules": [
+          { "stream": "stdout", "contains": "parsing failed with error", "verdict": "ERROR" },
+          { "stream": "stdout", "contains": "s PAC FAILED", "verdict": "INVALID" },
+          { "stream": "stdout", "contains": "s FAILED, but correct PAC", "verdict": "NO_TARGET" },
+          { "stream": "stdout", "contains": "s SUCCESSFULL", "verdict": "TARGET" }
+        ],
+        "default": "UNKNOWN"
+      }
+    },
+    {
+      "id": "pasteque-llvm",
+      "description": "Pasteque, Isabelle-LLVM backend, non-shared variables",
+      "binary": "pasteque",
+      "argv": ["{input}", "{proof}", "{target}"],
+      "verdict": {
+        "comment": "prints the status byte on stdout: 0 SUCCESS, 1 FOUND, 2 FAILED; exit 2 = usage/IO",
+        "exit_codes": { "2": "ERROR" },
+        "rules": [
+          { "stream": "stdout", "matches": "^1$", "verdict": "TARGET" },
+          { "stream": "stdout", "matches": "^0$", "verdict": "NO_TARGET" },
+          { "stream": "stdout", "matches": "^2$", "verdict": "INVALID" }
+        ],
+        "default": "UNKNOWN"
+      }
+    },
+    {
+      "id": "pasteque-llvm-shared",
+      "description": "Pasteque, Isabelle-LLVM backend, shared variables",
+      "binary": "pasteque_shared",
+      "argv": ["{input}", "{proof}", "{target}"],
+      "verdict": {
+        "exit_codes": { "2": "ERROR" },
+        "rules": [
+          { "stream": "stdout", "matches": "^1$", "verdict": "TARGET" },
+          { "stream": "stdout", "matches": "^0$", "verdict": "NO_TARGET" },
+          { "stream": "stdout", "matches": "^2$", "verdict": "INVALID" }
+        ],
+        "default": "UNKNOWN"
+      }
+    }
+  ]
+}

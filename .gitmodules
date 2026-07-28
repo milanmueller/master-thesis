@@ -16,3 +16,6 @@
 [submodule "isabelle/IsaFoL-Pasteque-LLVM"]
 	path = isabelle/IsaFoL-Pasteque-LLVM
 	url = git@github.com:milanmueller/IsaFoL.git
+[submodule "evaluation/pacheck2"]
+	path = evaluation/pacheck2
+	url = https://github.com/d-kfmnn/pacheck2
