@@ -1,1 +1,50 @@
 \section{\iflanguage{english}{Methodology}{Herangehensweise}}\label{sec:methodology}
+
+This section describes the changes made to the implementation of Pastèque to move from the Imperative-HOL refinement target to LLVM.
+We discuss how polynomials are represented on the abstract HOL level and which concrete data structures are required to refine these representations to LLVM code.
+
+\subsection{High-Level Representation of Polynomials}\label{sec:methodology_high-level-representation-of-polynomials}
+In Isabelle-HOL, we use the \inlinecode{list} and \inlinecode{prod} (product) compound types to construct new datatypes from existing ones.
+Let \inlinecode{'a}, \inlinecode{'b} be some datatypes, then \inlinecode{'a list} describes the type of a list of elements of type \inlinecode{'a}.
+Similarly, \inlinecode{prod 'a 'b} is the type of tuples \inlinecode{(a, b)}, where \inlinecode{a} is of type \inlinecode{'a} and \inlinecode{b} is of type \inlinecode{'b}.
+For products, we typically use the infix notation \inlinecode{'a \\<times> 'b}, which is syntactic sugar for \inlinecode{prod 'a 'b}.\par
+Isabelle-HOL also defines the types \inlinecode{int} (integers) and \inlinecode{string = char list}, where we can consider \inlinecode{char} to be byte representing a single character in ASCII encoding.
+
+These types then allow us to define polynomials as they are used in the high-level Pastèque algorithms:
+\begin{itemize}[noitemsep, topsep=0pt, parsep=0pt]
+  \item \inlinecode{variable} $:=$ \inlinecode{string}
+  \item \inlinecode{term} $:=$ \inlinecode{variable list}
+  \item \inlinecode{monomial} $:=$ \inlinecode{term \\<times> int}
+  \item \inlinecode{polynomial} $:=$ \inlinecode{monomial list}
+\end{itemize}
+Note that the nomenclature follows the PAC syntax presented in \cite{pac-2024}.\par
+Unfolding the type of a \inlinecode{polynomial} gives us \inlinecode{(char list list \\<times> int) list},
+a concrete program that refines an abstract program that uses \inlinecode{polynomial}, must be able to refine this datatype and support operations such as adding an element to a list, or multiplying two integers.
+This observation reveals two critical obstacles for migrating Pastèque from the Imperative-HOL refinement target to LLVM:
+
+\begin{enumerate}
+  \item The Isabelle-HOL \inlinecode{int} type is unbounded and can hold arbitrarily large numbers.
+  The Imperative-HOL backend, which produces SML code that is compiled by MLton \todo{citation}, supports this natively.
+  LLVM only supports bounded numbers, represented as machine words of a fixed width.
+  Eberl et al. have used bindings to GMP \cite{gmp} to implement a verified algorithm for computing Bernoulli numbers \cite{eberl-bernoulli-numbers}.
+  We choose a different approach and use a native library for arbitrary precision numbers, created by Spinei \todo{How can we cite Mihai?}.
+  This library implements addition and multiplication for unsigned numbers, and can thus refine these operations when applied to natural numbers.
+  To use it for Pastèque, we have to extend these operations to support signed numbers, i.e. integers.
+  Furthermore, we need to implement conversion between numbers and strings, which is required for printing error messages and parsing input files.\par
+  Section \ref{sec:native-arbitrary-precision-integers-for-isabelle-llvm} discusses the work on arbitrary-precision integers.
+  \item To our knowledge, Isabelle-LLVM does not include an implementation of nestable lists. We therefore have to extend the existing list implementation to be able to hold impure elements \todo{introduce impurity in Isabelle-LLVM}.
+  This allows us to nest lists and thus refine \inlinecode{polynomial} as introduced above.\par
+  Pastèque also uses two other data structures, for which we could not find an appropriate existing refinement target in Isabelle-LLVM.\par
+  Firstly, Pastèque stores \inlinecode{polynomial}s in a map where each polynomial is assigned an index.
+  While typically $n$ \inlinecode{polynomial}s are mapped to indices $1,\dots,n$, i.e. each index is inhabited, the initial state of the map is the result of parsing the input files, and there is no guarantee that input files are well-formed.
+  This means that our map data structure must be able to represent a state where an index in the map might be uninhabited.\par
+  Secondly, Pastèque also uses a hashset to track assigned variables \todo{is that actually the purpose of the hashset?}.
+  We therefore have to implement a refinement target for hashsets.\par
+  Section \ref{sec:low-level-datatypes-in-isabelle-llvm} discusses the implementation of the new required datatypes.
+
+  
+\end{enumerate}
+
+\subsection{Native Arbitrary Precision Integers for Isabelle-LLVM}\label{sec:native-arbitrary-precision-integers-for-isabelle-llvm}
+
+\subsection{New Low-Level Datatypes in Isabelle-LLVM}\label{sec:low-level-datatypes-in-isabelle-llvm}
