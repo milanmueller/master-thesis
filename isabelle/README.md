@@ -9,3 +9,4 @@ This folder contains all contributed Isabelle theories. It is organized as follo
 
 ToDo:
 - Fork IsaFoL (or maybe just Pastèque?) to migrate it to LLVM with custom c parser.
+- [ ] LLVM Makefile should have `-flto` flag enabled!
