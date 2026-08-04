@@ -1,5 +1,96 @@
 \section{Motivation}\label{sec:motivation}
 
+\subsection{The Practical Algebraic Calculus}
+
+Logical circuits are the fundamental building blocks of all computers, their correctness is crucial for the safety and reliability of computer systems.\\
+Since there are only finitely many possible input configurations for a logical circuit, correctness can in principle be proven by simply evaluating all possible inputs.
+In practice however, this is often infeasible due to the exponential size of the search space.
+For instance, a multiplier circuit for 64-bit integers has $2^{128}$ possible input combinations.
+Assuming it takes one nanosecond to validate correctness of one input configuration, validating all possible input configurations would take more than $10^{22}$ years.
+
+The practical algebraic calculus \cite{pac-2018} proposes a proof system to reason about the semantics of digital circuits using polynomial calculus.
+As an example, consider \Cref{fig:2bit-multiplier} which shows a 2-bit multiplier.
+For simplicity, we assume half adders with the usual semantic.\\
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    circuit logic US,
+    every circuit symbol/.style={fill=white},
+    and gate/.append style={scale=1.2},
+    box/.style={draw, rounded corners=1pt, minimum width=1.1cm, minimum height=0.85cm, font=\scriptsize, fill=white},
+    wire/.style={-},
+    pp/.style={font=\footnotesize},
+    outlbl/.style={font=\scriptsize\bfseries},
+    x=1.4cm, y=1cm,
+  ]
+
+  % ---- signals flow LEFT -> RIGHT; y = bit weight (p0 top, p3 bottom) ----
+
+  % =========================================================
+  % Partial-product AND gates (4)  (output points east)
+  % =========================================================
+  \node[and gate] (g00) at (0,4)   {};
+  \node[and gate] (g10) at (0,3) {};
+  \node[and gate] (g01) at (0,2) {};
+  \node[and gate] (g11) at (0,1) {};
+
+  \node[pp, left=3pt of g00, yshift=5pt] {$a_0$};
+  \node[pp, left=3pt of g00, yshift=-5pt] {$b_0$};
+  \node[pp, left=3pt of g10, yshift=5pt] {$a_1$};
+  \node[pp, left=3pt of g10, yshift=-5pt] {$b_0$};
+  \node[pp, left=3pt of g01, yshift=5pt] {$a_0$};
+  \node[pp, left=3pt of g01, yshift=-5pt] {$b_1$};
+  \node[pp, left=3pt of g11, yshift=5pt] {$a_1$};
+  \node[pp, left=3pt of g11, yshift=-5pt] {$b_1$};
+
+  \node[pp, right=1pt of g10, yshift=6pt, xshift=-0.4pt] {$ab_1$};
+  \node[pp, right=1pt of g01, yshift=6pt, xshift=-0.4pt] {$ab_2$};
+  \node[pp, right=1pt of g11, yshift=6pt, xshift=-0.4pt] {$ab_3$};
+
+  % short input stubs (to the west) so the gates read as 2-input gates
+  \foreach \g in {g00,g10,g01,g11}{
+    \draw[wire] (\g.input 1) -- ++(-0.16,0);
+    \draw[wire] (\g.input 2) -- ++(-0.16,0);
+  }
+
+  % =========================================================
+  % HA1 @ weight 1 (half adder), FA @ weight 2 (full adder)
+  % =========================================================
+  \node[box] (ha1) at (2,2.5) {HA};
+  \node[box] (ha2) at (3,1.2) {HA};
+
+  \node[pp, below of=ha1, xshift=8pt, yshift=10pt] {$c_0$};
+
+  % =========================================================
+  % wiring: PP -> adders
+  % =========================================================
+  % a1b0, a0b1 -> HA1 (two west inputs; bends staggered near the gates
+  % so the pair reads as two separate wires, not one bus bar)
+  \draw[wire] (g10.output) -- ++(0.6,0) |- ([yshift=6pt]ha1.west);
+  \draw[wire] (g01.output) -- ++(0.6,0) |- ([yshift=-6pt]ha1.west);
+
+  % a1b1 -> FA west (top input)
+  \draw[wire] (g11.output) -| ([yshift=-6pt]ha2.west);
+
+  % carry HA1 -> FA  (drops down, enters FA from the north)
+  \draw[wire] (ha1.south) -- ++(0,-0.7) -| ([yshift=6pt]ha2.west);
+
+  % =========================================================
+  % outputs p0..p3 (to the east)
+  % =========================================================
+  \draw[wire] (g00.output) -- (4,4)   node[outlbl, right] {$p_0$};
+  \draw[wire] (ha1.east)   -- (4,2.5) node[outlbl, right] {$p_1$};
+  \draw[wire] (ha2.east)   -- (4,1.2) node[outlbl, right] {$p_2$};
+  \draw[wire] (ha2.south)  |- (4,0)   node[outlbl, right] {$p_3$};
+
+  \end{tikzpicture}
+  \caption{Simple two-bit multiplier using half adders}% TODO: write caption
+  \label{fig:2bit-multiplier}
+\end{figure}
+
+\subsection{Program Verification with Isabelle LLVM}
+
 One of the main challenges that every non-trivial software project is certain to face eventually, is the existence of unforeseen errors.
 Examples of such errors include out-of-bounds errors, use-after-free errors, or semantic errors in overlooked edge-cases, leading to crashes or otherwise unintended program behavior\todo{source of claim}. \\
 In critical systems, e.g. authentication engines or medical applications, such errors might lead to severe issues like exposure of sensitive data to bad actors\todo{Some example data breach}, or even pose danger to human lives\todo{The malfunctioning radiation device}.\\

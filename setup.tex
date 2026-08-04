@@ -25,15 +25,18 @@
 \usepackage{siunitx}
 \usepackage{hyperref}
 \usepackage[all]{hypcap} % to show the full figure when clicking on it's reference
+\usepackage{cleveref} % for \cref/\Cref smart references
 \usepackage[dvipsnames]{xcolor}
 \usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{circuits.logic.US, positioning, calc}
 \usepackage{eso-pic}
 \AddToShipoutPictureBG {%
   \AtPageLowerLeft {%
     \raisebox{0.35\paperheight}{%
       \hspace{1cm}%
       \rotatebox[origin=l]{45}{%
-      \textcolor{gray!20}{%
+      \textcolor{gray!10}{%
         \fontsize{30}{36}\selectfont\bfseries
         \begin{tabular}{@{}l@{}}
           Very early draft! \\
@@ -48,6 +51,7 @@
 }
 \usepackage[labelfont=bf, labelsep=colon, format=hang]{caption} % Make image captions nicer
 \usepackage{booktabs} % nicer tables
+\usepackage{enumitem} % control list spacing (parskip otherwise makes itemize very loose)
 \usepackage{listings} % to include code
 \renewcommand{\lstlistingname}{Algorithm}
 \lstset{keywordstyle=\bfseries}
@@ -81,7 +85,8 @@
     {->}{{$\rightarrow$}}2
     {~=}{{$\neq$}}2
     {<=}{{$\leq$}}2
-    {>=}{{$\geq$}}2,
+    {>=}{{$\geq$}}2
+    {\\<times>}{{$\times$}}2,
 }
 
 \lstdefinestyle{isabellestyle}{%
@@ -103,6 +108,21 @@
   xrightmargin=1em,
   captionpos=b,
 }
+
+\lstdefinestyle{isabelleinline}{%
+  language=Isabelle,
+  basicstyle=\ttfamily,
+  keywordstyle=[1]\color{cd_blue}\bfseries,
+  keywordstyle=[2]\color{cd_blue}\bfseries,
+  keywordstyle=[3]\color{cd_background_dark_blue}\bfseries,
+  keywordstyle=[4]\color{cd_additional_green_100_percent},
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{cd_additional_brown_100_percent},
+  showstringspaces=false,
+  breaklines=true,
+}
+\newcommand{\inlinecode}{\lstinline[style=isabelleinline]}
+
 \usepackage[section]{placeins}  % To keep all figures inside there section
 \usepackage[stylemods=longextra, symbols, automake]{glossaries-extra}
 \usepackage{pdfpages} % to include PDFs
@@ -111,6 +131,7 @@
 \usepackage[backend=bibtex,style=numeric,sorting=none]{biblatex}  % Modern bibliography management
 \addbibresource{references/motivation.bib}
 \addbibresource{references/fundamentals.bib}
+\addbibresource{references/methodology.bib}
 % Remove the next two lines for the final version without ToDos
 \usepackage[colorinlistoftodos]{todonotes}
 \setlength{\marginparwidth}{2cm} % make space for the ToDos

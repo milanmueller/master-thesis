@@ -1,12 +1,31 @@
 \section{\iflanguage{english}{Fundamentals}{Grundlagen}}\label{sec:fundamentals}
 
+\subsection{The Practical Algebraic Calculus}
+
+This section introduces the practical algebraic calculus (PAC).
+For a thorough introduction on PAC, in particular the underlying concepts and their use in verification of digital circuits, we refer to to the work by Kaufmann et al. \cite{pac-2018} \cite{pac-2024} \cite{kaufmann-phd-thesis}.
+Here, we only introduce the foundations that are used in PAC checking and are thus relevant to our work on Pastèque:
+\begin{itemize}[noitemsep, topsep=0pt, parsep=0pt]
+  \item We consider multivariate polynomials $\mathbb{K}[X]$ with variables $X$ and coefficients in field $\mathbb{K}$.
+  \item For a set $P \subseteq \mathbb{K}[X]$, a \textit{model} is a point $x$ such that every $p \in P$ is 0 at $x$. i.e. $\forall p \in P. p(x) = 0$.
+  \item A nonemtpy subset $I \subseteq \mathbb{K}[X]$ is called \textit{ideal} if it is closed under multiplication and addition, i.e.
+$I$ is an ideal iff. for all $i_1,i_2\in I$ and $p \in \mathbb{K}[X]$ we have $i_1 + i_2 \in I$ and $p \cdot i_1 \in I$.
+  \item A set $B = \{ b_1, \dots, b_n \} \subseteq \mathbb{K}[X]$ is a basis of an ideal $I$, if $I = \{q_1 \cdot b_1 + \dots + q_n \cdot b_n \mid q_1, \dots, q_n \in \mathbb{K}[X]\}$, we denote this by $I = \langle B \rangle$.
+\end{itemize}
+A proof step in the 
+
+A PAC checker is now given as input:
+\begin{itemize}[noitemsep, topsep=0pt, parsep=0pt]
+  \item Input polynomials $G \subseteq \mathbb{K}[X]$
+  \item A specification $f$
+\end{itemize}
 
 \subsection{Isabelle/HOL}
 
 The proof assistant \textit{Isabelle} \cite{isabelle} enables the writing of machine checked formal proofs for properties of mathematical objects.
 Following the LCF approach \cite{computational-logic-origins}, Isabelle employs a small kernel of logical inference rules for verifying the correctness of user-defined proofs, such that, in principle, correctness of the kernels inference engine implies correctness of the proofs. \\
 To interactively construct proofs, the user can utilize and combine a variety of proof tactics, ranging from fundamental deductive concepts, like case analysis and induction to more complex automated methods.
-An example of the later is the \texttt{smt} tactic \todo{Reference} which offloads reasoning work to an external SMT-solver and then reconstructs its returned proof artifact using other, typically simpler, proof tactics on the Isabelle side to obtain a valid proof that Isabelle's kernel will accept.
+An example of the later is the \texttt{smt} tactic \todo{Reference} which offloads reasoning work to an external SMT-solver and then reconstructs its returned proof artifact using other proof tactics on the Isabelle side to obtain a valid proof that Isabelle's kernel will accept.
 Potential errors in a proof tactic will not lead to acceptance of an unsound proof since the kernel will check and potentially reject inference steps if they are not valid.
 By relying on only a small kernel to be correct, proofs accepted by Isabelle have a high probability of being correct, compared to other approach to computational logic which might rely on large code bases, with many inference rules and special cases, to not contain errors. \todo{Give some examples of that}
 
@@ -24,7 +43,7 @@ We use the framework Isabelle-LLVM \cite{isabelle-llvm} which employs top-down r
 \subsection{Isabelle-LLVM}
 
 The Isabelle-LLVM Framework enables the generation of formally verified LLVM code.
-It builds on the older Isabelle Refinement Framework \cite{isabelle-refinement-framework} which introduced a stepwise refinement approach to the verification of functional programs, tackling one of the main challenges of verifying complex computer programs: \\
+It builds on the older Isabelle Refinement Framework \cite{isabelle-refinement-framework} which introduces a stepwise refinement approach to the verification of functional programs, tackling one of the main challenges of verifying complex computer programs: \\
 On-paper correctness proofs of programs often assume idealized operations, e.g. computing the union of two sets, which allows for simple proofs, but also adds a layer of abstraction over an actual implementation that might use complex data structures, e.g. hashing or tree-based structures, to efficiently implement the idealized operations.
 In such a case, the correctness proof, which is relative to the idealized operation, is meaningless for the concrete implementation. \\
 In turn, correctness proofs without such abstractions might be infeasibly complex to carry out, as they always need to consider the behavior the the used data structures.

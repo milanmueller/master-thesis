@@ -136,5 +136,68 @@
 	            Haskell and Scala.",
 	isbn = "978-3-642-32347-8",
 }
+﻿@article{pac-2024,
+	author = {Kaufmann, Daniela and Fleury, Mathias and Biere, Armin and Kauers,
+	          Manuel},
+	title = {Practical algebraic calculus and Nullstellensatz with the checkers
+	         Pacheck and Past{\`e}que and Nuss-Checker},
+	journal = {Formal Methods in System Design},
+	year = {2024},
+	month = {Dec},
+	day = {01},
+	volume = {64},
+	number = {1},
+	pages = {73-107},
+	abstract = {Automated reasoning techniques based on computer algebra have
+	            seen renewed interest in recent years and are for example heavily
+	            used in formal verification of arithmetic circuits. However, the
+	            verification process might contain errors. Generating and
+	            checking proof certificates is important to increase the trust in
+	            automated reasoning tools. For algebraic reasoning, two proof
+	            systems, Nullstellensatz and polynomial calculus, are available
+	            and are well-known in proof complexity. A Nullstellensatz proof
+	            captures whether a polynomial can be represented as a linear
+	            combination of a given set of polynomials by providing the
+	            co-factors of the linear combination. Proofs in polynomial
+	            calculus dynamically capture that a polynomial can be derived
+	            from a given set of polynomials using algebraic ideal theory. In
+	            this article we present the practical algebraic calculus as an
+	            instantiation of the polynomial calculus that can be checked
+	            efficiently. We further modify the practical algebraic calculus
+	            and gain LPAC (practical algebraic calculus + linear
+	            combinations) that includes linear combinations. In this way we
+	            are not only able to represent both Nullstellensatz and
+	            polynomial calculus proofs, but we are also able to blend both
+	            proof formats. Furthermore, we introduce extension rules to
+	            simulate essential rewriting techniques required in practice. For
+	            efficiency we also make use of indices for existing polynomials
+	            and include deletion rules too. We demonstrate the different
+	            proof formats on the use case of arithmetic circuit verification
+	            and discuss how these proofs can be produced as a by-product in
+	            formal verification. We present the proof checkers Pacheck, Past{
+	            \`e}que, and Nuss-Checker. Pacheck checks proofs in practical
+	            algebraic calculus more efficiently than Past{\`e}que, but the
+	            latter is formally verified using the proof assistant
+	            Isabelle/HOL. The tool Nuss-Checker is used to check proofs in
+	            the Nullstellensatz format.},
+	issn = {1572-8102},
+	doi = {10.1007/s10703-022-00391-x},
+	url = {https://doi.org/10.1007/s10703-022-00391-x},
+}
+@phdthesis{kaufmann-phd-thesis,
+	author = {Kaufmann, Daniela},
+	title = {{Formal Verification of Multiplier Circuits using Computer Algebra}
+	         },
+	school = {Johannes Kepler University Linz},
+	address = {Linz, Austria},
+	month = mar,
+	year = {2020},
+	url = {
+	       https://danielakaufmann.at/wp-content/uploads/2020/11/Kaufmann-PhD-Thesis-2020.pdf
+	       },
+	urldate = {2026-07-30},
+}
+
+
 
 
