@@ -20,7 +20,7 @@ A PAC checker is now given as input:
   \item A specification $f$
 \end{itemize}
 
-\subsection{Isabelle/HOL}
+\subsection{Isabelle/HOL}\label{sec:isabelle-hol}
 
 The proof assistant \textit{Isabelle} \cite{isabelle} enables the writing of machine checked formal proofs for properties of mathematical objects.
 Following the LCF approach \cite{computational-logic-origins}, Isabelle employs a small kernel of logical inference rules for verifying the correctness of user-defined proofs, such that, in principle, correctness of the kernels inference engine implies correctness of the proofs. \\
@@ -38,19 +38,56 @@ In this thesis, we use Isabelle for the formal verification of computer programs
 An intrinsic challenge with this approach is the accuracy of our model, since correctness of the model is meaningless if the model does not accurately represent the behavior of the program's implementation.
 This is particularly challenging if the concrete program is an implementation in a high level language, for which it might be challenging to formally specify the language's semantics \todo{example}.
 
-We use the framework Isabelle-LLVM \cite{isabelle-llvm} which employs top-down refinement to start with an abstract model and then iteratively move towards the concrete implementation, ultimately generating verified LLVM-IR \todo{reference} code, contrary to to the previously described approach of abstracting an existing concrete program.
+I used the framework Isabelle-LLVM \cite{isabelle-llvm} which employs top-down refinement to start with an abstract model and then iteratively move towards the concrete implementation, ultimately generating verified LLVM-IR code, contrary to to the previously described approach of abstracting an existing concrete program.
 
-\subsection{Isabelle-LLVM}
+\subsection{Isabelle Refinement Framework}\label{sec:isabelle-refinement-framework}
+The Isabelle Refinement Framework by Lammich \cite{isabelle-refinement-framework} enables a refinement approach to defining imperative programs and proving correctness properties of such programs. \todo{In motivation, write a section on what the idea of refinement is, and which problem it solves.}
+This subsection introduces a simplified view on the underlying \inlinecode{nres} monad and sketches its usage for defining and verifying imperative programs in Isabelle-HOL.
+Most of the algorithms I implemented for this thesis are defined in the \inlinecode{nres} monad, the exception being fundamental operations on custom datatypes that section \ref{sec:low-level-datatypes-in-isabelle-llvm} introduces.
 
-The Isabelle-LLVM Framework enables the generation of formally verified LLVM code.
-It builds on the older Isabelle Refinement Framework \cite{isabelle-refinement-framework} which introduces a stepwise refinement approach to the verification of functional programs, tackling one of the main challenges of verifying complex computer programs: \\
-On-paper correctness proofs of programs often assume idealized operations, e.g. computing the union of two sets, which allows for simple proofs, but also adds a layer of abstraction over an actual implementation that might use complex data structures, e.g. hashing or tree-based structures, to efficiently implement the idealized operations.
-In such a case, the correctness proof, which is relative to the idealized operation, is meaningless for the concrete implementation. \\
-In turn, correctness proofs without such abstractions might be infeasibly complex to carry out, as they always need to consider the behavior the the used data structures.
+The following definition are closely tied to their actual definitions in the Refinement Framework, but some details are omitted.
+\todo{refer to Lammichs work and specify what is given there (complete lattice instantiation, connection to sepraration logic)}
 
-With the refinement approach, such proofs can be separated into multiple steps; an initial, \enquote{high-level} proof can use abstract, idealized objects like sets for overall correctness of the program.
-Then, in a second step, the proof can be refined by replacing the abstract object with a concrete data structure.
-This second step only has to prove that the concrete data structure behaves like the idealized object in every case.
-Overall correctness then follows by transitivity.
-\todo{This whole section is too abstract. Give formal description}
+\inlinecode{nres} over some datatype \inlinecode{'a} is defined as
 
+\isabellecodeextern[linerange=5-5]{isabelle-code/NRES_Fundamentals.thy}
+
+\inlinecode{'a nres} represents nondeterministic computations with results of type \inlinecode{'a}.
+Intuitively, for \inlinecode{RES S}, the set \inlinecode{S} represents all possible results of a computation, while \inlinecode{FAIL} can be seen as a representation of impossible computations, such as an out-of-bounds read from an array.
+
+For lifting a value \inlinecode{a} of type \inlinecode{'a} into \inlinecode{'a nres}, the Refinment Framework defines
+\isabellecodeextern[linerange=8-9]{isabelle-code/NRES_Fundamentals.thy}
+
+As an example, I use \inlinecode{RETURN} to describe a program \inlinecode{sum} that computes the sum of two natural numbers:
+\isabellecodeextern[linerange=12-13]{isabelle-code/NRES_Fundamentals.thy}
+
+The Refinement Frameworks also defines \inlinecode{SPEC}, parameterized over a characteristic function \inlinecode{\<Phi>} to describe results:
+\isabellecodeextern[linerange=16-17]{isabelle-code/NRES_Fundamentals.thy}
+\inlinecode{SPEC} is typically used to give specifications for programs.
+For example, I define \inlinecode{add_spec} as a specification for a program that computes the sum of two natural numbers as follows:
+\isabellecodeextern[linerange=20-21]{isabelle-code/NRES_Fundamentals.thy}
+
+On \inlinecode{nres}, the Refinement Framework defines an order \inlinecode{\<le>}, given by
+\isabellecodeextern[linerange=24-28]{isabelle-code/NRES_Fundamentals.thy}
+
+Intuitively, \inlinecode{P \<le> P'} means that every possible result of program \inlinecode{P} is also a possible result of \inlinecode{P'}. 
+In particular that means if \inlinecode{P'} is known to be correct, with respect to some definition of correctness, then \inlinecode{P \<le> P'} means that \inlinecode{P'} is also correct with respect to that definition of correctness.
+For instance, \inlinecode{P \<le> add_spec} states that \inlinecode{P} computes the sum of two natural numbers.
+
+The Refinement Framework also implements the \inlinecode{bind} operator to enable sequential composition of programs.
+In addition, it provides loops and can be used with Isabelle's builtin \inlinecode{if} expressions with which proper imperative programs can then be expressed.
+
+Statements like \inlinecode{P \<le> add_spec} must be proven in Isabelle by the user.
+The Refinement Framework offers tools to automate significant portions of such proofs, in particular the \inlinecode{refine_vcg} verification condition generator can be used to unfold loops and apply other simplifications to transform goals expressed in the \inlinecode{nres} monad to standard Isabelle-HOL goals on which Isabelle's builtin proof automation (in particular \inlinecode{sledgehammer}) can then often be used effectively.
+
+In general, a program \inlinecode{P :: 'a nres} can not be directly translated to an executable program, as it only describes the possible outcomes of a program.
+If it can be shown that \inlinecode|P = RES {a}|, for one deterministic \inlinecode{a}, then, under some additional conditions which are omitted here, the \inlinecode{sepref} tool can translate \inlinecode{P} into an executable program.
+The Refinement Framework then exports Standard-ML code which is therefore the case for the original implementation of Pastèque by Fleury \cite{pac-2024}.
+
+\subsection{Isabelle-LLVM}\label{sec:isabelle-llvm}
+
+The newer Isabelle-LLVM framework \cite{isabelle-llvm}, also by Lammich, uses the same \inlinecode{nres} monad, but instead of Standard-ML, it generates LLVM code.
+The verified SAT-solver IsaSAT by Fleury \cite{isasat-sml} saw an increase in performance by factor two \todo{check number}, when migrated from the Standard-ML backend to LLVM \cite{isasat-llvm}.
+This observation motivated the migration of also Pastèque from Standard-ML to LLVM, which is the primary objective of this thesis.
+
+This subsection introduces the shallow embedding of LLVM, which is the new refinement target of \inlinecode{sepref}, compared to the previous Imperative-HOL backend, targeted in the original Refinement Framework (c.f. section \ref{sec:isabelle-refinement-framework}).

@@ -86,7 +86,15 @@
     {~=}{{$\neq$}}2
     {<=}{{$\leq$}}2
     {>=}{{$\geq$}}2
-    {\\<times>}{{$\times$}}2,
+    {\\<times>}{{$\times$}}2
+    {\\<Rightarrow>}{{$\Rightarrow$}}2
+    {\\<Phi>}{{$\Phi$}}1
+    {\\<lambda>}{{$\lambda$}}1
+    {\\<le>}{{$\leq$}}1
+    {\\<longleftrightarrow>}{{$\longleftrightarrow$}}3
+    {\\<subseteq>}{{$\subseteq$}}1
+    {\\<open>}{{\guilsinglleft}}1
+    {\\<close>}{{\guilsinglright}}1,
 }
 
 \lstdefinestyle{isabellestyle}{%
@@ -122,6 +130,8 @@
   breaklines=true,
 }
 \newcommand{\inlinecode}{\lstinline[style=isabelleinline]}
+\lstnewenvironment{isabellecode}[1][]{\lstset{style=isabellestyle,#1}}{}
+\newcommand{\isabellecodeextern}[2][]{\lstinputlisting[style=isabellestyle,#1]{#2}}
 
 \usepackage[section]{placeins}  % To keep all figures inside there section
 \usepackage[stylemods=longextra, symbols, automake]{glossaries-extra}

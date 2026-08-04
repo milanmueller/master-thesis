@@ -197,7 +197,53 @@
 	       },
 	urldate = {2026-07-30},
 }
-
-
-
-
+@inproceedings{isasat-sml,
+	author = {Fleury, Mathias and Blanchette, Jasmin Christian and Lammich,
+	          Peter},
+	title = {A verified SAT solver with watched literals using imperative HOL},
+	year = {2018},
+	isbn = {9781450355865},
+	publisher = {Association for Computing Machinery},
+	address = {New York, NY, USA},
+	url = {https://doi.org/10.1145/3167080},
+	doi = {10.1145/3167080},
+	abstract = {Based on our earlier formalization of conflict-driven clause
+	            learning (CDCL) in Isabelle/HOL, we refine the CDCL calculus to
+	            add a crucial optimization: two watched literals. We formalize
+	            the data structure and the invariants. Then we refine the
+	            calculus to obtain an executable SAT solver. Through a chain of
+	            refinements carried out using the Isabelle Refinement Framework,
+	            we target Imperative HOL and extract imperative Standard ML code.
+	            Although our solver is not competitive with the state of the art,
+	            it offers acceptable performance for some applications, and
+	            heuristics can be added to improve it further.},
+	booktitle = {Proceedings of the 7th ACM SIGPLAN International Conference on
+	             Certified Programs and Proofs},
+	pages = {158–171},
+	numpages = {14},
+	keywords = {Isabelle/HOL, SAT solving, conflict-driven clause learning
+	            (CDCL), stepwise refinement},
+	location = {Los Angeles, CA, USA},
+	series = {CPP 2018},
+}
+@inproceedings{isasat-llvm,
+	author = "Fleury, Mathias and Lammich, Peter",
+	editor = "Pientka, Brigitte and Tinelli, Cesare",
+	title = "A More Pragmatic CDCL for IsaSAT and Targetting LLVM (Short Paper)",
+	booktitle = "Automated Deduction -- CADE 29",
+	year = "2023",
+	publisher = "Springer Nature Switzerland",
+	address = "Cham",
+	pages = "207--219",
+	abstract = "IsaSAT is the most advanced verified SAT solver, but it did not
+	            yet feature inprocessing (to simplify and strengthen clauses). In
+	            order to improve performance, we enriched the base calculus to
+	            not only do CDCL but also inprocess clauses. We also replaced the
+	            target of our code synthesis by Isabelle/LLVM. With these
+	            improvements, we can solve 4 times more SAT Competition 2022
+	            problems than the original IsaSAT version, and 4.5 times more
+	            problems than any other verified SAT solver we are aware of.
+	            Additionally, our changes significantly reduce the trusted code
+	            base of our verification.",
+	isbn = "978-3-031-38499-8",
+}
