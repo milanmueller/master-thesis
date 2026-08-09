@@ -44,33 +44,36 @@ Throughout this thesis, I use notation closely tied to actual Isabelle syntax.
 \begin{itemize}
 \item Leading apostrophes are used to denote types variables as in \inlinecode{'a}.
 \item \inlinecode{::} is used to annotate the type of a value, e.g., \inlinecode{a :: 'a} means that value \inlinecode{a} has type \inlinecode{'a}.
-\item Functions are typically presented in curried form, e.g. \inlinecode{foo :: 'a => 'b => 'c}.
-\item In function application, arguments are separated by spaces, e.g. \inlinecode{add a b} is function \inlinecode{add} applied to arguments \inlinecode{a} and \inlinecode{b}.
+\item Functions first-class objects and are typically presented in curried form.
+      For instance, a function \inlinecode{foo :: 'a => 'b => 'c}, for a given \inlinecode{a :: 'a}, returns a function of type \inlinecode{'b => 'c}:
+\item In function application, arguments are separated by spaces, e.g. \inlinecode{foo a b} is function \inlinecode{foo} applied to arguments \inlinecode{a} and \inlinecode{b}.
 \item Definitions of functions typically follows the format\\
       \inlinecode{name :: \<open>type signature\<close> where \<open>function definition\<close>}. For example:
       \isabellecodeextern[linerange=6-7]{isabelle-code/IsabelleSyntax.thy}
-\item Anonymous functions are denoted by \inlinecode{\<lambda>}, e.g. \inlinecode{add' = \<lambda> a b. a + b} is equivalent to the previous \inlinecode{add} example.
+\item Anonymous functions are denoted by \inlinecode{\<lambda>}, e.g., \inlinecode{add' = \<lambda> a b. a + b} is equivalent to the previous \inlinecode{add} example.
+\item Isabelle-HOL defines \inlinecode{list} and \inlinecode{prod} (product), where \inlinecode{'a list} is the type of lists of elements of type \inlinecode{'a}, and \inlinecode{('a, 'b) prod} is the type of products \inlinecode{(a::'a, b::'b)}.
+  We use the infix notation \inlinecode{'a \<times> 'b} for the product type.
 \end{itemize}
 
 \subsection{Isabelle Refinement Framework}\label{sec:isabelle-refinement-framework}
+\todo{It should actually say sepref, instead of refinement framework here}
 The Isabelle Refinement Framework by Lammich \cite{isabelle-refinement-framework} enables a refinement approach to defining imperative programs and proving correctness properties of such programs. \todo{In motivation, write a section on what the idea of refinement is, and which problem it solves.}
 This subsection introduces a simplified view on the underlying \inlinecode{nres} monad and sketches its usage for defining and verifying imperative programs in Isabelle-HOL.
-Most of the algorithms I implemented for this thesis are defined in the \inlinecode{nres} monad, the exception being fundamental operations on custom datatypes that section \ref{sec:low-level-datatypes-in-isabelle-llvm} introduces.
-
+Most of the algorithms I implemented for this thesis are defined in the \inlinecode{nres} monad, the exception being fundamental operations on custom datatypes that \refsec{sec:low-level-datatypes-in-isabelle-llvm} introduces.
 The following definition are closely tied to their actual definitions in the Refinement Framework, but some details are omitted.
 \todo{refer to Lammichs work and specify what is given there (complete lattice instantiation, connection to sepraration logic)}
 
-\inlinecode{nres} over some datatype \inlinecode{'a} is defined as
+Nondeterministic computations are represented using the \inlinecode{nres} monad.
+\inlinecode{nres} over some datatype \inlinecode{'a}, representing computations with results of type \inlinecode{'a}, is defined as
 
 \isabellecodeextern[linerange=5-5]{isabelle-code/NRES_Fundamentals.thy}
 
-\inlinecode{'a nres} represents nondeterministic computations with results of type \inlinecode{'a}.
 Intuitively, for \inlinecode{RES S}, the set \inlinecode{S} represents all possible results of a computation, while \inlinecode{FAIL} can be seen as a representation of impossible computations, such as an out-of-bounds read from an array.
 
 For lifting a value \inlinecode{a} of type \inlinecode{'a} into \inlinecode{'a nres}, the Refinment Framework defines
 \isabellecodeextern[linerange=8-9]{isabelle-code/NRES_Fundamentals.thy}
 
-As an example, I use \inlinecode{RETURN} to describe a program \inlinecode{sum} that computes the sum of two natural numbers:
+As an example, \inlinecode{RETURN} is used to describe a program \inlinecode{sum} that computes the sum of two natural numbers as follows:
 \isabellecodeextern[linerange=12-13]{isabelle-code/NRES_Fundamentals.thy}
 
 The Refinement Frameworks also defines \inlinecode{SPEC}, parameterized over a characteristic function \inlinecode{\<Phi>} to describe results:
@@ -94,7 +97,8 @@ The Refinement Framework offers tools to automate significant portions of such p
 
 In general, a program \inlinecode{P :: 'a nres} can not be directly translated to an executable program, as it only describes the possible outcomes of a program.
 If it can be shown that \inlinecode|P = RES {a}|, for one deterministic \inlinecode{a}, then, under some additional conditions which are omitted here, the \inlinecode{sepref} tool can translate \inlinecode{P} into an executable program.
-The Refinement Framework then exports Standard-ML code which is therefore the case for the original implementation of Pastèque by Fleury \cite{pac-2024}.
+
+The Sepref then exports Standard-ML code, which is therefore the case for the original implementation of Pastèque by Fleury \cite{pac-2024}.
 
 \subsection{Isabelle-LLVM}\label{sec:isabelle-llvm}
 
@@ -118,10 +122,10 @@ For example, the Hoare-triple
 can be read as follows:
 If 8-bit machine word \inlinecode{ai}, \inlinecode{bi} refine the integers \inlinecode{a}, \inlinecode{b} then the result of \inlinecode{add ai bi} refines the integer \inlinecode{a + b}.
 Note that in this particular example, the statement is only true, if we can prove that \inlinecode{a + b} does not overflow and is therefore representable by an 8-bit machine word.
-This requirement can be added to the precondition:
+This requirement can be added to the precondition
+\footnote{In the actual Isabelle theories, statements about high-level values, like \inlinecode{a+b < 127} here, must be annotated with $\uparrow$. In the thesis I omit annotation this an favor of simplicity.}:
 \isabellecodeextern[linerange=22-24]{isabelle-code/LLVM_Basics.thy}
 Which makes the statement provable by the \inlinecode{vcg} tool.
-Note that \inlinecode{\<up>} is used, when adding statements about abstract values to our assertions.
 
 As a user of Isabelle-LLVM, one does not typically work with Hoare-triples directly.
 Instead, usually the \inlinecode{nres} monad is used to define algorithms on HOL-types, the \inlinecode{sepref} tool can then transform high-level correctness statements using \inlinecode{\<le>} into the low-level Hoare-triples and prove statements on those automatically. 
@@ -130,25 +134,33 @@ Instead, usually the \inlinecode{nres} monad is used to define algorithms on HOL
 This subsection gives a simplified overview of the ownership model that is implemented in Isabelle-LLVM.
 
 Isabelle-LLVM distinguishes \textit{pure} and \textit{impure} values.
-A pure value is one that, from the caller's perspective, is kept intact when used as an argument in a function call.
-Machine words are an example of pure values: Revisiting the example Hoare-triple from \ref{sec:isabelle-llvm}, the postcondition can be strengthened to 
+A pure value is one that, from the caller's perspective, is kept intact when used as an argument in a function call. \todo{This is not really what "pure" means...}
+Machine words are an example of pure values: Revisiting the example Hoare-triple from \refsec{sec:isabelle-llvm}, the postcondition can be strengthened to
 \isabellecodeextern[linerange=33-35]{isabelle-code/LLVM_Basics.thy}
 The addition of \inlinecode{si_assn a ai ** si_assn b bi} means that, after being used as arguments for \inlinecode{add}, \inlinecode{ai} and \inlinecode{bi} remain valid representations of the original abstract integers \inlinecode{a} and \inlinecode{b}.
 
 For impure values, this does not hold.
 Objects that are heap allocated are always impure \todo{fact-check}.
 In particular lists, which are used frequently in Pastèque, are impure in Isabelle-LLVM.
-This is an important distinction from the old Imperative-HOL backend for which lists were pure object with persistence guaranteed by the compiler.
+This is an important distinction from the old Imperative-HOL backend for which lists were pure object (as long as the contained elements are also pure) with persistence guaranteed by the compiler.
 
 To illustrate the implications of this observation, assume that for a refinement assertion \inlinecode{A :: 'a => 'b => bool}, we have a function
 \isabellecodeextern[linerange=43-43]{isabelle-code/LLVM_Basics.thy}
 that defines refinement of abstract lists of type \inlinecode{'a list} by an imaginary concrete list implementation \inlinecode{'b llvm_list}.
 Then, the following Hoare-triple could, in principle, be provable with the Imperative-HOL backend (ignoring differences in notation between the HOL backend and the LLVM backend).
 \isabellecodeextern[linerange=48-50]{isabelle-code/LLVM_Basics.thy}
+The Hoare-triple can be read as follows: If the non-empty abstract list \inlinecode{xs} is refined by a concrete list implementation \inlinecode{xsi}, then, after calling a function that returns a the tail of the list, the abstract tail \inlinecode{tl xs} is refined by the result of the function.
+Also, after the function has been executed, \inlinecode{xsi} still remains a concrete representation of the original list \inlinecode{xs}.
+This property typically holds in functional languages where lists are persistent objects, as is the case in the Standard-ML backend.
 
 In Isabelle-LLVM, the above Hoare-triple can never hold.
-The underlying separation logic requires linearity, meaning that there can only be a single reference to a heap allocated object at any point in time.
-The Hoare-triple above violates this requirement, as both \inlinecode{rt} and \inlinecode{xsi} reference the same list.
+Lists in LLVM are are a chain of nodes, each carrying a value and a pointer to the next node in the list.
+They are therefore heap-allocated, impure objects.
+The underlying separation logic requires that there can only be a single reference to a heap allocated object at any point in time.
+The Hoare-triple above violates this requirement, as both \inlinecode{r} and \inlinecode{xsi} would now reference the same list.
 If we weaken the the postcondition, the statement becomes provable in Isabelle-LLVM:
 \isabellecodeextern[linerange=55-57]{isabelle-code/LLVM_Basics.thy}
+We lose the assertion \inlinecode{(ls_assn A) xs xsi} in the postcondition, we say that the original list \inlinecode{xsi} was \textit{destroyed}.
+\refsec{sec:lists-with-tail-pointers} describes the approach that I chose to address this issue for functions working on lists specifically.
 
+\todo{Also introduce type ptr}

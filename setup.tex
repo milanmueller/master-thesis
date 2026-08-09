@@ -26,6 +26,7 @@
 \usepackage{hyperref}
 \usepackage[all]{hypcap} % to show the full figure when clicking on it's reference
 \usepackage{cleveref} % for \cref/\Cref smart references
+\newcommand{\refsec}[1]{\S\ref{#1}} % section reference prefixed with a section-sign
 \usepackage[dvipsnames]{xcolor}
 \usepackage{graphicx}
 \usepackage{tikz}
@@ -57,6 +58,11 @@
 \renewcommand{\lstlistingname}{Algorithm}
 \lstset{keywordstyle=\bfseries}
 \lstset{commentstyle=\color{cd_blue}\bfseries}
+\usepackage{tcolorbox} % to frame Isabelle code with rounded corners
+\tcbuselibrary{listings,skins,breakable}
+
+% Isabelle setup is heavily inspired/partially copy-paste from
+% https://github.com/lammich/isabelle_llvm/blob/master/papers/2021_Enschede_Talk/lstisabelle.tex
 
 \lstdefinelanguage{Isabelle}{%
   keywords=[1]{theory,begin,end,imports,keywords},
@@ -79,71 +85,200 @@
   morecomment=[l]{--},
   morestring=[b]",
   literate=
-    {-->}{{$\longrightarrow$}}3
-    {<->}{{$\leftrightarrow$}}3
-    {...}{{$\ldots$}}3
-    {=>}{{$\Rightarrow$}}4
-    {->}{{$\rightarrow$}}r
-    {~=}{{$\neq$}}2
-    {<=}{{$\leq$}}2
-    {>=}{{$\geq$}}2
-    {\\<times>}{{$\times$}}2
-    {\\<Rightarrow>}{{$\Rightarrow$}}3
-    {\\<Phi>}{{$\Phi$}}2
-    {\\<Psi>}{{$\Psi$}}2
+    % {'}{{${}^\prime\!$}}1
+    {\%}{{$\lambda$}}1
+    {\\\%}{{$\lambda$}}1
+    {\\\$}{{$\mathbin{\,\$\,}$}}1
+    {->}{{$\rightarrow$}}1
+    {<-}{{$\leftarrow$}}1
+    {<.}{{$\langle$}}1
+    {.>}{{$\rangle$}}1
+    {<=}{{$\le$}}1
+    {>=}{{$\ge$}}1
+    {<->}{{$\leftrightarrow$}}1
+    {-->}{{$\longrightarrow$}}2
+    {<-->}{{$\longleftrightarrow$}}1
+    {=>}{{$\Rightarrow$}}1
+    {==}{{$\equiv$}}2
+    {==>}{{$\implies$}}2
+    {<=>}{{$\Leftrightarrow$}}1
+    {~=}{{$\ne$}}1
+    {|}{{$\mid$}}1
+    {-`}{{$\rightharpoonup$}}1
+    {|`}{{$\restriction$}}1
+    {!!}{{$\bigwedge$}}1
+    {(}{{$($}}1
+    {)}{{$)$}}1
+    {\{}{{$\{$}}1
+    {\}}{{$\}$}}1
+    {[}{{$[$}}1
+    {]}{{$]$}}1
+    {[|}{{$\llbracket$}}1
+    {|]}{{$\rrbracket$}}1
+    {\\<lbrakk>}{{$\lsem$}}1
+    {\\<rbrakk>}{{$\rsem$}}1
+    {|-}{{$\vdash$}}1
+    {|=}{{$\models$}}1
+    {|->}{{$\mapsto$}}1
+    {|_|}{{$\bigsqcup$}}1
+    {...}{{$\dots$}}1
+    {\\x}{{$\times$}}1
+    {_0}{{${}_0$}}1
+    {_1}{{${}_1$}}1
+    {_2}{{${}_2$}}1
+    {_3}{{${}_3$}}1
+    {_4}{{${}_4$}}1
+    {_5}{{${}_5$}}1
+    {_6}{{${}_6$}}1
+    {_7}{{${}_7$}}1
+    {_8}{{${}_8$}}1
+    {_9}{{${}_9$}}1
+    {_L}{{${}_L$}}1
+    {\\_n}{{${}_n$}}1
+    {\\_i}{{${}_i$}}1
+    {\\_j}{{${}_j$}}1
+    {\\_x}{{${}_x$}}1
+    {\\_y}{{${}_y$}}1
+    {\\impl}{{${}_\dagger$}}1
+    {^*}{{$^*$}}1
+    {^k}{{$^k$}}1
+    {^d}{{$^d$}}1
+    {\\<^sup>*}{{$^*$}}1
+    {\\<^sub>*}{{$_*$}}1
+    {\\<^sub>A}{{$_A$}}1
+    {\\<^sub>r}{{$_r$}}1
+    {\\<^sub>a}{{$_a$}}1
+    {:_i}{{$:_i$}}1
+    {\\<A>}{{$\mathcal{A}$}}1
+    {\\<O>}{{\sf o}}1
+    {\\<Phi>}{{$\Phi$}}1
+    {\\<Psi>}{{$\Psi$}}1
+    {\\<sigma>}{{$\sigma$}}1
+    {\\<cdot>}{{$\cdot$}}1
+    {\\<in>}{{$\in$}}1
+    {\\<le>}{{$\le$}}1
+    {\\<noteq>}{{$\ne$}}1
     {\\<lambda>}{{$\lambda$}}1
-    {\\<le>}{{$\leq$}}1
-    {\\<noteq>}{{$\neq$}}1
-    {\\<longleftrightarrow>}{{$\longleftrightarrow$}}3
+    {\\<longrightarrow>}{{$\longrightarrow$}}1
+    {\\<longleftrightarrow>}{{$\longleftrightarrow$}}1
+    {\\<Rightarrow>}{{$\Rightarrow$}}1
+    {\\<Longrightarrow>}{{$\Longrightarrow$}}1
+    {\\<rightarrow>}{{$\rightarrow$}}1
+    {\\<leftarrow>}{{$\leftarrow$}}1
+    {\\<mapsto>}{{$\mapsto$}}1
+    {\\<equiv>}{{$\equiv$}}1
+    {\\<and>}{{$\wedge$}}1
+    {\\<or>}{{$\vee$}}1
+    {\\<And>}{{$\bigwedge$}}1
+    {\\<Up>}{{$\Uparrow$}}1
+    {\\<Down>}{{$\Downarrow$}}1
+    {\\<Union>}{{$\bigcup$}}1
+    {\\<up>}{{$\uparrow$}}1
+    {\\<down>}{{$\downarrow$}}1
+    {\\<times>}{{$\times$}}1
+    {\\<forall>}{{$\forall$}}1
+    {\\<exists>}{{$\exists$}}1
+    {\\<nexists>}{{$\nexists$}}1
+    {\\<union>}{{$\cup$}}1
+    {\\<inter>}{{$\cap$}}1
+    {\\<subset>}{{$\subset$}}1
     {\\<subseteq>}{{$\subseteq$}}1
-    {\\<open>}{{\guilsinglleft}}1
-    {\\<up>}{{$\uparrow$}}4
-    {\\<close>}{{\guilsinglright}}4,
+    {\\<supset>}{{$\supset$}}1
+    {\\<supseteq>}{{$\supseteq$}}1
+    {\\<alpha>}{{$\alpha$}}1
+    {\\<beta>}{{$\beta$}}1
+    {\\<gamma>}{{$\gamma$}}1
+    {\\alpha}{{$\alpha$}}1
+    {\\beta}{{$\beta$}}1
+    {\\gamma}{{$\gamma$}}1
+    {\\<Gamma>}{{$\Gamma$}}1
+    {\\<langle>}{{$\langle$}}1
+    {\\<rangle>}{{$\rangle$}}1
+    {\\<not>}{{$\neg$}}1
+    {\\<box>}{{$\oblong$}}1
+    {\\<bot>}{{$\bot$}}1
+    {\\<top>}{{$\top$}}1
+    {\\<notin>}{{$\notin$}}1
+    {\\<guillemotright>}{{$\gg$}}1
+    {\\in}{$\in$}1
+    {\\and}{$\wedge$}1
+    {\\or}{$\vee$}1
+    {\\Phi}{{$\Phi$}}1
+    {\\Psi}{{$\Psi$}}1
+    {\\le}{{$\le$}}1
+    {\\Up}{{$\Uparrow$}}1
+    {\\Down}{{$\Down$}}1
+    {>>}{{$\gg$}}1
+    {>>=}{{${\gg}{=}$}}1
+    {<*lex*>}{{$\times_{\sf lex}$}}1
+    {\\<open>}{{\rm\guilsinglleft}}1
+    {\\<close>}{{\rm\guilsinglright}}1,
 }
 
 \lstdefinestyle{isabellestyle}{%
   language=Isabelle,
-  basicstyle=\ttfamily\small\singlespacing,
-  columns=flexible,
-  keywordstyle=[1]\color{cd_blue}\bfseries,
-  keywordstyle=[2]\color{cd_blue}\bfseries,
-  keywordstyle=[3]\color{cd_background_dark_blue}\bfseries,
-  keywordstyle=[4]\color{cd_additional_green_100_percent},
+  basicstyle={\ttfamily},
+  columns=[c]fullflexible,
+  keywordstyle=[1]\rm\ttfamily\fontseries{b}\color{cd_blue},
+  keywordstyle=[2]\rm\ttfamily\fontseries{m}\color{cd_additional_green_100_percent},
+  keywordstyle=[3]\rm\ttfamily\fontseries{b}\color{cd_additional_brown_100_percent},
+  keywordstyle=[4]\rm\ttfamily\fontseries{b}\color{cd_additional_pink_100_percent},
   commentstyle=\color{gray}\itshape,
   stringstyle=\color{cd_additional_brown_100_percent},
   breaklines=true,
   breakatwhitespace=true,
   showstringspaces=false,
-  frame=tb,
-  framesep=6pt,
-  backgroundcolor=\color{cd_background_sand_50_percent},
-  xleftmargin=1em,
-  xrightmargin=1em,
   captionpos=b,
+  aboveskip=0pt,
   belowskip=0pt,
+  keepspaces=true,
+}
+
+% Framing (border, rounded corners, background, inner margin) is handled by
+% the tcolorbox around the listing, not by the listings package itself.
+\tcbset{
+  isabellebox/.style={
+    enhanced,
+    listing only,
+    colback=cd_background_sand_50_percent,
+    colframe=cd_blue,
+    boxrule=0.4pt,
+    arc=2mm,
+    boxsep=0pt,
+    left=1em,
+    right=1em,
+    top=1em,
+    bottom=1em,
+    breakable,
+  }
 }
 
 \lstdefinestyle{isabelleinline}{%
   language=Isabelle,
   basicstyle=\ttfamily,
-  columns=flexible,
-  keywordstyle=[1]\color{cd_blue}\bfseries,
-  keywordstyle=[2]\color{cd_blue}\bfseries,
-  keywordstyle=[3]\color{cd_background_dark_blue}\bfseries,
-  keywordstyle=[4]\color{cd_additional_green_100_percent},
+  columns=[c]fullflexible,
+  keywordstyle=[1]\rm\ttfamily\fontseries{b}\color{cd_blue},
+  keywordstyle=[2]\rm\ttfamily\fontseries{m}\color{cd_additional_green_100_percent},
+  keywordstyle=[3]\rm\ttfamily\fontseries{b}\color{cd_additional_brown_100_percent},
+  keywordstyle=[4]\rm\ttfamily\fontseries{b}\color{cd_additional_pink_100_percent},
   commentstyle=\color{gray}\itshape,
   stringstyle=\color{cd_additional_brown_100_percent},
   showstringspaces=false,
-  breaklines=false,
+  keepspaces=true,
+  % backgroundcolor=\color{cd_additional_sand_50_percent},
 }
 \newcommand{\inlinecode}{\lstinline[style=isabelleinline]}
-\lstnewenvironment{isabellecode}[1][]{%
-  \lstset{style=isabellestyle,#1}%
-  \minipage{\linewidth}%
-}{%
-  \endminipage%
+\newtcblisting{isabellecode}[1][]{%
+  isabellebox,
+  listing options={style=isabellestyle,#1},
 }
-\newcommand{\isabellecodeextern}[2][]{\lstinputlisting[style=isabellestyle,#1]{#2}}
+\newcommand{\isabellecodeextern}[2][]{%
+  \tcbinputlisting{%
+    isabellebox,
+    listing file={#2},
+    listing options={style=isabellestyle,#1},
+  }%
+}
 
 \usepackage[section]{placeins}  % To keep all figures inside there section
 \usepackage[stylemods=longextra, symbols, automake]{glossaries-extra}

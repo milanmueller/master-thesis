@@ -1,26 +1,19 @@
 \section{\iflanguage{english}{Methodology}{Herangehensweise}}\label{sec:methodology}
 
 This section describes the changes made to the implementation of Pastèque to move from the Imperative-HOL refinement target to LLVM.
-We discuss how polynomials are represented on the abstract HOL level and which concrete data structures are required to refine these representations to LLVM code.
+It discusses how polynomials are represented on the abstract HOL level and which concrete data structures are required to refine these representations to LLVM code.
 
 \subsection{High-Level Representation of Polynomials}\label{sec:methodology_high-level-representation-of-polynomials}
-In Isabelle-HOL, we use the \inlinecode{list} and \inlinecode{prod} (product) compound types to construct new datatypes from existing ones.
-Let \inlinecode{'a}, \inlinecode{'b} be some datatypes, then \inlinecode{'a list} describes the type of a list of elements of type \inlinecode{'a}.
-Similarly, \inlinecode{prod 'a 'b} is the type of tuples \inlinecode{(a, b)}, where \inlinecode{a} is of type \inlinecode{'a} and \inlinecode{b} is of type \inlinecode{'b}.
-For products, we typically use the infix notation \inlinecode{'a \<times> 'b}, which is syntactic sugar for \inlinecode{prod 'a 'b}.\par
-Isabelle-HOL also defines the types \inlinecode{int} (integers) and \inlinecode{string = char list}, where we can consider \inlinecode{char} to be byte representing a single character in ASCII encoding.
+The HOL-level algorithms of Pastèque works on polynomials, defined as
+\isabellecodeextern[linerange=6-9]{isabelle-code/Poly_Basics.thy}
+For instance, a polynomial $3xy + 2x + y$ is represented by
+\inlinecode{[([''x''],2),([''x'',''y''],3),([''y''],1)]} in Pastèque.
+Note that an invariant of Pastèque is that the variables of monomials are sorted lexicographically, e.g., an input \inlinecode{[''b'',''a'']} would be normalized to \inlinecode{[''a'',''b'']} during parsing.
+In addition, polynomials are also sorted w.r.t the lexicographic order of the monomials, e.g., a polynomial \inlinecode{[(''b'',1),(''a'',2)]} would be normalized to \inlinecode{[(''a'',2)(''b'',1)]}.
 
-These types then allow us to define polynomials as they are used in the high-level Pastèque algorithms:
-\begin{itemize}[noitemsep, topsep=0pt, parsep=0pt]
-  \item \inlinecode{variable} $:=$ \inlinecode{string}
-  \item \inlinecode{term} $:=$ \inlinecode{variable list}
-  \item \inlinecode{monomial} $:=$ \inlinecode{term \<times> int}
-  \item \inlinecode{polynomial} $:=$ \inlinecode{monomial list}
-\end{itemize}
-Note that the nomenclature follows the PAC syntax presented in \cite{pac-2024}.\par
-Unfolding the type of a \inlinecode{polynomial} gives us \inlinecode{(char list list \<times> int) list},
-a concrete program that refines an abstract program that uses \inlinecode{polynomial}, must be able to refine this datatype and support operations such as adding an element to a list, or multiplying two integers.
-This observation reveals two critical obstacles for migrating Pastèque from the Imperative-HOL refinement target to LLVM:
+Unfolding the type of a \inlinecode{polynomial} gives us \inlinecode{(char list list \<times> int) list}.
+Refining a program that works on polynomials as defined here, therefore implies being able to represent nested lists, and supporting typical list operations like prepending and element, destructuring a list.
+The given abstract datatype reveals the two main requirements for porting Pastèque from Imperative-HOL to LLVM:
 
 \begin{enumerate}
   \item The Isabelle-HOL \inlinecode{int} type is unbounded and can hold arbitrarily large numbers.
@@ -30,15 +23,18 @@ This observation reveals two critical obstacles for migrating Pastèque from the
   We choose a different approach and use a native library for arbitrary precision numbers, created by Spinei \todo{How can we cite Mihai?}.
   This library implements addition and multiplication for unsigned numbers, and can thus refine these operations when applied to natural numbers.
   To use it for Pastèque, we have to extend these operations to support signed numbers, i.e. integers.
-  Furthermore, we need to implement conversion between numbers and strings, which is required for printing error messages and parsing input files.\par
-  Section \ref{sec:native-arbitrary-precision-integers-for-isabelle-llvm} discusses the work on arbitrary-precision integers.
-  \item To our knowledge, Isabelle-LLVM does not include an implementation of nestable lists. We therefore have to extend the existing list implementation to be able to hold impure elements \todo{introduce impurity in Isabelle-LLVM}.
-  This allows us to nest lists and thus refine \inlinecode{polynomial} as introduced above.\par
-  Pastèque also uses two other data structures, for which we could not find an appropriate existing refinement target in Isabelle-LLVM.\par
-  Firstly, Pastèque stores \inlinecode{polynomial}s in a map where each polynomial is assigned an index, so we need a refinement target for associative maps.
-  Secondly, Pastèque also uses a hashset to track assigned variables \todo{is that actually the purpose of the hashset?}.
-  We therefore have to implement a refinement target for hashsets.\par
-  Section \ref{sec:low-level-datatypes-in-isabelle-llvm} discusses the implementation of the new required datatypes.
+  Furthermore, we need to implement conversion between numbers and strings, which is required for printing error messages and parsing input files.
+  \refsec{sec:native-arbitrary-precision-integers-for-isabelle-llvm} discusses the work on arbitrary-precision integers.
+  \item To my knowledge, the existing list implementation Isabelle-LLVM requires contained elements to be pure.
+  The existing list implementation must therefore be extended to be able to hold impure elements.
+
+  In addition to nestable lists, Pastèque also uses two other data structures, for which I could not find an appropriate existing refinement target in Isabelle-LLVM.
+
+  Firstly, Pastèque stores \inlinecode{polynomial}s in a map where each polynomial is assigned an index, so a refinement target for associative maps must be implemented.
+
+  Secondly, Pastèque uses a hashset to track assigned variables\todo{is that actually the purpose of the hashset?}, which also requires a custom hashset implementation for strings.
+
+  \refsec{sec:low-level-datatypes-in-isabelle-llvm} discusses the implementation of the new required datatypes.
 
   
 \end{enumerate}
@@ -52,10 +48,49 @@ I tried to
 
 \subsubsection{Linked Lists with Tail Pointers}\label{sec:lists-with-tail-pointers}
 
-This section describes challenges when working with lists in Isabelle-LLVM and how I decided to address these challenges.
-As shown in Section \ref{sec:methodology_high-level-representation-of-polynomials}, lists are an elemental building block in the representation polynomials in Pastèque.
+As shown in \refsec{sec:methodology_high-level-representation-of-polynomials}, lists are an elemental building block in the representation polynomials in Pastèque.
+This subsection describes how lists are represented in LLVM.
+Note that, compared to the actual Isabelle implementation, I make some simplifications that capture the concepts, but do not typecheck as presented.
 
-In functional programming, one typically uses recursion on linked lists.
-As an example, consider the following implementation of the merge step in a classical merge sort algorithm:
+To represent lists in LLVM, I reuse existing definitions from Isabelle-LLVM \footnote{In particular from the theory \texttt{Isabelle\_LLVM.LLVM\_DS\_Open\_List}} with some modifications.
+Lists are implemented as a chain of nodes, where a node carries a value and a pointer to the next node:
+\isabellecodeextern[linerange=25-25]{isabelle-code/Lists.thy}
+A list in LLVM is a pointer to a node, i.e., a value of type \inlinecode{'b node ptr}.
+The empty list is represented by a null pointer.
+A node with \inlinecode{node.next = null} denotes the end of a list.
+
+In the following, assume that \inlinecode{A :: 'a => 'b => bool} is a refinement assertion.
+Note that, \inlinecode{'a} is a high-level type that is not directly representable in LLVM, while \inlinecode{'b} is representable in LLVM.
+To refine lists of type \inlinecode{'a list} a refinement assertion of type \inlinecode{'a list => 'b node ptr => bool} specifies refinement of list.
+In order to obtain such a refinement assertion, some preliminary definitions are required.
+
+Firstly, a notion of element-wise refinement is given by
+\footnote{\inlinecode{list_aux} mirrors \inlinecode{list_assn}, which is defined in \texttt{Isabelle\_LLVM.Proto\_EOArray}.}:
+\isabellecodeextern[linerange=28-29]{isabelle-code/Lists.thy}
+\inlinecode{list_aux} can be seen as the characteristic function of a relation between abstract lists \inlinecode{xs::'a list} and concrete lists \inlinecode{xsi::'b list} where for each position, the refinement assertion \inlinecode{A} holds for the respective abstract and concrete element.
+\inlinecode{xs!i} denotes the \inlinecode{i}-th element of list \inlinecode{xs}.
+Note that \inlinecode{list_aux} in itself does not define refinement of abstract lists down to LLVM, as it does not relate \inlinecode{'a list} to \inlinecode{'b node ptr}, but to \inlinecode{'b list}.
+
+Secondly, a function \inlinecode{lseg :: 'b list => 'b node ptr => 'b node ptr => bool} relates lists of type \inlinecode{'b} to segments of lists in LLVM, where the first \inlinecode{'b node ptr} is a pointer to the start of the segment and the second \inlinecode{'b node ptr} is a pointer to the end of the segment.
+\inlinecode{lseg} is recursively defined as
+\footnote{The actual \inlinecode{lseg} is defined in \texttt{Isabelle\_LLVM.LLVM\_DS\_List\_Seg}.}
+\isabellecodeextern[linerange=33-36]{isabelle-code/Lists.thy}
+\begin{itemize}
+\item if the given list is empty, then both pointers are equal.
+\item if the list is not empty, then \inlinecode{p} is a pointer to a \inlinecode{Node x q}, where \inlinecode{x} is the value held by the node and \inlinecode{q} is the pointer to the next node.
+  \inlinecode{pto x p} evaluates to \inlinecode{True} if \inlinecode{p} is a pointer to \inlinecode{x}.
+  Also, for the tail of the list it must hold that \inlinecode{lseg xs q s}.
+\end{itemize}
+
+Using \inlinecode{list_aux} and \inlinecode{lseg}, a refinement assertion for lists, parameterized by \inlinecode{A}, can be defined by
+\isabellecodeextern[linerange=40-41]{isabelle-code/Lists.thy}
+which means that \inlinecode{p::'b node ptr} refines \inlinecode{a::'a list} if there exists a list \inlinecode{xsi::'b list} such that \inlinecode{lseg b p null}, i.e., \inlinecode{p} is the start pointer of a list segment related to \inlinecode{xsi}, terminated by the \inlinecode{null} pointer, and \inlinecode{xsi} and \inlinecode{xs} are related element-wise as specified by \inlinecode{ls_aux}.
+
+
+\refsec{sec:ownership-in-isabelle-llvm} describes a particular challenge when working with lists in LLVM that was not present with the old Imperative-HOL backend:
+A function that destructures a list, which is commonly the case in typical recursive walks over lists, necessarily destroys it.
+
+As an example, consider the following implementation of the merge step in a classic merge sort algorithm:
 \isabellecodeextern[linerange=6-14]{isabelle-code/Lists.thy}
-When attempting to automatically refine 
+
+An LLVM function that refines \inlinecode{merge}
