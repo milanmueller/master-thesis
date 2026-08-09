@@ -1,5 +1,5 @@
 theory Lists
-  imports Main
+  imports Main Isabelle_LLVM.LLVM_DS_Open_List
 begin
 
 fun 
@@ -22,4 +22,21 @@ lemma sorted:
   subgoal by (smt (verit, ccfv_SIG) list.inject merge.elims nat_le_linear sorted2)
   done
 
+datatype 'a node = Node ("val": \<open>'a\<close>) ("next": \<open>'a node ptr\<close>)
+
+definition \<open>
+list_aux A = (\<lambda>(xs::'a list) (xsi::'b list). 
+  (length xs = length xsi) ** (\<forall>i\<in>{0..<length xs}. A xs!i xsi!i))
+\<close>
+(*
+fun \<open>
+lseg :: \<open>'b list \<Rightarrow> 'b node ptr \<Rightarrow> 'b node ptr \<Rightarrow> bool\<close> where
+  \<open>lseg [] p s = (p=s)\<close>
+| \<open>lseg (x#xs) p s = (if p=null then False
+                      else (\<exists> q. pto (Node x q) p ** lseg xs q s)))\<close>
 end
+*)
+definition \<open>
+  ls_assn A = (\<lambda>(xs::'a list) (p::'b node ptr).
+    \<exists>xsi. lseg xsi p null ** list_aux A xs xsi)
+\<close>

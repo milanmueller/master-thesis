@@ -32,3 +32,4 @@ local/*
 *.fdb_latexmk
 watch
 clean
+*.thy~

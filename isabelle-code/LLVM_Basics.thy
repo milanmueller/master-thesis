@@ -19,7 +19,7 @@ lemma add_correct_fail:
 
 lemma add_correct:
   \<open>llvm_htriple
-(\<up>(a+b < 127) ** si_assn a ai ** si_assn b bi)
+((a+b < 127) ** si_assn a ai ** si_assn b bi)
 (add ai bi)
 (\<lambda>r. si_assn (a+b) r)\<close>
   unfolding add_def
@@ -30,7 +30,7 @@ lemma add_correct:
 
 lemma add_correct':
   \<open>llvm_htriple
-(\<up>(a+b < 127) ** si_assn a ai ** si_assn b bi)
+((a+b < 127) ** si_assn a ai ** si_assn b bi)
 (add ai bi)
 (\<lambda>r. si_assn (a+b) r ** si_assn a ai ** si_assn b bi)\<close>
   unfolding add_def
@@ -45,16 +45,16 @@ definition \<open>
 
 lemma split_list:
   \<open>llvm_htriple
-((ls_assn A) xs xsi ** \<up>(xs\<noteq>[]))
-(\<lambda>xs. (hd xs, tl xs))
-(\<lambda>(rh, rt). A (hd xs) rh ** (ls_assn A) (tl xs) rt ** (ls_assn A) xs xsi)
+((ls_assn A) xs xsi ** (xs\<noteq>[]))
+(\<lambda>xs. tl xs)
+(\<lambda>r. A (tl xs) r ** (ls_assn A) xs xsi)
 \<close>
 
 lemma split_list:
   \<open>llvm_htriple
-((ls_assn A) xs xsi ** \<up>(xs\<noteq>[]))
-(\<lambda>xs. (hd xs, tl xs))
-(\<lambda>(rh, rt). A (hd xs) rh ** (ls_assn A) (tl xs) rt)
+((ls_assn A) xs xsi)
+(\<lambda>xs. tl xs)
+(\<lambda>r. A (tl xs) r)
 \<close>
 
 end
