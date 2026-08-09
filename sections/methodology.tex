@@ -49,3 +49,13 @@ This observation reveals two critical obstacles for migrating Pastèque from the
 I tried to 
 
 \subsection{New Low-Level Datatypes in Isabelle-LLVM}\label{sec:low-level-datatypes-in-isabelle-llvm}
+
+\subsubsection{Linked Lists with Tail Pointers}\label{sec:lists-with-tail-pointers}
+
+This section describes challenges when working with lists in Isabelle-LLVM and how I decided to address these challenges.
+As shown in Section \ref{sec:methodology_high-level-representation-of-polynomials}, lists are an elemental building block in the representation polynomials in Pastèque.
+
+In functional programming, one typically uses recursion on linked lists.
+As an example, consider the following implementation of the merge step in a classical merge sort algorithm:
+\isabellecodeextern[linerange=6-14]{isabelle-code/Lists.thy}
+When attempting to automatically refine 

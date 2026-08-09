@@ -26,3 +26,9 @@ titlepage/*
 !titlepage/Thesis_Titlepage.pdf
 # Local: For local, non public data (like notes from discussions)
 local/*
+*.bak
+*.blg
+*.fls
+*.fdb_latexmk
+watch
+clean

@@ -52,6 +52,7 @@
 \usepackage[labelfont=bf, labelsep=colon, format=hang]{caption} % Make image captions nicer
 \usepackage{booktabs} % nicer tables
 \usepackage{enumitem} % control list spacing (parskip otherwise makes itemize very loose)
+\setlist[itemize,enumerate]{topsep=0pt, itemsep=0pt, parsep=0pt}
 \usepackage{listings} % to include code
 \renewcommand{\lstlistingname}{Algorithm}
 \lstset{keywordstyle=\bfseries}
@@ -59,7 +60,7 @@
 
 \lstdefinelanguage{Isabelle}{%
   keywords=[1]{theory,begin,end,imports,keywords},
-  keywords=[2]{definition,fun,function,datatype,type_synonym,record,
+  keywords=[2]{fun,datatype,type_synonym,record,
     abbreviation,notation,class,instance,locale,context,interpretation,
     sublocale,global_interpretation,inductive,coinductive,
     primrec,primcorec,typedef,setup,declare,
@@ -81,25 +82,29 @@
     {-->}{{$\longrightarrow$}}3
     {<->}{{$\leftrightarrow$}}3
     {...}{{$\ldots$}}3
-    {=>}{{$\Rightarrow$}}2
-    {->}{{$\rightarrow$}}2
+    {=>}{{$\Rightarrow$}}4
+    {->}{{$\rightarrow$}}r
     {~=}{{$\neq$}}2
     {<=}{{$\leq$}}2
     {>=}{{$\geq$}}2
     {\\<times>}{{$\times$}}2
-    {\\<Rightarrow>}{{$\Rightarrow$}}2
-    {\\<Phi>}{{$\Phi$}}1
+    {\\<Rightarrow>}{{$\Rightarrow$}}3
+    {\\<Phi>}{{$\Phi$}}2
+    {\\<Psi>}{{$\Psi$}}2
     {\\<lambda>}{{$\lambda$}}1
     {\\<le>}{{$\leq$}}1
+    {\\<noteq>}{{$\neq$}}1
     {\\<longleftrightarrow>}{{$\longleftrightarrow$}}3
     {\\<subseteq>}{{$\subseteq$}}1
     {\\<open>}{{\guilsinglleft}}1
-    {\\<close>}{{\guilsinglright}}1,
+    {\\<up>}{{$\uparrow$}}4
+    {\\<close>}{{\guilsinglright}}4,
 }
 
 \lstdefinestyle{isabellestyle}{%
   language=Isabelle,
-  basicstyle=\ttfamily\small,
+  basicstyle=\ttfamily\small\singlespacing,
+  columns=flexible,
   keywordstyle=[1]\color{cd_blue}\bfseries,
   keywordstyle=[2]\color{cd_blue}\bfseries,
   keywordstyle=[3]\color{cd_background_dark_blue}\bfseries,
@@ -115,11 +120,13 @@
   xleftmargin=1em,
   xrightmargin=1em,
   captionpos=b,
+  belowskip=0pt,
 }
 
 \lstdefinestyle{isabelleinline}{%
   language=Isabelle,
   basicstyle=\ttfamily,
+  columns=flexible,
   keywordstyle=[1]\color{cd_blue}\bfseries,
   keywordstyle=[2]\color{cd_blue}\bfseries,
   keywordstyle=[3]\color{cd_background_dark_blue}\bfseries,
@@ -127,10 +134,15 @@
   commentstyle=\color{gray}\itshape,
   stringstyle=\color{cd_additional_brown_100_percent},
   showstringspaces=false,
-  breaklines=true,
+  breaklines=false,
 }
 \newcommand{\inlinecode}{\lstinline[style=isabelleinline]}
-\lstnewenvironment{isabellecode}[1][]{\lstset{style=isabellestyle,#1}}{}
+\lstnewenvironment{isabellecode}[1][]{%
+  \lstset{style=isabellestyle,#1}%
+  \minipage{\linewidth}%
+}{%
+  \endminipage%
+}
 \newcommand{\isabellecodeextern}[2][]{\lstinputlisting[style=isabellestyle,#1]{#2}}
 
 \usepackage[section]{placeins}  % To keep all figures inside there section

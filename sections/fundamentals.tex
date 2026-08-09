@@ -40,6 +40,18 @@ This is particularly challenging if the concrete program is an implementation in
 
 I used the framework Isabelle-LLVM \cite{isabelle-llvm} which employs top-down refinement to start with an abstract model and then iteratively move towards the concrete implementation, ultimately generating verified LLVM-IR code, contrary to to the previously described approach of abstracting an existing concrete program.
 
+Throughout this thesis, I use notation closely tied to actual Isabelle syntax.
+\begin{itemize}
+\item Leading apostrophes are used to denote types variables as in \inlinecode{'a}.
+\item \inlinecode{::} is used to annotate the type of a value, e.g., \inlinecode{a :: 'a} means that value \inlinecode{a} has type \inlinecode{'a}.
+\item Functions are typically presented in curried form, e.g. \inlinecode{foo :: 'a => 'b => 'c}.
+\item In function application, arguments are separated by spaces, e.g. \inlinecode{add a b} is function \inlinecode{add} applied to arguments \inlinecode{a} and \inlinecode{b}.
+\item Definitions of functions typically follows the format\\
+      \inlinecode{name :: \<open>type signature\<close> where \<open>function definition\<close>}. For example:
+      \isabellecodeextern[linerange=6-7]{isabelle-code/IsabelleSyntax.thy}
+\item Anonymous functions are denoted by \inlinecode{\<lambda>}, e.g. \inlinecode{add' = \<lambda> a b. a + b} is equivalent to the previous \inlinecode{add} example.
+\end{itemize}
+
 \subsection{Isabelle Refinement Framework}\label{sec:isabelle-refinement-framework}
 The Isabelle Refinement Framework by Lammich \cite{isabelle-refinement-framework} enables a refinement approach to defining imperative programs and proving correctness properties of such programs. \todo{In motivation, write a section on what the idea of refinement is, and which problem it solves.}
 This subsection introduces a simplified view on the underlying \inlinecode{nres} monad and sketches its usage for defining and verifying imperative programs in Isabelle-HOL.
@@ -90,4 +102,53 @@ The newer Isabelle-LLVM framework \cite{isabelle-llvm}, also by Lammich, uses th
 The verified SAT-solver IsaSAT by Fleury \cite{isasat-sml} saw an increase in performance by factor two \todo{check number}, when migrated from the Standard-ML backend to LLVM \cite{isasat-llvm}.
 This observation motivated the migration of also Pastèque from Standard-ML to LLVM, which is the primary objective of this thesis.
 
-This subsection introduces the shallow embedding of LLVM, which is the new refinement target of \inlinecode{sepref}, compared to the previous Imperative-HOL backend, targeted in the original Refinement Framework (c.f. section \ref{sec:isabelle-refinement-framework}).
+This section gives a simplified overview on the notion of \textit{refinement assertions} in Isabelle-LLVM.
+Details regarding the LLVM memory model are described in Lammich's publications \cite{isabelle-llvm} and are omitted here.
+
+A refinement assertion \inlinecode{A :: 'a => 'b => bool} defines how abstract values of type \inlinecode{'a} are related to concrete values of type \inlinecode{'b} that are representable in llvm.
+For example, a refinement assertion \inlinecode{si_assn :: int => 8 word => bool} defines how 8-bit machine words, being interpreted as signed 8-bit integers, refine the abstract HOL type of unbounded integers.
+It holds that \inlinecode{si_assn -128 0x80 = True}, while \inlinecode{si_assn 128 w = False} for any \inlinecode{w}, as 128 is not representable with an 8-bit signed integer.
+
+The conjunction operator \inlinecode{**} allows for combining refinement assertions, e.g. \inlinecode{A a ai ** B b bi} states that \inlinecode{ai} refines \inlinecode{a}, as defined by refinement assertion \inlinecode{A}, while \inlinecode{bi} refines \inlinecode{b}, as defined by refinement assertion \inlinecode{B}.
+
+\textit{Hoare-triples} are used to make statements about the effects of programs.
+\inlinecode{\<Phi> P \<Psi>} states that, if the \textit{precondition} \inlinecode{\<Phi>} holds before the execution of program \inlinecode{P}, then the \textit{postcondition} \inlinecode{\<Psi>} holds afterwards.
+For example, the Hoare-triple
+\isabellecodeextern[linerange=11-13]{isabelle-code/LLVM_Basics.thy}
+can be read as follows:
+If 8-bit machine word \inlinecode{ai}, \inlinecode{bi} refine the integers \inlinecode{a}, \inlinecode{b} then the result of \inlinecode{add ai bi} refines the integer \inlinecode{a + b}.
+Note that in this particular example, the statement is only true, if we can prove that \inlinecode{a + b} does not overflow and is therefore representable by an 8-bit machine word.
+This requirement can be added to the precondition:
+\isabellecodeextern[linerange=22-24]{isabelle-code/LLVM_Basics.thy}
+Which makes the statement provable by the \inlinecode{vcg} tool.
+Note that \inlinecode{\<up>} is used, when adding statements about abstract values to our assertions.
+
+As a user of Isabelle-LLVM, one does not typically work with Hoare-triples directly.
+Instead, usually the \inlinecode{nres} monad is used to define algorithms on HOL-types, the \inlinecode{sepref} tool can then transform high-level correctness statements using \inlinecode{\<le>} into the low-level Hoare-triples and prove statements on those automatically. 
+
+\subsubsection{Ownership in Isabelle-LLVM}\label{sec:ownership-in-isabelle-llvm}
+This subsection gives a simplified overview of the ownership model that is implemented in Isabelle-LLVM.
+
+Isabelle-LLVM distinguishes \textit{pure} and \textit{impure} values.
+A pure value is one that, from the caller's perspective, is kept intact when used as an argument in a function call.
+Machine words are an example of pure values: Revisiting the example Hoare-triple from \ref{sec:isabelle-llvm}, the postcondition can be strengthened to 
+\isabellecodeextern[linerange=33-35]{isabelle-code/LLVM_Basics.thy}
+The addition of \inlinecode{si_assn a ai ** si_assn b bi} means that, after being used as arguments for \inlinecode{add}, \inlinecode{ai} and \inlinecode{bi} remain valid representations of the original abstract integers \inlinecode{a} and \inlinecode{b}.
+
+For impure values, this does not hold.
+Objects that are heap allocated are always impure \todo{fact-check}.
+In particular lists, which are used frequently in Pastèque, are impure in Isabelle-LLVM.
+This is an important distinction from the old Imperative-HOL backend for which lists were pure object with persistence guaranteed by the compiler.
+
+To illustrate the implications of this observation, assume that for a refinement assertion \inlinecode{A :: 'a => 'b => bool}, we have a function
+\isabellecodeextern[linerange=43-43]{isabelle-code/LLVM_Basics.thy}
+that defines refinement of abstract lists of type \inlinecode{'a list} by an imaginary concrete list implementation \inlinecode{'b llvm_list}.
+Then, the following Hoare-triple could, in principle, be provable with the Imperative-HOL backend (ignoring differences in notation between the HOL backend and the LLVM backend).
+\isabellecodeextern[linerange=48-50]{isabelle-code/LLVM_Basics.thy}
+
+In Isabelle-LLVM, the above Hoare-triple can never hold.
+The underlying separation logic requires linearity, meaning that there can only be a single reference to a heap allocated object at any point in time.
+The Hoare-triple above violates this requirement, as both \inlinecode{rt} and \inlinecode{xsi} reference the same list.
+If we weaken the the postcondition, the statement becomes provable in Isabelle-LLVM:
+\isabellecodeextern[linerange=55-57]{isabelle-code/LLVM_Basics.thy}
+
