@@ -22,6 +22,12 @@
 
 \usepackage{csquotes}
 \usepackage{amsmath, amsthm, amsfonts, mathtools}
+\newcommand{\dbcolon}{\mathrel{\mathord{:}\mkern-1.2mu\mathord{:}}} % Isabelle-style type ascription "::"
+\newcommand{\tv}[1]{{\mskip2mu '\mskip-2mu#1}} % Isabelle-style type variable, e.g. \tv{a} for 'a
+\newcommand{\app}{\,} % space for function application juxtaposition, e.g. f\app a\app b
+\newcommand{\ls}[1]{#1\app\mathtt{list}} % Isabelle-style list type, e.g. \ls{\tv{a}} for 'a list
+\newcommand{\set}[1]{#1\app\mathtt{set}} % Isabelle-style set type, e.g. \set{\tv{a}} for 'a set
+\newcommand{\iexp}[1]{\app\text{\ttfamily #1}\app} % Isabelle-style expression, e.g. a \iexp{+} b. Escape underscores manually, e.g. \iexp{add\_spec}
 \usepackage{siunitx}
 \usepackage{hyperref}
 \usepackage[all]{hypcap} % to show the full figure when clicking on it's reference

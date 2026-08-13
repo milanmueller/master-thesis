@@ -5,23 +5,29 @@ It discusses how polynomials are represented on the abstract HOL level and which
 
 \subsection{High-Level Representation of Polynomials}\label{sec:methodology_high-level-representation-of-polynomials}
 The HOL-level algorithms of Pastèque works on polynomials, defined as
-\isabellecodeextern[linerange=6-9]{isabelle-code/Poly_Basics.thy}
+\begin{align*}
+  \iexp{variable}   &= \iexp{string} \\
+  \iexp{term}       &= \ls{\iexp{variable}} \\
+  \iexp{monomial}   &= \iexp{term} \times \iexp{int} \\
+  \iexp{polynomial} &= \ls{\iexp{monomial}}
+\end{align*}
 For instance, a polynomial $3xy + 2x + y$ is represented by
-\inlinecode{[([''x''],2),([''x'',''y''],3),([''y''],1)]} in Pastèque.
-Note that an invariant of Pastèque is that the variables of monomials are sorted lexicographically, e.g., an input \inlinecode{[''b'',''a'']} would be normalized to \inlinecode{[''a'',''b'']} during parsing.
-In addition, polynomials are also sorted w.r.t the lexicographic order of the monomials, e.g., a polynomial \inlinecode{[(''b'',1),(''a'',2)]} would be normalized to \inlinecode{[(''a'',2)(''b'',1)]}.
+$[([\iexp{"x"}], 2), ([\iexp{"x"}, \iexp{"y"}], 3), ([\iexp{"y"}], 1)]$ in Pastèque.
+Note that polynomials are sorted lexicographically with regards to the terms of the monomials which are also sorted internally.
+This is an invariant of Pastèque that holds throughout it's execution.
 
-Unfolding the type of a \inlinecode{polynomial} gives us \inlinecode{(char list list \<times> int) list}.
+Unfolding the type of a $\iexp{polynomial}$ gives us $\ls{(\ls{\ls{\iexp{char}}} \times \iexp{int})}$.
 Refining a program that works on polynomials as defined here, therefore implies being able to represent nested lists, and supporting typical list operations like prepending and element, destructuring a list.
 The given abstract datatype reveals the two main requirements for porting Pastèque from Imperative-HOL to LLVM:
 
 \begin{enumerate}
-  \item The Isabelle-HOL \inlinecode{int} type is unbounded and can hold arbitrarily large numbers.
+  \item The Isabelle-HOL $\iexp{int}$ type is unbounded and can hold arbitrarily large numbers.
   The Imperative-HOL backend, which produces SML code that is compiled by MLton \todo{citation}, supports this natively.
   LLVM only supports bounded numbers, represented as machine words of a fixed width.
   Eberl et al. have used bindings to GMP \cite{gmp} to implement a verified algorithm for computing Bernoulli numbers \cite{eberl-bernoulli-numbers}.
-  We choose a different approach and use a native library for arbitrary precision numbers, created by Spinei \todo{How can we cite Mihai?}.
+  Instead of GMP, I use a native library for arbitrary precision numbers, created by Spinei \todo{How can we cite Mihai?}.
   This library implements addition and multiplication for unsigned numbers, and can thus refine these operations when applied to natural numbers.
+
   To use it for Pastèque, we have to extend these operations to support signed numbers, i.e. integers.
   Furthermore, we need to implement conversion between numbers and strings, which is required for printing error messages and parsing input files.
   \refsec{sec:native-arbitrary-precision-integers-for-isabelle-llvm} discusses the work on arbitrary-precision integers.
@@ -30,7 +36,7 @@ The given abstract datatype reveals the two main requirements for porting Pastè
 
   In addition to nestable lists, Pastèque also uses two other data structures, for which I could not find an appropriate existing refinement target in Isabelle-LLVM.
 
-  Firstly, Pastèque stores \inlinecode{polynomial}s in a map where each polynomial is assigned an index, so a refinement target for associative maps must be implemented.
+  Firstly, Pastèque stores $\iexp{polynomial}$s in a map where each polynomial is assigned an index, so a refinement target for associative maps must be implemented.
 
   Secondly, Pastèque uses a hashset to track assigned variables\todo{is that actually the purpose of the hashset?}, which also requires a custom hashset implementation for strings.
 
@@ -42,7 +48,6 @@ The given abstract datatype reveals the two main requirements for porting Pastè
 \subsection{Native Arbitrary Precision Integers for Isabelle-LLVM}\label{sec:native-arbitrary-precision-integers-for-isabelle-llvm}
 
 \subsection{Interface Hierarchy for Refinement Assertions}\label{sec:interface-hierarchy-for-refinement-assertions}
-I tried to 
 
 \subsection{New Low-Level Datatypes in Isabelle-LLVM}\label{sec:low-level-datatypes-in-isabelle-llvm}
 
@@ -52,45 +57,65 @@ As shown in \refsec{sec:methodology_high-level-representation-of-polynomials}, l
 This subsection describes how lists are represented in LLVM.
 Note that, compared to the actual Isabelle implementation, I make some simplifications that capture the concepts, but do not typecheck as presented.
 
-To represent lists in LLVM, I reuse existing definitions from Isabelle-LLVM \footnote{In particular from the theory \texttt{Isabelle\_LLVM.LLVM\_DS\_Open\_List}} with some modifications.
+To represent lists in LLVM, I reuse existing definitions from Isabelle-LLVM \footnote{In particular from the theory $\iexp{Isabelle\_LLVM.LLVM\_DS\_Open\_List}$} with some modifications.
 Lists are implemented as a chain of nodes, where a node carries a value and a pointer to the next node:
-\isabellecodeextern[linerange=25-25]{isabelle-code/Lists.thy}
-A list in LLVM is a pointer to a node, i.e., a value of type \inlinecode{'b node ptr}.
+$$
+  \tv{a} \app \iexp{node} = \iexp{Node} \app (\iexp{val} \dbcolon \tv{a}) \app (\iexp{next} \dbcolon \tv{a} \app \iexp{node} \app \iexp{ptr})
+$$
+A list in LLVM is a pointer to a node, i.e., a value of type $\tv{b} \app \iexp{node} \app \iexp{ptr}$.
 The empty list is represented by a null pointer.
-A node with \inlinecode{node.next = null} denotes the end of a list.
+A node with $\iexp{node}.\iexp{next} = \iexp{null}$ denotes the end of a list.
 
-In the following, assume that \inlinecode{A :: 'a => 'b => bool} is a refinement assertion.
-Note that, \inlinecode{'a} is a high-level type that is not directly representable in LLVM, while \inlinecode{'b} is representable in LLVM.
-To refine lists of type \inlinecode{'a list} a refinement assertion of type \inlinecode{'a list => 'b node ptr => bool} specifies refinement of list.
+In the following, assume that $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{bool}$ is a refinement assertion.
+Note that, $\tv{a}$ is a high-level type that is not directly representable in LLVM, while $\tv{b}$ is representable in LLVM.
+To refine lists of type $\ls{\tv{a}}$ a refinement assertion of type $\ls{\tv{a}} \rightarrow \tv{b} \app \iexp{node} \app \iexp{ptr} \rightarrow \iexp{bool}$ specifies refinement of list.
 In order to obtain such a refinement assertion, some preliminary definitions are required.
 
-Firstly, a notion of element-wise refinement is given by
-\footnote{\inlinecode{list_aux} mirrors \inlinecode{list_assn}, which is defined in \texttt{Isabelle\_LLVM.Proto\_EOArray}.}:
-\isabellecodeextern[linerange=28-29]{isabelle-code/Lists.thy}
-\inlinecode{list_aux} can be seen as the characteristic function of a relation between abstract lists \inlinecode{xs::'a list} and concrete lists \inlinecode{xsi::'b list} where for each position, the refinement assertion \inlinecode{A} holds for the respective abstract and concrete element.
-\inlinecode{xs!i} denotes the \inlinecode{i}-th element of list \inlinecode{xs}.
-Note that \inlinecode{list_aux} in itself does not define refinement of abstract lists down to LLVM, as it does not relate \inlinecode{'a list} to \inlinecode{'b node ptr}, but to \inlinecode{'b list}.
+Firstly, a notion of element-wise refinement is given by an assertion $\iexp{list\_aux} \dbcolon (\tv{a} \rightarrow \tv{b} \rightarrow \iexp{bool}) \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{b} \app \iexp{list} \rightarrow \iexp{bool}$
+\footnote{$\iexp{list\_aux}$ mirrors $\iexp{list\_assn}$, which is defined in $\iexp{Isabelle\_LLVM.Proto\_EOArray}$.}:
+\begin{align*}
+  \iexp{list\_aux} \app A \iexp{xs} \iexp{xsi} =  &(\iexp{length} \app \iexp{xs} = \iexp{length} \app \iexp{xsi}) \\
+                                                  &\ast (\forall i.\ 0 \le i < \iexp{length} \app \iexp{xs} \Rightarrow A \app (\iexp{xs}[i]) \app (\iexp{xsi}[i]))
+\end{align*}
+$\iexp{xs}[i]$ denotes the $i$-th element of list $\iexp{xs}$.
+$\iexp{list\_aux}$ can be seen as the characteristic function of a relation between lists $\iexp{xs} \dbcolon \ls{\tv{a}}$ of abstract elements and lists $\iexp{xsi} \dbcolon \ls{\tv{b}}$ of concrete elements where for each position, the refinement assertion $A$ holds for the respective abstract and concrete element.
 
-Secondly, a function \inlinecode{lseg :: 'b list => 'b node ptr => 'b node ptr => bool} relates lists of type \inlinecode{'b} to segments of lists in LLVM, where the first \inlinecode{'b node ptr} is a pointer to the start of the segment and the second \inlinecode{'b node ptr} is a pointer to the end of the segment.
-\inlinecode{lseg} is recursively defined as
-\footnote{The actual \inlinecode{lseg} is defined in \texttt{Isabelle\_LLVM.LLVM\_DS\_List\_Seg}.}
-\isabellecodeextern[linerange=33-36]{isabelle-code/Lists.thy}
+Secondly, a function $\iexp{lseg} \dbcolon \ls{\tv{b}} \rightarrow \tv{b} \app \iexp{node} \app \iexp{ptr} \rightarrow \tv{b} \app \iexp{node} \app \iexp{ptr} \rightarrow \iexp{bool}$ relates lists of type $\tv{b}$ to segments of lists in LLVM, where the first $\tv{b} \app \iexp{node} \app \iexp{ptr}$ is a pointer to the start of the segment and the second $\tv{b} \app \iexp{node} \app \iexp{ptr}$ is a pointer to the end of the segment.
+$\iexp{lseg}$ is recursively defined as
+\footnote{The actual $\iexp{lseg}$ is defined in $\iexp{Isabelle\_LLVM.LLVM\_DS\_List\_Seg}$.}
+\begin{alignat*}{6}
+  &\iexp{lseg} &\app &[]                                &\app &p           \app &s &= (p = s) &&\\
+  &\iexp{lseg} &\app &(\iexp{x} \mathbin{\#} \iexp{xs}) &\app &\iexp{null} \app &s &= \iexp{False} &&\\
+  &\iexp{lseg} &\app &(\iexp{x} \mathbin{\#} \iexp{xs}) &\app &p           \app &s &= \exists q.\ \iexp{pto} \app (\iexp{Node} \app x \app q) \app p \ast \iexp{lseg} \app \iexp{xs} \app q \app s &&
+\end{alignat*}
 \begin{itemize}
-\item if the given list is empty, then both pointers are equal.
-\item if the list is not empty, then \inlinecode{p} is a pointer to a \inlinecode{Node x q}, where \inlinecode{x} is the value held by the node and \inlinecode{q} is the pointer to the next node.
-  \inlinecode{pto x p} evaluates to \inlinecode{True} if \inlinecode{p} is a pointer to \inlinecode{x}.
-  Also, for the tail of the list it must hold that \inlinecode{lseg xs q s}.
+\item If the given list is empty, then both pointers are equal.
+\item If the given list is not empty, then $p$ must not be $\iexp{null}$.
+\item If the list is not empty, then $p$ is a pointer to a $\iexp{Node} \app x \app q$, where $x$ is the value held by the node and $q$ is the pointer to the next node.
+  $\iexp{pto} \app x \app p$ evaluates to $\iexp{True}$ if $p$ is a pointer to $x$.
+  Also, for the tail of the list it must hold that $\iexp{lseg} \app \iexp{xs} \app q \app s$.
 \end{itemize}
 
-Using \inlinecode{list_aux} and \inlinecode{lseg}, a refinement assertion for lists, parameterized by \inlinecode{A}, can be defined by
-\isabellecodeextern[linerange=40-41]{isabelle-code/Lists.thy}
-which means that \inlinecode{p::'b node ptr} refines \inlinecode{a::'a list} if there exists a list \inlinecode{xsi::'b list} such that \inlinecode{lseg b p null}, i.e., \inlinecode{p} is the start pointer of a list segment related to \inlinecode{xsi}, terminated by the \inlinecode{null} pointer, and \inlinecode{xsi} and \inlinecode{xs} are related element-wise as specified by \inlinecode{ls_aux}.
+Using $\iexp{list\_aux}$ and $\iexp{lseg}$, a refinement assertion for lists, parameterized by $A$, can be defined by
+\begin{align*}
+  \iexp{ls\_assn} \app A \iexp{xs} \iexp{p} = \exists \iexp{xsi}.\ \iexp{lseg} \app \iexp{xsi} \app p \app \iexp{null} \ast \iexp{list\_aux} \app A \app \iexp{xs} \app \iexp{xsi}
+\end{align*}
+which means that $p \dbcolon \tv{b} \app \iexp{node} \app \iexp{ptr}$ refines $a \dbcolon \ls{\tv{a}}$ if there exists a list $\iexp{xsi} \dbcolon \ls{\tv{b}}$ such that $\iexp{lseg} \app b \app p \app \iexp{null}$, i.e., $p$ is the start pointer of a list segment related to $\iexp{xsi}$, terminated by the $\iexp{null}$ pointer, and $\iexp{xsi}$ and $\iexp{xs}$ are related element-wise as specified by $\iexp{ls\_aux}$.
 
 
 \refsec{sec:ownership-in-isabelle-llvm} describes a particular challenge when working with lists in LLVM that was not present with the old Imperative-HOL backend:
 A function that destructures a list, which is commonly the case in typical recursive walks over lists, necessarily destroys it.
 
 As an example, consider the following implementation of the merge step in a classic merge sort algorithm:
-\isabellecodeextern[linerange=6-14]{isabelle-code/Lists.thy}
+$$
+  \iexp{merge} \dbcolon \ls{\iexp{nat}} \rightarrow \ls{\iexp{nat}} \rightarrow \ls{\iexp{nat}}
+$$
+where
+\begin{alignat*}{6}
+  &\iexp{merge} &\app &[]                         &\app &q            &\app &= [] \\
+  &\iexp{merge} &\app &p                          &\app &[]           &\app &= p \\
+  &\iexp{merge} &\app &(p \mathbin{\#} ps) &\app &(q \mathbin{\#} qs) &\app &= \begin{cases} p \mathbin{\#} \iexp{merge} \app ps \app (q \mathbin{\#} qs) & \text{if } p \le q \\ q \mathbin{\#} \iexp{merge} \app (p \mathbin{\#} ps) \app qs & \text{otherwise} \end{cases}
+\end{alignat*}
 
-An LLVM function that refines \inlinecode{merge}
+
+

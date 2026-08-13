@@ -40,127 +40,186 @@ This is particularly challenging if the concrete program is an implementation in
 
 I used the framework Isabelle-LLVM \cite{isabelle-llvm} which employs top-down refinement to start with an abstract model and then iteratively move towards the concrete implementation, ultimately generating verified LLVM-IR code, contrary to to the previously described approach of abstracting an existing concrete program.
 
-Throughout this thesis, I use notation closely tied to actual Isabelle syntax.
+Throughout this thesis, I assume notion of typed higher order logic, with notation closely tied to actual Isabelle syntax.
 \begin{itemize}
-\item Leading apostrophes are used to denote types variables as in \inlinecode{'a}.
-\item \inlinecode{::} is used to annotate the type of a value, e.g., \inlinecode{a :: 'a} means that value \inlinecode{a} has type \inlinecode{'a}.
-\item Functions first-class objects and are typically presented in curried form.
-      For instance, a function \inlinecode{foo :: 'a => 'b => 'c}, for a given \inlinecode{a :: 'a}, returns a function of type \inlinecode{'b => 'c}:
-\item In function application, arguments are separated by spaces, e.g. \inlinecode{foo a b} is function \inlinecode{foo} applied to arguments \inlinecode{a} and \inlinecode{b}.
-\item Definitions of functions typically follows the format\\
-      \inlinecode{name :: \<open>type signature\<close> where \<open>function definition\<close>}. For example:
-      \isabellecodeextern[linerange=6-7]{isabelle-code/IsabelleSyntax.thy}
-\item Anonymous functions are denoted by \inlinecode{\<lambda>}, e.g., \inlinecode{add' = \<lambda> a b. a + b} is equivalent to the previous \inlinecode{add} example.
-\item Isabelle-HOL defines \inlinecode{list} and \inlinecode{prod} (product), where \inlinecode{'a list} is the type of lists of elements of type \inlinecode{'a}, and \inlinecode{('a, 'b) prod} is the type of products \inlinecode{(a::'a, b::'b)}.
-  We use the infix notation \inlinecode{'a \<times> 'b} for the product type.
+  \item Leading apostrophes indicate type variables, e.g. $\tv{a}$.
+  \item $\dbcolon$ is used to annotate the type of a value, e.g. $a \dbcolon \tv{a}$ means that value $a$ is of type $\tv{a}$.
+  \item An algebraic datatype $\iexp{ta}$ with $n$ constructors is denoted by
+        $$
+          (\tv{c_1t_1},\tv{c_1t_2},\dots,\tv{c_nt_1},\tv{c_nt_2},\dots) \app \iexp{ta} = C_1 \app \tv{c_1t_1} \app \tv{c_1t_2} \app \dots \mid \dots \mid C_n \app \tv{c_nt_1} \app \tv{c_nt_2} \app \dots
+        $$
+        where each constructor $C_i$ may carry arbitrarily many datatypes $\tv{c_it_1} \app \tv{c_it_2} \app \dots$.
+        Note that $\iexp{ta}$ might be polymorphic over the types carried by the constructors.
+  \item Functions are first-class objects and are typically presented in curried form.
+        A function $f \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \tv{c}$ for a given $a \dbcolon \tv{a}$ returns a function of type $\tv{b} \rightarrow \tv{c}$.
+  \item For a function $f \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \tv{c}$, $f\app a\app b$ denotes function application for arguments $a \dbcolon \tv{a}, b \dbcolon \tv{b}$.
+  \item $\lambda$ denotes anonymous functions, e.g. $\lambda \app a \app b. f \app a \app b$ is an anonymous function that applies the named function $f$ to arguments $a$,$b$.
+  \item For types $\tv{a}$ and $\tv{b}$, $\tv{a} \times \tv{b}$ denotes the product type of tuples $(a \dbcolon \tv{a}, b \dbcolon \tv{b})$.
+  \item For a type $\tv{a}$, $\ls{\tv{a}}$ denotes the type of lists with elements of type $\tv{a}$.
+        A concrete list is denoted by $[x,y,z]$.
+  \item For a type $\tv{a}$, $\set{\tv{a}}$ denotes the type of sets with elements of type $\tv{a}$.
+        A concrete set is denoted by $\{x,y,z\}$.
+  \item I use the following builtin Isabelle types:
+  \begin{itemize}
+    \item Type $\iexp{bool}$ of booleans,
+    \item Type $\iexp{nat}$ of natural numbers (unbounded),
+    \item Type $\iexp{int}$ of integers (unbounded),
+    \item Type $w \app \iexp{word}$ of machine words with bit-width $w$,
+    \item $\iexp{unit}$ is the unit type with the only value $\iexp{()}$.
+  \end{itemize}
 \end{itemize}
 
 \subsection{Isabelle Refinement Framework}\label{sec:isabelle-refinement-framework}
 \todo{It should actually say sepref, instead of refinement framework here}
 The Isabelle Refinement Framework by Lammich \cite{isabelle-refinement-framework} enables a refinement approach to defining imperative programs and proving correctness properties of such programs. \todo{In motivation, write a section on what the idea of refinement is, and which problem it solves.}
-This subsection introduces a simplified view on the underlying \inlinecode{nres} monad and sketches its usage for defining and verifying imperative programs in Isabelle-HOL.
-Most of the algorithms I implemented for this thesis are defined in the \inlinecode{nres} monad, the exception being fundamental operations on custom datatypes that \refsec{sec:low-level-datatypes-in-isabelle-llvm} introduces.
+This subsection introduces a simplified view on the underlying \texttt{nres} monad and sketches its usage for defining and verifying imperative programs in Isabelle-HOL.
+Most of the algorithms I implemented for this thesis are defined in the \texttt{nres} monad, the exception being fundamental operations on custom datatypes that \refsec{sec:low-level-datatypes-in-isabelle-llvm} introduces.
 The following definition are closely tied to their actual definitions in the Refinement Framework, but some details are omitted.
 \todo{refer to Lammichs work and specify what is given there (complete lattice instantiation, connection to sepraration logic)}
 
-Nondeterministic computations are represented using the \inlinecode{nres} monad.
-\inlinecode{nres} over some datatype \inlinecode{'a}, representing computations with results of type \inlinecode{'a}, is defined as
+Nondeterministic computations are represented using the \texttt{nres} monad.
+\texttt{nres} over some datatype $\tv{a}$, representing computations with results of type $\tv{a}$, is defined as
+$$
+  (\tv{a}) \app \iexp{nres} = \iexp{FAIL} \mid \iexp{RES} \app (\set{\tv{a}})
+$$
+Intuitively, for $\iexp{RES \app S}$, the set $\iexp{S}$ represents all possible results of a computation, while $\iexp{FAIL}$ can be seen as a representation of impossible computations, such as an out-of-bounds read from an array.
 
-\isabellecodeextern[linerange=5-5]{isabelle-code/NRES_Fundamentals.thy}
+For lifting a value $\iexp{a}$ of type $\iexp{'a}$ into $\iexp{'a \app nres}$, the Refinment Framework defines
+$$
+  \iexp{RETURN} \dbcolon \tv{a} \rightarrow \tv{a} \app \iexp{nres}, \text{ where } \iexp{RETURN} \app \iexp{a} = \{\iexp{a}\}
+$$
+As an example, $\iexp{RETURN}$ is used to describe a program $\iexp{sum}$ that computes the sum of two natural numbers as follows:
+$$
+  \iexp{sum} \dbcolon \iexp{nat} \rightarrow \iexp{nat} \rightarrow \iexp{nat} \app \iexp{nres}, \text{ where } \iexp{sum} \app \iexp{a} \app \iexp{b} = \iexp{RETURN} \app (\iexp{a} \iexp{+} \iexp{b})
+$$
+The Refinement Frameworks also defines $\iexp{SPEC}$, parameterized over a characteristic function $\Phi$ to describe results:
+$$
+  \iexp{SPEC} \dbcolon (\tv{a} \rightarrow \iexp{bool}) \rightarrow \tv{a} \app \iexp{nres}, \text{ where } \iexp{SPEC} \app \Phi = \iexp{RES} \app \{ \iexp{a} \dbcolon \tv{a} \mid \Phi \app \iexp{a} \}
+$$
+$\iexp{SPEC}$ is typically used to give specifications for programs.
+For example, I define $\iexp{add\_spec}$ as a specification for a program that computes the sum of two natural numbers as follows:
+$$
+  \iexp{add\_spec} \dbcolon \iexp{nat} \rightarrow \iexp{nat} \rightarrow \iexp{nat} \app \iexp{nres}, \text{ where } \iexp{add\_spec} \app \iexp{a} \app \iexp{b} = \iexp{SPEC} \app (\lambda \app \iexp{r}.\, \iexp{r} = \iexp{a} \iexp{+} \iexp{b})
+$$
+On $\iexp{nres}$, the Refinement Framework defines an order $\le$, given by
+$$
+\begin{aligned}
+  \iexp{\_} &\le \iexp{FAIL} &&\Longleftrightarrow \iexp{True}, \text{ where $\iexp{\_}$ is an arbitrary value} \\
+  \iexp{FAIL} &\le \iexp{RES} \app X &&\Longleftrightarrow \iexp{False} \\
+  \iexp{RES} \app X &\le \iexp{RES} \app Y &&\Longleftrightarrow X \subseteq Y
+\end{aligned}
+$$
+Intuitively, $\iexp{P} \le \iexp{P'}$ means that every possible result of program $\iexp{P}$ is also a possible result of $\iexp{P'}$.
+In particular that means if $\iexp{P'}$ is known to be correct, with respect to some definition of correctness, then $\iexp{P} \le \iexp{P'}$ means that $\iexp{P'}$ is also correct with respect to that definition of correctness.
+For instance, $\iexp{P} \le \iexp{add\_spec}$ states that $\iexp{P}$ computes the sum of two natural numbers.
 
-Intuitively, for \inlinecode{RES S}, the set \inlinecode{S} represents all possible results of a computation, while \inlinecode{FAIL} can be seen as a representation of impossible computations, such as an out-of-bounds read from an array.
+The Refinement Framework also implements the $\iexp{bind}$ operator to enable sequential composition of programs.
+In addition, it provides loops and can be used with Isabelle's builtin $\iexp{if}$ expressions with which proper imperative programs can then be expressed.
 
-For lifting a value \inlinecode{a} of type \inlinecode{'a} into \inlinecode{'a nres}, the Refinment Framework defines
-\isabellecodeextern[linerange=8-9]{isabelle-code/NRES_Fundamentals.thy}
+Statements like $\iexp{P} \le \iexp{add\_spec}$ must be proven in Isabelle by the user.
+The Refinement Framework offers tools to automate significant portions of such proofs, in particular the $\iexp{refine\_vcg}$ verification condition generator can be used to unfold loops and apply other simplifications to transform goals expressed in the $\iexp{nres}$ monad to standard Isabelle-HOL goals on which Isabelle's builtin proof automation (in particular $\iexp{sledgehammer}$) can then often be used effectively.
 
-As an example, \inlinecode{RETURN} is used to describe a program \inlinecode{sum} that computes the sum of two natural numbers as follows:
-\isabellecodeextern[linerange=12-13]{isabelle-code/NRES_Fundamentals.thy}
-
-The Refinement Frameworks also defines \inlinecode{SPEC}, parameterized over a characteristic function \inlinecode{\<Phi>} to describe results:
-\isabellecodeextern[linerange=16-17]{isabelle-code/NRES_Fundamentals.thy}
-\inlinecode{SPEC} is typically used to give specifications for programs.
-For example, I define \inlinecode{add_spec} as a specification for a program that computes the sum of two natural numbers as follows:
-\isabellecodeextern[linerange=20-21]{isabelle-code/NRES_Fundamentals.thy}
-
-On \inlinecode{nres}, the Refinement Framework defines an order \inlinecode{\<le>}, given by
-\isabellecodeextern[linerange=24-28]{isabelle-code/NRES_Fundamentals.thy}
-
-Intuitively, \inlinecode{P \<le> P'} means that every possible result of program \inlinecode{P} is also a possible result of \inlinecode{P'}. 
-In particular that means if \inlinecode{P'} is known to be correct, with respect to some definition of correctness, then \inlinecode{P \<le> P'} means that \inlinecode{P'} is also correct with respect to that definition of correctness.
-For instance, \inlinecode{P \<le> add_spec} states that \inlinecode{P} computes the sum of two natural numbers.
-
-The Refinement Framework also implements the \inlinecode{bind} operator to enable sequential composition of programs.
-In addition, it provides loops and can be used with Isabelle's builtin \inlinecode{if} expressions with which proper imperative programs can then be expressed.
-
-Statements like \inlinecode{P \<le> add_spec} must be proven in Isabelle by the user.
-The Refinement Framework offers tools to automate significant portions of such proofs, in particular the \inlinecode{refine_vcg} verification condition generator can be used to unfold loops and apply other simplifications to transform goals expressed in the \inlinecode{nres} monad to standard Isabelle-HOL goals on which Isabelle's builtin proof automation (in particular \inlinecode{sledgehammer}) can then often be used effectively.
-
-In general, a program \inlinecode{P :: 'a nres} can not be directly translated to an executable program, as it only describes the possible outcomes of a program.
-If it can be shown that \inlinecode|P = RES {a}|, for one deterministic \inlinecode{a}, then, under some additional conditions which are omitted here, the \inlinecode{sepref} tool can translate \inlinecode{P} into an executable program.
+In general, a program $\iexp{P} \dbcolon \tv{a} \app \iexp{nres}$ can not be directly translated to an executable program, as it only describes the possible outcomes of a program.
+If it can be shown that $\iexp{P} = \iexp{RES} \app \{\iexp{a}\}$, for one deterministic $\iexp{a}$, then, under some additional conditions which are omitted here, the $\iexp{sepref}$ tool can translate $\iexp{P}$ into an executable program.
 
 The Sepref then exports Standard-ML code, which is therefore the case for the original implementation of Pastèque by Fleury \cite{pac-2024}.
 
-\subsection{Isabelle-LLVM}\label{sec:isabelle-llvm}
+The newer Isabelle-LLVM framework \cite{isabelle-llvm}, also by Lammich, uses the same $\iexp{nres}$ monad, but instead of Standard-ML, it generates LLVM code.
 
-The newer Isabelle-LLVM framework \cite{isabelle-llvm}, also by Lammich, uses the same \inlinecode{nres} monad, but instead of Standard-ML, it generates LLVM code.
 The verified SAT-solver IsaSAT by Fleury \cite{isasat-sml} saw an increase in performance by factor two \todo{check number}, when migrated from the Standard-ML backend to LLVM \cite{isasat-llvm}.
 This observation motivated the migration of also Pastèque from Standard-ML to LLVM, which is the primary objective of this thesis.
 
-This section gives a simplified overview on the notion of \textit{refinement assertions} in Isabelle-LLVM.
-Details regarding the LLVM memory model are described in Lammich's publications \cite{isabelle-llvm} and are omitted here.
+\subsection{Isabelle-LLVM}\label{sec:isabelle-llvm}
 
-A refinement assertion \inlinecode{A :: 'a => 'b => bool} defines how abstract values of type \inlinecode{'a} are related to concrete values of type \inlinecode{'b} that are representable in llvm.
-For example, a refinement assertion \inlinecode{si_assn :: int => 8 word => bool} defines how 8-bit machine words, being interpreted as signed 8-bit integers, refine the abstract HOL type of unbounded integers.
-It holds that \inlinecode{si_assn -128 0x80 = True}, while \inlinecode{si_assn 128 w = False} for any \inlinecode{w}, as 128 is not representable with an 8-bit signed integer.
+This section gives an overview on the notion of \textit{refinement assertions} in Isabelle-LLVM and the separation logic used to reason about LLVM programs.
 
-The conjunction operator \inlinecode{**} allows for combining refinement assertions, e.g. \inlinecode{A a ai ** B b bi} states that \inlinecode{ai} refines \inlinecode{a}, as defined by refinement assertion \inlinecode{A}, while \inlinecode{bi} refines \inlinecode{b}, as defined by refinement assertion \inlinecode{B}.
+Isabelle-LLVM defines a shallow embedding of the LLVM intermediate language (i.e. a formalization of a subset of LLVM) and models the state of memory during the execution of a program.
+Details regarding the LLVM embedding and memory model are described in Lammich's paper \cite{isabelle-llvm}.
+For the thesis I use a simplified notion of refinement assertions that ignores the underlying memory model.
+In addition, I introduce the following types and functions informally, as a formal definition would require introducing the memory model:
+\begin{itemize}
+  \item $\tv{a} \app \iexp{ptr}$ is the type of pointers to values of type $\tv{a}$.
+        Note that, for $\tv{a} \app \iexp{ptr}$ to be recognized by the LLVM code generator of Isabelle-LLVM, $\tv{a}$ must be representable in LLVM.
+        The type of machine words, $w \app \iexp{word}$, is the only representable type that is directly mentioned in this thesis.
+  \item For $\iexp{pto} \dbcolon \tv{a} \rightarrow \tv{a} \app \iexp{ptr} \rightarrow \iexp{bool}$, the expression $\iexp{pto} \app \iexp{a} \app \iexp{p}$ evaluates to $\iexp{True}$, iff. $\iexp{p}$ is a pointer to $\iexp{a}$ \footnote{The actual assertion $\iexp{ll\_bpto}$ is defined in the theory $\iexp{Isabelle\_LLVM.LLVM\_DS\_Block\_Alloc.thy}$}.
+  \item Similarly to the $\iexp{nres}$ monad, Isabelle-LLVM uses state error monad $\tv{a} \app \iexp{M}$ to describe LLVM programs with return type $\tv{a}$. \todo{There should be at least some intuition of what $\iexp{M}$ does.}
+        Note that $\tv{a}$ should be a type representable in LLVM for the code generator to be able to produce code for a program $P \dbcolon \tv{a} \app \iexp{M}$.
+\end{itemize}
 
-\textit{Hoare-triples} are used to make statements about the effects of programs.
-\inlinecode{\<Phi> P \<Psi>} states that, if the \textit{precondition} \inlinecode{\<Phi>} holds before the execution of program \inlinecode{P}, then the \textit{postcondition} \inlinecode{\<Psi>} holds afterwards.
-For example, the Hoare-triple
-\isabellecodeextern[linerange=11-13]{isabelle-code/LLVM_Basics.thy}
+A \textit{Hoare-triple} $\{\Psi\} (\iexp{P} \dbcolon \tv{a} \app \iexp{M}) \{\Phi\}$ states that, if a \textit{precondition} $\Psi$ holds initially, then the \textit{postcondition} $\Phi$ holds after the execution of program $\iexp{P}$.
+Precondition and postcondition are usually composed of \textit{assertions}.
+
+An assertion is a function $f \dbcolon \tv{a} \rightarrow bool$ that is used to make statements about the state of a system at a fixed point in time.
+A \textit{refinement assertion} $\iexp{A} \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{bool}$ is a special case of an assertion that specifies how abstract values of type $\iexp{'a}$ are related to concrete values of type $\tv{b}$ that are representable in llvm.
+For example, a refinement assertion $\iexp{si\_assn} \dbcolon \iexp{int} \rightarrow \iexp{8 word} \rightarrow \iexp{bool}$ defines how 8-bit machine words, being interpreted as signed 8-bit integers, refine the abstract HOL type of unbounded integers.
+It holds that $\iexp{si\_assn} \app \iexp{-128} \app \iexp{0x80} = \iexp{True}$, while $\iexp{si\_assn} \app \iexp{128} \app w = \iexp{False}$ for any $w$, as $\iexp{128}$ is not representable with an 8-bit signed integer.
+
+The separation conjunction operator $\ast$ allows for combining assertions, e.g. $\iexp{A} \app \iexp{a} \app \iexp{ai} \ast \iexp{B} \app \iexp{b} \app \iexp{bi}$ states that $\iexp{ai}$ refines $\iexp{a}$, as defined by refinement assertion $\iexp{A}$, while $\iexp{bi}$ refines $\iexp{b}$, as defined by refinement assertion $\iexp{B}$.
+
+As an example, the Hoare-triple
+$$
+  \{\iexp{si\_assn} \app \iexp{a} \app \iexp{ai} \ast \iexp{si\_assn} \app \iexp{b} \app \iexp{bi}\}
+  \app (\iexp{add} \app \iexp{ai} \app \iexp{bi}) \app
+  \{\lambda \app \iexp{r}.\, \iexp{si\_assn} \app (\iexp{a} \iexp{+} \iexp{b}) \app \iexp{r}\}
+$$
 can be read as follows:
-If 8-bit machine word \inlinecode{ai}, \inlinecode{bi} refine the integers \inlinecode{a}, \inlinecode{b} then the result of \inlinecode{add ai bi} refines the integer \inlinecode{a + b}.
-Note that in this particular example, the statement is only true, if we can prove that \inlinecode{a + b} does not overflow and is therefore representable by an 8-bit machine word.
-This requirement can be added to the precondition
-\footnote{In the actual Isabelle theories, statements about high-level values, like \inlinecode{a+b < 127} here, must be annotated with $\uparrow$. In the thesis I omit annotation this an favor of simplicity.}:
-\isabellecodeextern[linerange=22-24]{isabelle-code/LLVM_Basics.thy}
-Which makes the statement provable by the \inlinecode{vcg} tool.
+If 8-bit machine word $\iexp{ai}$, $\iexp{bi}$ refine the integers $\iexp{a}$, $\iexp{b}$ then the result of $\iexp{add} \app \iexp{ai} \app \iexp{bi}$ refines the integer $\iexp{a} \iexp{+} \iexp{b}$.
+Note that in this particular example, the statement is only true, if we can prove that $\iexp{a} \iexp{+} \iexp{b}$ does not overflow and is therefore representable by an 8-bit machine word.
+This requirement can be added to the precondition:
+\begin{gather*}
+  \{(\lambda \iexp{a} \app \iexp{b}. \iexp{a} \iexp{+} \iexp{b} < \iexp{127}) \ast \iexp{si\_assn} \app \iexp{a} \app \iexp{ai} \ast \iexp{si\_assn} \app \iexp{b} \app \iexp{bi}\} \\
+  (\iexp{add} \app \iexp{ai} \app \iexp{bi}) \\
+  \{\lambda \app \iexp{r}.\, \iexp{si\_assn} \app (\iexp{a} \iexp{+} \iexp{b}) \app \iexp{r}\}
+\end{gather*}
+Which makes the statement provable by the $\iexp{vcg}$ tool.
 
 As a user of Isabelle-LLVM, one does not typically work with Hoare-triples directly.
-Instead, usually the \inlinecode{nres} monad is used to define algorithms on HOL-types, the \inlinecode{sepref} tool can then transform high-level correctness statements using \inlinecode{\<le>} into the low-level Hoare-triples and prove statements on those automatically. 
+Instead, usually the $\iexp{nres}$ monad is used to define algorithms on HOL-types, the $\iexp{sepref}$ tool can then transform high-level correctness statements using $\le$ into the low-level Hoare-triples and prove statements on those automatically.
 
 \subsubsection{Ownership in Isabelle-LLVM}\label{sec:ownership-in-isabelle-llvm}
 This subsection gives a simplified overview of the ownership model that is implemented in Isabelle-LLVM.
 
 Isabelle-LLVM distinguishes \textit{pure} and \textit{impure} values.
-A pure value is one that, from the caller's perspective, is kept intact when used as an argument in a function call. \todo{This is not really what "pure" means...}
+Stack allocated values are pure \todo{fact-check}.
+When used as function arguments, they are duplicated and thus retain their value once the callee returns.
 Machine words are an example of pure values: Revisiting the example Hoare-triple from \refsec{sec:isabelle-llvm}, the postcondition can be strengthened to
-\isabellecodeextern[linerange=33-35]{isabelle-code/LLVM_Basics.thy}
-The addition of \inlinecode{si_assn a ai ** si_assn b bi} means that, after being used as arguments for \inlinecode{add}, \inlinecode{ai} and \inlinecode{bi} remain valid representations of the original abstract integers \inlinecode{a} and \inlinecode{b}.
+\begin{gather*}
+  \{(\iexp{a} \iexp{+} \iexp{b} < \iexp{127}) \ast \iexp{si\_assn} \app \iexp{a} \app \iexp{ai} \ast \iexp{si\_assn} \app \iexp{b} \app \iexp{bi}\} \\
+  (\iexp{add} \app \iexp{ai} \app \iexp{bi}) \\
+  \{\lambda \app \iexp{r}.\, \iexp{si\_assn} \app (\iexp{a} \iexp{+} \iexp{b}) \app \iexp{r} \ast \iexp{si\_assn} \app \iexp{a} \app \iexp{ai} \ast \iexp{si\_assn} \app \iexp{b} \app \iexp{bi}\}
+\end{gather*}
+The addition of $\iexp{si\_assn} \app \iexp{a} \app \iexp{ai} \ast \iexp{si\_assn} \app \iexp{b} \app \iexp{bi}$ means that, after being used as arguments for $\iexp{add}$, $\iexp{ai}$ and $\iexp{bi}$ remain valid representations of the original abstract integers $\iexp{a}$ and $\iexp{b}$.
 
 For impure values, this does not hold.
 Objects that are heap allocated are always impure \todo{fact-check}.
 In particular lists, which are used frequently in Pastèque, are impure in Isabelle-LLVM.
-This is an important distinction from the old Imperative-HOL backend for which lists were pure object (as long as the contained elements are also pure) with persistence guaranteed by the compiler.
+This is an important distinction from the old Imperative-HOL backend in which lists are pure object (as long as the contained elements are also pure) with persistence guaranteed by the compiler.
 
-To illustrate the implications of this observation, assume that for a refinement assertion \inlinecode{A :: 'a => 'b => bool}, we have a function
-\isabellecodeextern[linerange=43-43]{isabelle-code/LLVM_Basics.thy}
-that defines refinement of abstract lists of type \inlinecode{'a list} by an imaginary concrete list implementation \inlinecode{'b llvm_list}.
-Then, the following Hoare-triple could, in principle, be provable with the Imperative-HOL backend (ignoring differences in notation between the HOL backend and the LLVM backend).
-\isabellecodeextern[linerange=48-50]{isabelle-code/LLVM_Basics.thy}
-The Hoare-triple can be read as follows: If the non-empty abstract list \inlinecode{xs} is refined by a concrete list implementation \inlinecode{xsi}, then, after calling a function that returns a the tail of the list, the abstract tail \inlinecode{tl xs} is refined by the result of the function.
-Also, after the function has been executed, \inlinecode{xsi} still remains a concrete representation of the original list \inlinecode{xs}.
+To illustrate the implications of this observation, assume that for a refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{bool}$, we have a function
+$$
+  \iexp{ls\_assn} \dbcolon (\tv{a} \rightarrow \tv{b} \rightarrow \iexp{bool}) \rightarrow \ls{\tv{a}} \rightarrow \tv{b} \app \iexp{llvm\_list} \rightarrow \iexp{bool}
+$$
+that defines refinement of abstract lists of type $\ls{\tv{a}}$ by an imaginary concrete list implementation $\tv{b} \app \iexp{llvm\_list}$.
+Then, the following Hoare-triple could, in principle, be provable with the Imperative-HOL backend:
+\begin{gather*}
+  \{(\iexp{ls\_assn} \app A) \app \iexp{xs} \app \iexp{xsi} \ast (\lambda \iexp{xs}. \iexp{xs} \neq [])\} \\
+  (\lambda \app \iexp{xs}.\, \iexp{tl} \app \iexp{xs}) \\
+  \{\lambda \app \iexp{r}.\, A \app (\iexp{tl} \app \iexp{xs}) \app \iexp{r} \ast (\iexp{ls\_assn} \app A) \app \iexp{xs} \app \iexp{xsi}\}
+\end{gather*}
+The Hoare-triple can be read as follows: If the non-empty abstract list $\iexp{xs}$ is refined by a concrete list implementation $\iexp{xsi}$, then, after calling a function that returns a the tail of the list, the abstract tail $\iexp{tl} \app \iexp{xs}$ is refined by the result of the function.
+Also, after the function has been executed, $\iexp{xsi}$ still remains a concrete representation of the original list $\iexp{xs}$.
 This property typically holds in functional languages where lists are persistent objects, as is the case in the Standard-ML backend.
 
 In Isabelle-LLVM, the above Hoare-triple can never hold.
 Lists in LLVM are are a chain of nodes, each carrying a value and a pointer to the next node in the list.
 They are therefore heap-allocated, impure objects.
 The underlying separation logic requires that there can only be a single reference to a heap allocated object at any point in time.
-The Hoare-triple above violates this requirement, as both \inlinecode{r} and \inlinecode{xsi} would now reference the same list.
+The Hoare-triple above violates this requirement, as both $\iexp{r}$ and $\iexp{xsi}$ would now reference the same list.
 If we weaken the the postcondition, the statement becomes provable in Isabelle-LLVM:
-\isabellecodeextern[linerange=55-57]{isabelle-code/LLVM_Basics.thy}
-We lose the assertion \inlinecode{(ls_assn A) xs xsi} in the postcondition, we say that the original list \inlinecode{xsi} was \textit{destroyed}.
+\begin{gather*}
+  \{(\iexp{ls\_assn} \app A) \app \iexp{xs} \app \iexp{xsi}\} \\
+  (\lambda \app \iexp{xs}.\, \iexp{tl} \app \iexp{xs}) \\
+  \{\lambda \app \iexp{r}.\, A \app (\iexp{tl} \app \iexp{xs}) \app \iexp{r}\}
+\end{gather*}
+We lose the assertion $(\iexp{ls\_assn} \app A) \app \iexp{xs} \app \iexp{xsi}$ in the postcondition, we say that the original list $\iexp{xsi}$ was \textit{destroyed}.
 \refsec{sec:lists-with-tail-pointers} describes the approach that I chose to address this issue for functions working on lists specifically.
-
-\todo{Also introduce type ptr}
