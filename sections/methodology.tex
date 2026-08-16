@@ -106,6 +106,10 @@ which means that $p \dbcolon \tv{b} \app \iexp{node} \app \iexp{ptr}$ refines $a
 \refsec{sec:ownership-in-isabelle-llvm} describes a particular challenge when working with lists in LLVM that was not present with the old Imperative-HOL backend:
 A function that destructures a list, which is commonly the case in typical recursive walks over lists, necessarily destroys it.
 
+As an example, consider the following recursive function for summing up the elements of a list:
+\isabellecodeextern[linerange=45-47]{isabelle-code/Lists.thy}
+
+% THIS PART IS FOR AN INTERLEAVING FOLD IF WE EVER GET THAT.
 As an example, consider the following implementation of the merge step in a classic merge sort algorithm:
 $$
   \iexp{merge} \dbcolon \ls{\iexp{nat}} \rightarrow \ls{\iexp{nat}} \rightarrow \ls{\iexp{nat}}
@@ -116,6 +120,11 @@ where
   &\iexp{merge} &\app &p                          &\app &[]           &\app &= p \\
   &\iexp{merge} &\app &(p \mathbin{\#} ps) &\app &(q \mathbin{\#} qs) &\app &= \begin{cases} p \mathbin{\#} \iexp{merge} \app ps \app (q \mathbin{\#} qs) & \text{if } p \le q \\ q \mathbin{\#} \iexp{merge} \app (p \mathbin{\#} ps) \app qs & \text{otherwise} \end{cases}
 \end{alignat*}
-
-
-
+For the merge function, it is possible to prove the Hoare-triple
+\begin{gather*}
+ \{\iexp{ls\_assn} \app xs \app xsi \ast \iexp{ls\_assn} \app ys \app ysi \ast (\iexp{sorted} \app xs \land \iexp{sorted} \app ys)\} \\
+(\iexp{merge} \app xsi \app ysi) \\
+\{\lambda r. \exists zs. \iexp{mset} \app zs = \iexp{mset} \app xs \cup \iexp{mset} \app ys \land \iexp{sorted} \app zs \land \iexp{ls\_assn} zs r\}
+\end{gather*}
+Where $\iexp{sorted} \dbcolon \tv{a} \app \iexp{list} \rightarrow \iexp{bool}$ evaluates to $\iexp{True}$ if the given list is sorted and $\iexp{mset} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{mset}$ is the multiset of all elements of a given list.
+Note that the original lists $xs$ and $ys$ are destroyed after the execution of $\iexp{merge}$, proving a hoare triple where $xs$ and $ys$ are kept intact

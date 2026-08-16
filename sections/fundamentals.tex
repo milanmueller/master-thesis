@@ -59,6 +59,8 @@ Throughout this thesis, I assume notion of typed higher order logic, with notati
         A concrete list is denoted by $[x,y,z]$.
   \item For a type $\tv{a}$, $\set{\tv{a}}$ denotes the type of sets with elements of type $\tv{a}$.
         A concrete set is denoted by $\{x,y,z\}$.
+  \item For a type $\tv{a}$, $\iexp{mset} \app \tv{a}$ denotes the type of multisets with elements of type $\tv{a}$.
+        A concrete multiset is denoted by $\{x,x,y\}$.
   \item I use the following builtin Isabelle types:
   \begin{itemize}
     \item Type $\iexp{bool}$ of booleans,
@@ -154,7 +156,7 @@ A \textit{refinement assertion} $\iexp{A} \dbcolon \tv{a} \rightarrow \tv{b} \ri
 For example, a refinement assertion $\iexp{si\_assn} \dbcolon \iexp{int} \rightarrow \iexp{8 word} \rightarrow \iexp{bool}$ defines how 8-bit machine words, being interpreted as signed 8-bit integers, refine the abstract HOL type of unbounded integers.
 It holds that $\iexp{si\_assn} \app \iexp{-128} \app \iexp{0x80} = \iexp{True}$, while $\iexp{si\_assn} \app \iexp{128} \app w = \iexp{False}$ for any $w$, as $\iexp{128}$ is not representable with an 8-bit signed integer.
 
-The separation conjunction operator $\ast$ allows for combining assertions, e.g. $\iexp{A} \app \iexp{a} \app \iexp{ai} \ast \iexp{B} \app \iexp{b} \app \iexp{bi}$ states that $\iexp{ai}$ refines $\iexp{a}$, as defined by refinement assertion $\iexp{A}$, while $\iexp{bi}$ refines $\iexp{b}$, as defined by refinement assertion $\iexp{B}$.
+The separating conjunction operator $\ast$ allows for combining assertions, e.g. $\iexp{A} \app \iexp{a} \app \iexp{ai} \ast \iexp{B} \app \iexp{b} \app \iexp{bi}$ states that $\iexp{ai}$ refines $\iexp{a}$, as defined by refinement assertion $\iexp{A}$, while $\iexp{bi}$ refines $\iexp{b}$, as defined by refinement assertion $\iexp{B}$.
 
 As an example, the Hoare-triple
 $$

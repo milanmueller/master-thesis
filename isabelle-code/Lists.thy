@@ -40,3 +40,8 @@ definition \<open>
   ls_assn A = (\<lambda>(xs::'a list) (p::'b node ptr).
     \<exists>xsi. lseg xsi p null ** list_aux A xs xsi)
 \<close>
+  
+fun 
+  sum :: \<open>nat list \<Rightarrow> nat\<close> where
+  \<open>sum [] = 0\<close> |
+  \<open>sum (x#xs) = x + sum xs\<close>
