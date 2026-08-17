@@ -47,15 +47,45 @@ The given abstract datatype reveals the two main requirements for porting Pastè
 
 \subsection{Native Arbitrary Precision Integers for Isabelle-LLVM}\label{sec:native-arbitrary-precision-integers-for-isabelle-llvm}
 
-\subsection{Interface Hierarchy for Refinement Assertions}\label{sec:interface-hierarchy-for-refinement-assertions}
+
+
 
 \subsection{New Low-Level Datatypes in Isabelle-LLVM}\label{sec:low-level-datatypes-in-isabelle-llvm}
 
-\subsubsection{Linked Lists with Tail Pointers}\label{sec:lists-with-tail-pointers}
+In this section, I introduce the fundamental datatypes, I created to represent polynomials in LLVM.
+In particular, I have extended the existing open list implementation\footnote{c.f. $\iexp{Isabelle\_LLVM.LLVM\_DS\_Open\_List}$} to be able to contain impure objects.
+In addition, I have implemented basic partial maps using an array as the outer container that can also hold impure objects.
+I have also implemented a basic hash set and hash map for strings, using lists for the buckets.
 
-As shown in \refsec{sec:methodology_high-level-representation-of-polynomials}, lists are an elemental building block in the representation polynomials in Pastèque.
-This subsection describes how lists are represented in LLVM.
-Note that, compared to the actual Isabelle implementation, I make some simplifications that capture the concepts, but do not typecheck as presented.
+The implementations are designed to be modular and reusable, but they make some assumptions about the contained elements which are discussed in \refsec{sec:interface-hierarchy-for-refinement-assertions}.
+
+\subsection{Interface Hierarchy for Refinement Assertions}\label{sec:interface-hierarchy-for-refinement-assertions}
+
+For the implemented data structures to be useful in practice, the data structure might require certain functionality from the contained elements.
+For example, the list implementation supports a deep copy operation, for which an existing copy function on the inner elements is required.
+
+I use Isabelle's \inlinecode{locale} feature to define properties and functions of refinement assertions, such that in the implementation of a container data structure, these functions can be used without requiring the concrete contained datatype to be known when implementing the container.
+
+\begin{itemize}
+  \item A refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ can instantiate $\iexp{freeable\_assn}$ if there exists a function $\iexp{afree} \dbcolon \tv{b} \rightarrow \iexp{unit} \app M$ that frees the elements from memory. The Hoare-triple $\{A \app a \app ai\}(\iexp{afree} \app ai)\{\iexp{emp}\}$ must hold. Note that pure elements are trivially freeable.
+  \item A refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ can instantiate $\iexp{copyable\_assn}$ if there exists a function $\iexp{acopy} \dbcolon \tv{b} \rightarrow \tv{b} \app M$ that copies an element of type $\tv{b}$.
+    The Hoare-triple $\{A \app a \app ai\}(\iexp{acopy} \app ai)\{\lambda r. A \app a \app ai \ast A \app a \app r\}$ must hold.
+    All copyable refinement assertions must also be freeable.
+    Pure elements a trivially copyable.
+  \item A refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ can instantiate $\iexp{eq\_assn}$ if there exists a function $\iexp{aeq} \dbcolon \tv{b} \rightarrow \tv{b} \rightarrow \iexp{bool} \app M$ that evaluates to true if both given elements are equal.
+    The Hoare-triple $\{A \app a \app ai \ast A \app b \app bi\}(\iexp{aeq} \app ai \app bi)\{\lambda r. \uparrow(r = (a=b))\}$ must hold.
+  \item A refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ can instantiate $\iexp{linord\_assn}$ if it instantiates $\iexp{eq\_assn}$ and there exists a function $\iexp{alt} \dbcolon \tv{b} \rightarrow \tv{b} \rightarrow \iexp{bool} \app M$ that evaluates to true if the first element is less than the second element.
+    The Hoare-triple $\{A \app a \app ai \ast A \app b \app bi\}(\iexp{alt} \app ai \app bi)\{\lambda r. \uparrow(r = (a<b))\}$ must hold.
+  \item A refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ can instantiate $\iexp{hashable\_assn}$ if there exists a function $\iexp{ahash} \dbcolon \tv{b} \rightarrow 64 \app \iexp{word} \app M$.
+    There are no requirements for the given hash function.
+\end{itemize}
+
+With these definitions, deep free, deep copy or a lexicographic order on lists, can be implemented generically, using $\iexp{afree}$, $\iexp{acopy}$, $\iexp{aeq}$ and $\iexp{alt}$ for element-wise freeing, copying or comparisons.
+With that, a list with elements that support one of the presented locales can also instantiate the locale.
+
+\subsection{Linked Lists with Tail Pointers}\label{sec:lists-with-tail-pointers}
+
+\subsubsection{A Refinement Assertion for Lists}
 
 To represent lists in LLVM, I reuse existing definitions from Isabelle-LLVM \footnote{In particular from the theory $\iexp{Isabelle\_LLVM.LLVM\_DS\_Open\_List}$} with some modifications.
 Lists are implemented as a chain of nodes, where a node carries a value and a pointer to the next node:
@@ -66,34 +96,37 @@ A list in LLVM is a pointer to a node, i.e., a value of type $\tv{b} \app \iexp{
 The empty list is represented by a null pointer.
 A node with $\iexp{node}.\iexp{next} = \iexp{null}$ denotes the end of a list.
 
-In the following, assume that $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{bool}$ is a refinement assertion.
+In the following, assume that $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ is a refinement assertion.
 Note that, $\tv{a}$ is a high-level type that is not directly representable in LLVM, while $\tv{b}$ is representable in LLVM.
-To refine lists of type $\ls{\tv{a}}$ a refinement assertion of type $\ls{\tv{a}} \rightarrow \tv{b} \app \iexp{node} \app \iexp{ptr} \rightarrow \iexp{bool}$ specifies refinement of list.
+To refine lists of type $\ls{\tv{a}}$ a refinement assertion of type $\ls{\tv{a}} \rightarrow \tv{b} \app \iexp{node} \app \iexp{ptr} \rightarrow \iexp{assn}$ is required.
 In order to obtain such a refinement assertion, some preliminary definitions are required.
 
-Firstly, a notion of element-wise refinement is given by an assertion $\iexp{list\_aux} \dbcolon (\tv{a} \rightarrow \tv{b} \rightarrow \iexp{bool}) \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{b} \app \iexp{list} \rightarrow \iexp{bool}$
+Firstly, a notion of element-wise refinement is given by an assertion $\iexp{list\_aux} \dbcolon (\tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}) \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{b} \app \iexp{list} \rightarrow \iexp{assn}$
 \footnote{$\iexp{list\_aux}$ mirrors $\iexp{list\_assn}$, which is defined in $\iexp{Isabelle\_LLVM.Proto\_EOArray}$.}:
 \begin{align*}
-  \iexp{list\_aux} \app A \iexp{xs} \iexp{xsi} =  &(\iexp{length} \app \iexp{xs} = \iexp{length} \app \iexp{xsi}) \\
-                                                  &\ast (\forall i.\ 0 \le i < \iexp{length} \app \iexp{xs} \Rightarrow A \app (\iexp{xs}[i]) \app (\iexp{xsi}[i]))
+  \iexp{list\_aux} \app A \app xs \app xsi =  &(\iexp{length} \app xs = \iexp{length} \app xsi) \\
+                                                  &\ast (\forall i.\ 0 \le i < \iexp{length} \app xs \Rightarrow A \app (xs[i]) \app (xsi[i]))
 \end{align*}
-$\iexp{xs}[i]$ denotes the $i$-th element of list $\iexp{xs}$.
-$\iexp{list\_aux}$ can be seen as the characteristic function of a relation between lists $\iexp{xs} \dbcolon \ls{\tv{a}}$ of abstract elements and lists $\iexp{xsi} \dbcolon \ls{\tv{b}}$ of concrete elements where for each position, the refinement assertion $A$ holds for the respective abstract and concrete element.
+$xs[i]$ denotes the $i$-th element of list $xs$.
+$\iexp{list\_aux}$ can be seen as the characteristic function of a relation between lists $xs \dbcolon \ls{\tv{a}}$ of abstract elements and lists $xsi \dbcolon \ls{\tv{b}}$ of concrete elements where for each position, the refinement assertion $A$ holds for the respective abstract and concrete element.
+Note that $\ls{\tv{b}}$ is not representable in LLVM and will not be recognized by the code generator.
 
 Secondly, a function $\iexp{lseg} \dbcolon \ls{\tv{b}} \rightarrow \tv{b} \app \iexp{node} \app \iexp{ptr} \rightarrow \tv{b} \app \iexp{node} \app \iexp{ptr} \rightarrow \iexp{bool}$ relates lists of type $\tv{b}$ to segments of lists in LLVM, where the first $\tv{b} \app \iexp{node} \app \iexp{ptr}$ is a pointer to the start of the segment and the second $\tv{b} \app \iexp{node} \app \iexp{ptr}$ is a pointer to the end of the segment.
 $\iexp{lseg}$ is recursively defined as
 \footnote{The actual $\iexp{lseg}$ is defined in $\iexp{Isabelle\_LLVM.LLVM\_DS\_List\_Seg}$.}
-\begin{alignat*}{6}
-  &\iexp{lseg} &\app &[]                                &\app &p           \app &s &= (p = s) &&\\
-  &\iexp{lseg} &\app &(\iexp{x} \mathbin{\#} \iexp{xs}) &\app &\iexp{null} \app &s &= \iexp{False} &&\\
-  &\iexp{lseg} &\app &(\iexp{x} \mathbin{\#} \iexp{xs}) &\app &p           \app &s &= \exists q.\ \iexp{pto} \app (\iexp{Node} \app x \app q) \app p \ast \iexp{lseg} \app \iexp{xs} \app q \app s &&
-\end{alignat*}
+\begin{align*}
+  \iexp{lseg} \app xs \app p \app s =
+  \begin{cases}
+    p = s & \text{, if $xs = []$} \\
+    \iexp{False} & \text{, if $xs \neq []$ and $p=\iexp{null}$} \\
+    \exists q. p \mapsto (\iexp{Node} \app x \app q) \ast \iexp{lseg} \app \iexp{xs} \app q \app s &\text{, otherwise}
+  \end{cases}
+\end{align*}
 \begin{itemize}
 \item If the given list is empty, then both pointers are equal.
 \item If the given list is not empty, then $p$ must not be $\iexp{null}$.
-\item If the list is not empty, then $p$ is a pointer to a $\iexp{Node} \app x \app q$, where $x$ is the value held by the node and $q$ is the pointer to the next node.
-  $\iexp{pto} \app x \app p$ evaluates to $\iexp{True}$ if $p$ is a pointer to $x$.
-  Also, for the tail of the list it must hold that $\iexp{lseg} \app \iexp{xs} \app q \app s$.
+\item If the list is not empty, then $p$ is a pointer to $\iexp{Node} \app x \app q$, where $x$ is the value held by the node and $q$ is the pointer to the next node.
+      Also, for the tail of the list it must hold that $\iexp{lseg} \app \iexp{xs} \app q \app s$.
 \end{itemize}
 
 Using $\iexp{list\_aux}$ and $\iexp{lseg}$, a refinement assertion for lists, parameterized by $A$, can be defined by
@@ -102,12 +135,30 @@ Using $\iexp{list\_aux}$ and $\iexp{lseg}$, a refinement assertion for lists, pa
 \end{align*}
 which means that $p \dbcolon \tv{b} \app \iexp{node} \app \iexp{ptr}$ refines $a \dbcolon \ls{\tv{a}}$ if there exists a list $\iexp{xsi} \dbcolon \ls{\tv{b}}$ such that $\iexp{lseg} \app b \app p \app \iexp{null}$, i.e., $p$ is the start pointer of a list segment related to $\iexp{xsi}$, terminated by the $\iexp{null}$ pointer, and $\iexp{xsi}$ and $\iexp{xs}$ are related element-wise as specified by $\iexp{ls\_aux}$.
 
+\subsubsection{Non-destructive List Operations}
 
 \refsec{sec:ownership-in-isabelle-llvm} describes a particular challenge when working with lists in LLVM that was not present with the old Imperative-HOL backend:
 A function that destructures a list, which is commonly the case in typical recursive walks over lists, necessarily destroys it.
 
 As an example, consider the following recursive function for summing up the elements of a list:
 \isabellecodeextern[linerange=45-47]{isabelle-code/Lists.thy}
+
+\inlinecode{sum} destroys the given list.
+If it did not, there would simultaneously exist two pointers into the list, one owned by the caller of \inlinecode{sum}, one owned by \inlinecode{sum}, which is not forbidden in the separation calculus.
+Note that, in principle, \inlinecode{sum} does not modify the given list, as the contained elements (machine words, refining natural numbers) are pure in LLVM and can be cloned without destroying the original element.
+Pastèque employs multiple recursive functions working on lists, in particular for performing arithmetic operation on polynomials.
+When performing the arithmetic operations, the original polynomials must stay intact as they might be used again in further operations.
+
+A straight forward solution is to simply create a deep copy of a list and then call the function on the list copy.
+Assuming the contained elements support copying (c.f. \refsec{sec:interface-hierarchy-for-refinement-assertions}), a deep-copy operation $\iexp{ls\_copy} \dbcolon \tv{a} \app \iexp{ptr} \rightarrow \tv{a} \app \iexp{ptr} \app M$ can easily be implemented by a recursive walk on the list, copying each element into a new list \footnote{c.f. function $\iexp{cl\_copy}$ in theory $\iexp{IICF\_Copying\_List}$}.
+Note that if $A$ instantiates $\iexp{copyable\_assn}$, by use of $\iexp{ls\_copy}$, $\iexp{ls\_assn} \app A$ can in turn also instantiate $\iexp{copyable\_assn}$ meaning that nested lists can also be copied without further setup or code duplication.
+
+If the callee does not modify a given list, creating a deep copy is wasteful.
+The presented \inlinecode{sum} function is an example of such a case: The original list is only read from, as the the contained machine words are pure and can be read from the list without having to move ownership out of the list.
+But, presented as is, \inlinecode{sum} uses the destructuring operations on lists which lead to destruction of the original list.
+To address this issue and provide an option to implement read-only operations on lists, I implemented a refinement target for the HOL $\iexp{foldl}$ function \footnote{c.f. function $\iexp{cl\_fold}$ in theory $\iexp{IICF\_Copying\_List}$} as follows:
+
+The more idiomatic functional definition $\iexp{sum'} := \iexp{foldl} \app (\lambda acc \app n.\, acc + n) \app 0$ is equivalent to \inlinecode{sum} and 
 
 % THIS PART IS FOR AN INTERLEAVING FOLD IF WE EVER GET THAT.
 As an example, consider the following implementation of the merge step in a classic merge sort algorithm:
@@ -127,4 +178,4 @@ For the merge function, it is possible to prove the Hoare-triple
 \{\lambda r. \exists zs. \iexp{mset} \app zs = \iexp{mset} \app xs \cup \iexp{mset} \app ys \land \iexp{sorted} \app zs \land \iexp{ls\_assn} zs r\}
 \end{gather*}
 Where $\iexp{sorted} \dbcolon \tv{a} \app \iexp{list} \rightarrow \iexp{bool}$ evaluates to $\iexp{True}$ if the given list is sorted and $\iexp{mset} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{mset}$ is the multiset of all elements of a given list.
-Note that the original lists $xs$ and $ys$ are destroyed after the execution of $\iexp{merge}$, proving a hoare triple where $xs$ and $ys$ are kept intact
+Note that the original lists $xs$ and $ys$ are destroyed after the execution of $\iexp{merge}$, proving a hoare triple where $xs$ and $ys$ are kept intactk

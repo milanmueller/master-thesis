@@ -137,41 +137,45 @@ This section gives an overview on the notion of \textit{refinement assertions} i
 
 Isabelle-LLVM defines a shallow embedding of the LLVM intermediate language (i.e. a formalization of a subset of LLVM) and models the state of memory during the execution of a program.
 Details regarding the LLVM embedding and memory model are described in Lammich's paper \cite{isabelle-llvm}.
-For the thesis I use a simplified notion of refinement assertions that ignores the underlying memory model.
-In addition, I introduce the following types and functions informally, as a formal definition would require introducing the memory model:
+For the thesis I use a simplified notion of refinement assertions and introduce the following types and functions only informally:
 \begin{itemize}
+  \item States of memory are reasoned on by a separation algebra $(\iexp{mem}, \#\#, +, 0)$ as defined in the AFP's Separation Algebra by Klein et al\cite{Separation_Algebra-AFP} which is based on the Abstract Separation Logic by Calcagno et al \cite{Abstract_Separation_Logic}.
+    Isabelle-LLVM instantiates the abstract separation algebra with its memory model.
+  \item An \textit{assertion} is a function $f \dbcolon \iexp{mem} \rightarrow \iexp{bool}$ used to make statements about the state of memory.
+    I will use the type synonym $\iexp{assn} := \iexp{mem} \rightarrow \iexp{bool}$ as type annotation for assertions.
+  \item $\iexp{emp}$ is an assertion that evaluates to $\iexp{True}$ iff. the given state is $0$, i.e. $\iexp{emp} = \lambda s. s = 0$.
+  \item The separating conjunction operator $\ast \dbcolon \iexp{assn} \rightarrow \iexp{assn} \rightarrow \iexp{assn}$ allows for combination of assertions.
+    If $A \dbcolon \iexp{assn}$ and $B \dbcolon \iexp{assn}$ are assertions, then $A \ast B$ is a statement that evaluates to $\iexp{True}$ for a given state $h \dbcolon \iexp{mem}$, iff. there exists a decomposition $h = x + y$ such that $x \#\# y$ (i.e. $x$ and $y$ are disjoint) and $A \app x$ and $B \app y$.
   \item $\tv{a} \app \iexp{ptr}$ is the type of pointers to values of type $\tv{a}$.
         Note that, for $\tv{a} \app \iexp{ptr}$ to be recognized by the LLVM code generator of Isabelle-LLVM, $\tv{a}$ must be representable in LLVM.
-        The type of machine words, $w \app \iexp{word}$, is the only representable type that is directly mentioned in this thesis.
-  \item For $\iexp{pto} \dbcolon \tv{a} \rightarrow \tv{a} \app \iexp{ptr} \rightarrow \iexp{bool}$, the expression $\iexp{pto} \app \iexp{a} \app \iexp{p}$ evaluates to $\iexp{True}$, iff. $\iexp{p}$ is a pointer to $\iexp{a}$ \footnote{The actual assertion $\iexp{ll\_bpto}$ is defined in the theory $\iexp{Isabelle\_LLVM.LLVM\_DS\_Block\_Alloc.thy}$}.
+        In particular, the type of machine words, $w \app \iexp{word}$, is the only representable type directly mentioned in this thesis.\\
+        For $\mapsto \dbcolon \tv{a} \app \iexp{ptr} \rightarrow \tv{a} \rightarrow \iexp{assn}$, the assertion $(p \mapsto a) \sigma $ evaluates to $\iexp{True}$, iff. $p$ is a pointer to $a$ in state $\sigma$ \footnote{The actual assertion $\iexp{ll\_bpto}$ is defined in the theory $\iexp{Isabelle\_LLVM.LLVM\_DS\_Block\_Alloc.thy}$}.
   \item Similarly to the $\iexp{nres}$ monad, Isabelle-LLVM uses state error monad $\tv{a} \app \iexp{M}$ to describe LLVM programs with return type $\tv{a}$. \todo{There should be at least some intuition of what $\iexp{M}$ does.}
         Note that $\tv{a}$ should be a type representable in LLVM for the code generator to be able to produce code for a program $P \dbcolon \tv{a} \app \iexp{M}$.
 \end{itemize}
 
-A \textit{Hoare-triple} $\{\Psi\} (\iexp{P} \dbcolon \tv{a} \app \iexp{M}) \{\Phi\}$ states that, if a \textit{precondition} $\Psi$ holds initially, then the \textit{postcondition} $\Phi$ holds after the execution of program $\iexp{P}$.
-Precondition and postcondition are usually composed of \textit{assertions}.
+To make assertions independently from the state of memory, a boolean value can be lifted to an assertion by $\uparrow \dbcolon \iexp{bool} \rightarrow \iexp{assn}$ where $\uparrow \app b = \lambda h. \iexp{emp} h \land b$.
+Note that $A \ast \iexp{emp} = A$ for any assertion $A$.
 
-An assertion is a function $f \dbcolon \tv{a} \rightarrow bool$ that is used to make statements about the state of a system at a fixed point in time.
-A \textit{refinement assertion} $\iexp{A} \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{bool}$ is a special case of an assertion that specifies how abstract values of type $\iexp{'a}$ are related to concrete values of type $\tv{b}$ that are representable in llvm.
-For example, a refinement assertion $\iexp{si\_assn} \dbcolon \iexp{int} \rightarrow \iexp{8 word} \rightarrow \iexp{bool}$ defines how 8-bit machine words, being interpreted as signed 8-bit integers, refine the abstract HOL type of unbounded integers.
-It holds that $\iexp{si\_assn} \app \iexp{-128} \app \iexp{0x80} = \iexp{True}$, while $\iexp{si\_assn} \app \iexp{128} \app w = \iexp{False}$ for any $w$, as $\iexp{128}$ is not representable with an 8-bit signed integer.
+In Isabelle-LLVM, a \textit{refinement assertion} $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ is a special case of an assertion that specifies how abstract values of type $\tv{a}$ are related to concrete values of type $\tv{b}$ that are representable in llvm.
+For example, a refinement assertion $\iexp{si\_assn} \dbcolon \iexp{int} \rightarrow 8 \app \iexp{word} \rightarrow \iexp{assn}$ defines how 8-bit machine words, being interpreted as signed 8-bit integers, refine the abstract HOL type of unbounded integers.
+It holds that $\iexp{si\_assn} \app (-128) \app \iexp{0x80} \app 0 = \iexp{True}$, while $\iexp{si\_assn} \app 128 \app w \app \sigma = \iexp{False}$ for any $w$ and $\sigma$, as $128$ is not representable with an 8-bit signed integer.
 
-The separating conjunction operator $\ast$ allows for combining assertions, e.g. $\iexp{A} \app \iexp{a} \app \iexp{ai} \ast \iexp{B} \app \iexp{b} \app \iexp{bi}$ states that $\iexp{ai}$ refines $\iexp{a}$, as defined by refinement assertion $\iexp{A}$, while $\iexp{bi}$ refines $\iexp{b}$, as defined by refinement assertion $\iexp{B}$.
-
-As an example, the Hoare-triple
+A \textit{Hoare-triple} $\{\Psi \dbcolon \iexp{assn}\} (P \dbcolon \tv{a} \app \iexp{M}) \{\Phi \dbcolon \tv{a} \rightarrow \iexp{assn}\}$ states that, if a \textit{precondition} $\Psi$ holds initially, then the \textit{postcondition} $\Phi$ holds after the execution of program $P$.
+For example, the Hoare-triple
 $$
-  \{\iexp{si\_assn} \app \iexp{a} \app \iexp{ai} \ast \iexp{si\_assn} \app \iexp{b} \app \iexp{bi}\}
-  \app (\iexp{add} \app \iexp{ai} \app \iexp{bi}) \app
-  \{\lambda \app \iexp{r}.\, \iexp{si\_assn} \app (\iexp{a} \iexp{+} \iexp{b}) \app \iexp{r}\}
+  \{\iexp{si\_assn} \app a \app ai \ast \iexp{si\_assn} \app b \app bi\}
+  \app (\iexp{add} \app ai \app bi) \app
+  \{\lambda r. \iexp{si\_assn} \app (a + b) \app r\}
 $$
 can be read as follows:
-If 8-bit machine word $\iexp{ai}$, $\iexp{bi}$ refine the integers $\iexp{a}$, $\iexp{b}$ then the result of $\iexp{add} \app \iexp{ai} \app \iexp{bi}$ refines the integer $\iexp{a} \iexp{+} \iexp{b}$.
-Note that in this particular example, the statement is only true, if we can prove that $\iexp{a} \iexp{+} \iexp{b}$ does not overflow and is therefore representable by an 8-bit machine word.
+If 8-bit machine word $ai, bi$ refine the integers $a, b$ then the result of $\iexp{add} \app ai \app bi$ refines the integer $a + b$.
+Note that in this particular example, the statement is only true, if we can prove that $a + b$ does not overflow and is therefore representable by an 8-bit machine word.
 This requirement can be added to the precondition:
 \begin{gather*}
-  \{(\lambda \iexp{a} \app \iexp{b}. \iexp{a} \iexp{+} \iexp{b} < \iexp{127}) \ast \iexp{si\_assn} \app \iexp{a} \app \iexp{ai} \ast \iexp{si\_assn} \app \iexp{b} \app \iexp{bi}\} \\
-  (\iexp{add} \app \iexp{ai} \app \iexp{bi}) \\
-  \{\lambda \app \iexp{r}.\, \iexp{si\_assn} \app (\iexp{a} \iexp{+} \iexp{b}) \app \iexp{r}\}
+  \{\uparrow(a + b \le 127 \land -128 \le a + b) \ast \iexp{si\_assn} \app a \app ai \ast \iexp{si\_assn} \app b \app bi\} \\
+  (\iexp{add} \app ai \app bi) \\
+  \{\lambda \app r. \iexp{si\_assn} \app (a + b) \app r\}
 \end{gather*}
 Which makes the statement provable by the $\iexp{vcg}$ tool.
 
@@ -186,42 +190,42 @@ Stack allocated values are pure \todo{fact-check}.
 When used as function arguments, they are duplicated and thus retain their value once the callee returns.
 Machine words are an example of pure values: Revisiting the example Hoare-triple from \refsec{sec:isabelle-llvm}, the postcondition can be strengthened to
 \begin{gather*}
-  \{(\iexp{a} \iexp{+} \iexp{b} < \iexp{127}) \ast \iexp{si\_assn} \app \iexp{a} \app \iexp{ai} \ast \iexp{si\_assn} \app \iexp{b} \app \iexp{bi}\} \\
-  (\iexp{add} \app \iexp{ai} \app \iexp{bi}) \\
-  \{\lambda \app \iexp{r}.\, \iexp{si\_assn} \app (\iexp{a} \iexp{+} \iexp{b}) \app \iexp{r} \ast \iexp{si\_assn} \app \iexp{a} \app \iexp{ai} \ast \iexp{si\_assn} \app \iexp{b} \app \iexp{bi}\}
+  \{\uparrow(a + b \le 127 \land -128 \le a + b) \ast \iexp{si\_assn} \app a \app ai \ast \iexp{si\_assn} \app b \app bi\} \\
+  (\iexp{add} \app ai \app bi) \\
+  \{\lambda \app r.\, \iexp{si\_assn} \app (a + b) \app r \ast \iexp{si\_assn} \app a \app ai \ast \iexp{si\_assn} \app b \app bi\}
 \end{gather*}
-The addition of $\iexp{si\_assn} \app \iexp{a} \app \iexp{ai} \ast \iexp{si\_assn} \app \iexp{b} \app \iexp{bi}$ means that, after being used as arguments for $\iexp{add}$, $\iexp{ai}$ and $\iexp{bi}$ remain valid representations of the original abstract integers $\iexp{a}$ and $\iexp{b}$.
+The addition of $\iexp{si\_assn} \app a \app ai \ast \iexp{si\_assn} \app b \app bi$ means that, after being used as arguments for $\iexp{add}$, $ai$ and $bi$ remain valid representations of the original abstract integers $a$ and $b$.
 
 For impure values, this does not hold.
 Objects that are heap allocated are always impure \todo{fact-check}.
 In particular lists, which are used frequently in Pastèque, are impure in Isabelle-LLVM.
 This is an important distinction from the old Imperative-HOL backend in which lists are pure object (as long as the contained elements are also pure) with persistence guaranteed by the compiler.
 
-To illustrate the implications of this observation, assume that for a refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{bool}$, we have a function
+To illustrate the implications of this observation, assume that for a refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$, we have a function
 $$
-  \iexp{ls\_assn} \dbcolon (\tv{a} \rightarrow \tv{b} \rightarrow \iexp{bool}) \rightarrow \ls{\tv{a}} \rightarrow \tv{b} \app \iexp{llvm\_list} \rightarrow \iexp{bool}
+  \iexp{ls\_assn} \dbcolon (\tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}) \rightarrow \ls{\tv{a}} \rightarrow \tv{b} \app \iexp{llvm\_list} \rightarrow \iexp{assn}
 $$
 that defines refinement of abstract lists of type $\ls{\tv{a}}$ by an imaginary concrete list implementation $\tv{b} \app \iexp{llvm\_list}$.
 Then, the following Hoare-triple could, in principle, be provable with the Imperative-HOL backend:
 \begin{gather*}
-  \{(\iexp{ls\_assn} \app A) \app \iexp{xs} \app \iexp{xsi} \ast (\lambda \iexp{xs}. \iexp{xs} \neq [])\} \\
-  (\lambda \app \iexp{xs}.\, \iexp{tl} \app \iexp{xs}) \\
-  \{\lambda \app \iexp{r}.\, A \app (\iexp{tl} \app \iexp{xs}) \app \iexp{r} \ast (\iexp{ls\_assn} \app A) \app \iexp{xs} \app \iexp{xsi}\}
+  \{(\iexp{ls\_assn} \app A) \app xs \app xsi \ast \uparrow(xs \neq [])\} \\
+  (\iexp{tl\_impl} \app xsi) \\
+  \{\lambda \app r.\, (\iexp{ls\_assn} \app A) \app (\iexp{tl} \app xs) \app r \ast (\iexp{ls\_assn} \app A) \app xs \app xsi\}
 \end{gather*}
-The Hoare-triple can be read as follows: If the non-empty abstract list $\iexp{xs}$ is refined by a concrete list implementation $\iexp{xsi}$, then, after calling a function that returns a the tail of the list, the abstract tail $\iexp{tl} \app \iexp{xs}$ is refined by the result of the function.
-Also, after the function has been executed, $\iexp{xsi}$ still remains a concrete representation of the original list $\iexp{xs}$.
+The Hoare-triple can be read as follows: If the non-empty abstract list $xs$ is refined by a concrete list implementation $xsi$, then, after calling a function that returns a the tail of the list, the abstract tail $\iexp{tl} \app xs$ is refined by the result of the function.
+Also, after the function has been executed, $xsi$ still remains a concrete representation of the original list $xs$.
 This property typically holds in functional languages where lists are persistent objects, as is the case in the Standard-ML backend.
 
 In Isabelle-LLVM, the above Hoare-triple can never hold.
 Lists in LLVM are are a chain of nodes, each carrying a value and a pointer to the next node in the list.
 They are therefore heap-allocated, impure objects.
 The underlying separation logic requires that there can only be a single reference to a heap allocated object at any point in time.
-The Hoare-triple above violates this requirement, as both $\iexp{r}$ and $\iexp{xsi}$ would now reference the same list.
+The Hoare-triple above violates this requirement, as both $r$ and $xsi$ would now reference the same list.
 If we weaken the the postcondition, the statement becomes provable in Isabelle-LLVM:
 \begin{gather*}
-  \{(\iexp{ls\_assn} \app A) \app \iexp{xs} \app \iexp{xsi}\} \\
-  (\lambda \app \iexp{xs}.\, \iexp{tl} \app \iexp{xs}) \\
-  \{\lambda \app \iexp{r}.\, A \app (\iexp{tl} \app \iexp{xs}) \app \iexp{r}\}
+  \{(\iexp{ls\_assn} \app A) \app xs \app xsi \ast \uparrow(xs \neq [])\} \\
+  (\iexp{tl\_impl} \app xsi) \\
+  \{\lambda \app r.\, (\iexp{ls\_assn} \app A) \app (\iexp{tl} \app xs) \app r\}
 \end{gather*}
-We lose the assertion $(\iexp{ls\_assn} \app A) \app \iexp{xs} \app \iexp{xsi}$ in the postcondition, we say that the original list $\iexp{xsi}$ was \textit{destroyed}.
+We lose the assertion $(\iexp{ls\_assn} \app A) \app xs \app xsi$ in the postcondition, we say that the original list $xsi$ was \textit{destroyed}.
 \refsec{sec:lists-with-tail-pointers} describes the approach that I chose to address this issue for functions working on lists specifically.
