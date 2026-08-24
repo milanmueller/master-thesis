@@ -22,34 +22,36 @@ A PAC checker is now given as input:
 
 \subsection{Isabelle/HOL}\label{sec:isabelle-hol}
 
-The proof assistant \textit{Isabelle} \cite{isabelle} enables the writing of machine checked formal proofs for properties of mathematical objects.
-Following the LCF approach \cite{computational-logic-origins}, Isabelle employs a small kernel of logical inference rules for verifying the correctness of user-defined proofs, such that, in principle, correctness of the kernels inference engine implies correctness of the proofs. \\
-To interactively construct proofs, the user can utilize and combine a variety of proof tactics, ranging from fundamental deductive concepts, like case analysis and induction to more complex automated methods.
-An example of the later is the \texttt{smt} tactic \todo{Reference} which offloads reasoning work to an external SMT-solver and then reconstructs its returned proof artifact using other proof tactics on the Isabelle side to obtain a valid proof that Isabelle's kernel will accept.
-Potential errors in a proof tactic will not lead to acceptance of an unsound proof since the kernel will check and potentially reject inference steps if they are not valid.
-By relying on only a small kernel to be correct, proofs accepted by Isabelle have a high probability of being correct, compared to other approach to computational logic which might rely on large code bases, with many inference rules and special cases, to not contain errors. \todo{Give some examples of that}
+The proof assistant \textit{Isabelle} \cite{isabelle} enables the writing of machine-checked formal mathematical proofs.
+Following the LCF approach \cite{computational-logic-origins}, Isabelle employs a small kernel of logical inference rules for verifying the correctness of user-defined proofs, such that correctness of the kernel's inference engine implies correctness of the proofs.
+
+To interactively construct proofs, the user can utilize and combine a variety of proof methods, ranging from fundamental deductive concepts, like case analysis and induction, to more complex automated methods.
+An example of the latter is the \texttt{smt} method which offloads reasoning work to an external SMT-solver and then reconstructs its returned proof artifact using other proof methods on the Isabelle side to obtain a valid proof that Isabelle's kernel will accept.
+Potential errors in a proof method do not lead to acceptance of an unsound proof since the kernel rejects inference steps if they are not valid.
 
 The core Isabelle system, more precisely referred to as \textit{Isabelle/Pure}, is a generic theorem proving framework, meaning it can serve as a basis for implementation of different logical theories with distinct axioms.
-The most widespread instance of Isabelle is \textit{Isabelle/HOL}, which is an axiomatization of simply typed higher order logic on top of Isabelle/Pure, which is also used in this thesis.
-We will refer to Isabelle and Isabelle/HOL interchangeably in the following sections.
+The most widespread instance of Isabelle is \textit{Isabelle/HOL}, which is an axiomatization of simply typed higher-order logic on top of Isabelle/Pure.
+Isabelle/HOL is also used in this thesis.
 
-Isabelle has been used for formalizations from various domains, including fundamentals of mathematics, e.g. Gödel's Incompleteness Theorems \cite{Incompleteness-AFP} or the Prime Number Theorem \cite{Prime-Number-Theorem-Avigad} \cite{Prime_Number_Theorem-AFP}, but also the verification of computer systems, for instance in the seL4 OS microkernel \cite{seL4}. \\
-In this thesis, we use Isabelle for the formal verification of computer programs, meaning we consider an abstract, formal model of a program and then use Isabelle's proof tactics to verify correctness properties of that model, which we then relate to correctness of the concrete program.\\
-An intrinsic challenge with this approach is the accuracy of our model, since correctness of the model is meaningless if the model does not accurately represent the behavior of the program's implementation.
-This is particularly challenging if the concrete program is an implementation in a high level language, for which it might be challenging to formally specify the language's semantics \todo{example}.
+% Isabelle has been used for formalizations from various domains, including fundamentals of mathematics, e.g. Gödel's Incompleteness Theorems \cite{Incompleteness-AFP} or the Prime Number Theorem \cite{Prime-Number-Theorem-Avigad} \cite{Prime_Number_Theorem-AFP}, but also the verification of computer systems, for instance in the seL4 OS microkernel \cite{seL4}.
 
-I used the framework Isabelle-LLVM \cite{isabelle-llvm} which employs top-down refinement to start with an abstract model and then iteratively move towards the concrete implementation, ultimately generating verified LLVM-IR code, contrary to to the previously described approach of abstracting an existing concrete program.
-
-Throughout this thesis, I assume notion of typed higher order logic, with notation closely tied to actual Isabelle syntax.
+Throughout this thesis, I assume familiarity with simply typed higher-order logic and use notation closely tied to actual Isabelle syntax.
 \begin{itemize}
   \item Leading apostrophes indicate type variables, e.g. $\tv{a}$.
   \item $\dbcolon$ is used to annotate the type of a value, e.g. $a \dbcolon \tv{a}$ means that value $a$ is of type $\tv{a}$.
-  \item An algebraic datatype $\iexp{ta}$ with $n$ constructors is denoted by
+  \item An algebraic datatype $\iexp{ta}$ with type parameters
+        $\tv{a_1}, \dots, \tv{a_k}$ and $n$ constructors is denoted by
         $$
-          (\tv{c_1t_1},\tv{c_1t_2},\dots,\tv{c_nt_1},\tv{c_nt_2},\dots) \app \iexp{ta} = C_1 \app \tv{c_1t_1} \app \tv{c_1t_2} \app \dots \mid \dots \mid C_n \app \tv{c_nt_1} \app \tv{c_nt_2} \app \dots
+          (\tv{a_1}, \dots, \tv{a_k}) \app \iexp{ta}
+            = C_1 \app \tau_{1,1} \app \dots \app \tau_{1,m_1}
+            \mid \dots \mid
+              C_n \app \tau_{n,1} \app \dots \app \tau_{n,m_n}
         $$
-        where each constructor $C_i$ may carry arbitrarily many datatypes $\tv{c_it_1} \app \tv{c_it_2} \app \dots$.
-        Note that $\iexp{ta}$ might be polymorphic over the types carried by the constructors.
+        where each constructor $C_i$ carries $m_i \ge 0$ arguments, and each
+        argument type $\tau_{i,j}$ is an arbitrary type that may mention the
+        type parameters $\tv{a_1}, \dots, \tv{a_k}$ as well as the defined type
+        $(\tv{a_1}, \dots, \tv{a_k}) \app \iexp{ta}$ itself, allowing recursive
+        datatypes.
   \item Functions are first-class objects and are typically presented in curried form.
         A function $f \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \tv{c}$ for a given $a \dbcolon \tv{a}$ returns a function of type $\tv{b} \rightarrow \tv{c}$.
   \item For a function $f \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \tv{c}$, $f\app a\app b$ denotes function application for arguments $a \dbcolon \tv{a}, b \dbcolon \tv{b}$.
@@ -59,42 +61,39 @@ Throughout this thesis, I assume notion of typed higher order logic, with notati
         A concrete list is denoted by $[x,y,z]$.
   \item For a type $\tv{a}$, $\set{\tv{a}}$ denotes the type of sets with elements of type $\tv{a}$.
         A concrete set is denoted by $\{x,y,z\}$.
-  \item For a type $\tv{a}$, $\iexp{mset} \app \tv{a}$ denotes the type of multisets with elements of type $\tv{a}$.
-        A concrete multiset is denoted by $\{x,x,y\}$.
-  \item I use the following builtin Isabelle types:
+  \item For a type $\tv{a}$, $\tv{a} \app \iexp{multiset}$ denotes the type of multisets with elements of type $\tv{a}$.
+        A concrete multiset is denoted by $\{\#x,x,y\#\}$.
+  \item I use the following built-in Isabelle types:
   \begin{itemize}
     \item Type $\iexp{bool}$ of booleans,
     \item Type $\iexp{nat}$ of natural numbers (unbounded),
     \item Type $\iexp{int}$ of integers (unbounded),
     \item Type $w \app \iexp{word}$ of machine words with bit-width $w$,
-    \item $\iexp{unit}$ is the unit type with the only value $\iexp{()}$.
+    \item Unit type $\iexp{unit}$ with the only value $\iexp{()}$.
   \end{itemize}
 \end{itemize}
 
 \subsection{Isabelle Refinement Framework}\label{sec:isabelle-refinement-framework}
-\todo{It should actually say sepref, instead of refinement framework here}
 The Isabelle Refinement Framework by Lammich \cite{isabelle-refinement-framework} enables a refinement approach to defining imperative programs and proving correctness properties of such programs. \todo{In motivation, write a section on what the idea of refinement is, and which problem it solves.}
 This subsection introduces a simplified view on the underlying \texttt{nres} monad and sketches its usage for defining and verifying imperative programs in Isabelle-HOL.
 Most of the algorithms I implemented for this thesis are defined in the \texttt{nres} monad, the exception being fundamental operations on custom datatypes that \refsec{sec:low-level-datatypes-in-isabelle-llvm} introduces.
-The following definition are closely tied to their actual definitions in the Refinement Framework, but some details are omitted.
-\todo{refer to Lammichs work and specify what is given there (complete lattice instantiation, connection to sepraration logic)}
 
 Nondeterministic computations are represented using the \texttt{nres} monad.
-\texttt{nres} over some datatype $\tv{a}$, representing computations with results of type $\tv{a}$, is defined as
+\texttt{nres} over some type $\tv{a}$, representing computations with results of type $\tv{a}$, is defined as
 $$
-  (\tv{a}) \app \iexp{nres} = \iexp{FAIL} \mid \iexp{RES} \app (\set{\tv{a}})
+  \tv{a} \app \iexp{nres} = \iexp{FAIL} \mid \iexp{RES} \app (\set{\tv{a}})
 $$
-Intuitively, for $\iexp{RES \app S}$, the set $\iexp{S}$ represents all possible results of a computation, while $\iexp{FAIL}$ can be seen as a representation of impossible computations, such as an out-of-bounds read from an array.
+Intuitively, for $\iexp{RES \app S}$, the set $\iexp{S}$ represents all possible results of a computation, while $\iexp{FAIL}$ can be seen as a representation of failed computations, such as an out-of-bounds read from an array.
 
-For lifting a value $\iexp{a}$ of type $\iexp{'a}$ into $\iexp{'a \app nres}$, the Refinment Framework defines
+For lifting a value $\iexp{a}$ of type $\tv{a}$ into $\tv{a} \app \iexp{nres}$, the Refinement Framework defines
 $$
-  \iexp{RETURN} \dbcolon \tv{a} \rightarrow \tv{a} \app \iexp{nres}, \text{ where } \iexp{RETURN} \app \iexp{a} = \{\iexp{a}\}
+  \iexp{RETURN} \dbcolon \tv{a} \rightarrow \tv{a} \app \iexp{nres}, \text{ where } \iexp{RETURN} \app \iexp{a} = \iexp{RES} \app \{\iexp{a}\}
 $$
 As an example, $\iexp{RETURN}$ is used to describe a program $\iexp{sum}$ that computes the sum of two natural numbers as follows:
 $$
   \iexp{sum} \dbcolon \iexp{nat} \rightarrow \iexp{nat} \rightarrow \iexp{nat} \app \iexp{nres}, \text{ where } \iexp{sum} \app \iexp{a} \app \iexp{b} = \iexp{RETURN} \app (\iexp{a} \iexp{+} \iexp{b})
 $$
-The Refinement Frameworks also defines $\iexp{SPEC}$, parameterized over a characteristic function $\Phi$ to describe results:
+The Refinement Framework also defines $\iexp{SPEC}$, parameterized over a characteristic function $\Phi$ to describe results:
 $$
   \iexp{SPEC} \dbcolon (\tv{a} \rightarrow \iexp{bool}) \rightarrow \tv{a} \app \iexp{nres}, \text{ where } \iexp{SPEC} \app \Phi = \iexp{RES} \app \{ \iexp{a} \dbcolon \tv{a} \mid \Phi \app \iexp{a} \}
 $$
@@ -112,56 +111,87 @@ $$
 \end{aligned}
 $$
 Intuitively, $\iexp{P} \le \iexp{P'}$ means that every possible result of program $\iexp{P}$ is also a possible result of $\iexp{P'}$.
-In particular that means if $\iexp{P'}$ is known to be correct, with respect to some definition of correctness, then $\iexp{P} \le \iexp{P'}$ means that $\iexp{P'}$ is also correct with respect to that definition of correctness.
-For instance, $\iexp{P} \le \iexp{add\_spec}$ states that $\iexp{P}$ computes the sum of two natural numbers.
+A program $\iexp{P} \dbcolon \tv{a} \app \iexp{nres}$ is said to \textit{refine} program $\iexp{P'} \dbcolon \tv{a} \app \iexp{nres}$ if $\iexp{P} \le \iexp{P'}$.
+In particular, if $\iexp{P'}$ is known to be correct, with respect to some definition of correctness, then $\iexp{P} \le \iexp{P'}$ implies that $\iexp{P}$ is also correct with respect to that definition of correctness.
+For instance, $\iexp{P} \app a \app b \le \iexp{add\_spec} \app a \app b$ states that $\iexp{P}$ computes the sum of two natural numbers $a,b$.
 
-The Refinement Framework also implements the $\iexp{bind}$ operator to enable sequential composition of programs.
-In addition, it provides loops and can be used with Isabelle's builtin $\iexp{if}$ expressions with which proper imperative programs can then be expressed.
+Note that $(\tv{a} \app \iexp{nres}, \le)$ is a complete lattice with top element $\iexp{FAIL}$. In particular, a refining program may only fail if the refined program also fails.
 
-Statements like $\iexp{P} \le \iexp{add\_spec}$ must be proven in Isabelle by the user.
-The Refinement Framework offers tools to automate significant portions of such proofs, in particular the $\iexp{refine\_vcg}$ verification condition generator can be used to unfold loops and apply other simplifications to transform goals expressed in the $\iexp{nres}$ monad to standard Isabelle-HOL goals on which Isabelle's builtin proof automation (in particular $\iexp{sledgehammer}$) can then often be used effectively.
+The Refinement Framework implements a $\iexp{bind} \dbcolon \tv{a} \app \iexp{nres} \rightarrow (\tv{a} \rightarrow \tv{b} \app \iexp{nres}) \rightarrow \tv{b} \app \iexp{nres}$ operator on $\iexp{nres}$ to enable sequential composition of two programs.
+In addition, it provides loops and can be used with Isabelle's builtin $\iexp{if}$ expressions such that typical imperative programs can be expressed.
 
-In general, a program $\iexp{P} \dbcolon \tv{a} \app \iexp{nres}$ can not be directly translated to an executable program, as it only describes the possible outcomes of a program.
-If it can be shown that $\iexp{P} = \iexp{RES} \app \{\iexp{a}\}$, for one deterministic $\iexp{a}$, then, under some additional conditions which are omitted here, the $\iexp{sepref}$ tool can translate $\iexp{P}$ into an executable program.
+Statements like $\iexp{P} \app a \app b \le \iexp{add\_spec} \app a \app b$ must be proven in Isabelle by the user.
+The Refinement Framework offers tools to automate significant portions of such proofs.
+In particular, the $\iexp{refine\_vcg}$ verification condition generator can be used to transform goals expressed in the $\iexp{nres}$ monad to standard Isabelle-HOL goals, on which Isabelle's proof automation (in particular $\iexp{sledgehammer}$) can then often be used effectively.
 
-The Sepref then exports Standard-ML code, which is therefore the case for the original implementation of Pastèque by Fleury \cite{pac-2024}.
+\subsection{Sepref}\label{sec:sepref}
 
-The newer Isabelle-LLVM framework \cite{isabelle-llvm}, also by Lammich, uses the same $\iexp{nres}$ monad, but instead of Standard-ML, it generates LLVM code.
+In general, a program $\iexp{P} \dbcolon \tv{a} \app \iexp{nres}$ cannot be directly translated to an executable program, as it only describes the possible outcomes of a program.
+This section gives an informal overview of the Sepref tool \cite{sepref} by Lammich, which is used to synthesize an executable implementation from such a program.
 
-The verified SAT-solver IsaSAT by Fleury \cite{isasat-sml} saw an increase in performance by factor two \todo{check number}, when migrated from the Standard-ML backend to LLVM \cite{isasat-llvm}.
-This observation motivated the migration of also Pastèque from Standard-ML to LLVM, which is the primary objective of this thesis.
+The Imperative-HOL framework \cite{Imperative-HOL} defines a semantics of imperative programs in Isabelle/HOL.
+Programs defined in Imperative-HOL can then be exported to Standard-ML code.
+Sepref uses a separation logic on Imperative-HOL \cite{Separation_Logic_Imperative_HOL-AFP} which enables reasoning on imperative programs defined in Imperative-HOL.
+Note that Imperative-HOL and the separation logic on it are not discussed here, since, for the thesis, I worked with Isabelle-LLVM \cite{isabelle-llvm} (also by Lammich) which can be seen as Sepref's successor and defines its own separation logic on a shallow embedding of LLVM instead of Imperative-HOL (cf. \refsec{sec:isabelle-llvm}).
+
+Consider the example program in \Cref{algo:nres-set-lookup}, lifting a simple set membership test into $\iexp{nres}$.
+\begin{figure}[htbp]
+  \centering
+  \isabellecodeextern[linerange=31-32]{isabelle-code/NRES_Fundamentals.thy}
+  \caption{An example program in the $\iexp{nres}$ monad, checking whether a set contains a given element.}
+  \label{algo:nres-set-lookup}
+\end{figure}
+As is, it is impossible to obtain an executable program for $\iexp{contains\_elem}$, since $\iexp{set}$ is the HOL type of (potentially infinite) sets, which cannot be represented with finite memory.
+If the set $\iexp{s}$ is known to be finite, one could choose to implement $\iexp{contains\_elem}$ using an implementable datatype (e.g. a hashset) to represent $\iexp{s}$.
+In such a case, the \textit{concrete} hashset datatype is said to \textit{refine} the \textit{abstract} set datatype.
+\todo{Maybe a more rigorous introduction of datatype refinement here.}
+The Sepref tool offers a collection of concrete data structures alongside refinement rules for implementing abstract datatypes.
+In particular, Pastèque uses hashsets and hashmaps to refine sets and partial maps.
+
+In addition, Sepref synthesizes Imperative-HOL programs and automates refinement proofs for given abstract programs, defined in the $\iexp{nres}$ monad. \todo{Should be more elaborate and mention the separation logic.}
+For the synthesized Imperative-HOL programs, a code generator then generates Standard-ML code which, in the case of Pastèque, is compiled with MLton \cite{mlton,weeks-mlton-2006} to obtain an executable program.
+
+In this scenario, the correctness of the synthesized program, relative to the semantics of Imperative-HOL and Sepref's separation logic on Imperative-HOL, is checked by the Isabelle kernel.
+The compiler MLton and the code generator are trusted to be correct.
+
+The newer Isabelle-LLVM framework uses the same $\iexp{nres}$ monad, but modifies the Sepref tool to target a shallow embedding of LLVM instead of Imperative-HOL, using its own separation logic.
+
+Migrating the verified SAT-solver IsaSAT by Fleury \cite{isasat-sml} from the Standard-ML backend to LLVM \cite{isasat-llvm} improved its performance by a factor of two \todo{check number}.
+This observation motivated the migration of Pastèque from Standard-ML to LLVM, which is the primary objective of this thesis.
 
 \subsection{Isabelle-LLVM}\label{sec:isabelle-llvm}
 
-This section gives an overview on the notion of \textit{refinement assertions} in Isabelle-LLVM and the separation logic used to reason about LLVM programs.
+This section gives an overview of the notion of \textit{refinement assertions} in Isabelle-LLVM and the separation logic used to reason about LLVM programs.
 
 Isabelle-LLVM defines a shallow embedding of the LLVM intermediate language (i.e. a formalization of a subset of LLVM) and models the state of memory during the execution of a program.
 Details regarding the LLVM embedding and memory model are described in Lammich's paper \cite{isabelle-llvm}.
 For the thesis I use a simplified notion of refinement assertions and introduce the following types and functions only informally:
 \begin{itemize}
-  \item States of memory are reasoned on by a separation algebra $(\iexp{mem}, \#\#, +, 0)$ as defined in the AFP's Separation Algebra by Klein et al\cite{Separation_Algebra-AFP} which is based on the Abstract Separation Logic by Calcagno et al \cite{Abstract_Separation_Logic}.
+  \item States of memory are reasoned about using a separation algebra $(\iexp{mem}, \#\#, +, 0)$ as defined in the AFP's Separation Algebra by Klein et al.~\cite{Separation_Algebra-AFP}, which is based on the Abstract Separation Logic by Calcagno et al.~\cite{Abstract_Separation_Logic}.
     Isabelle-LLVM instantiates the abstract separation algebra with its memory model.
   \item An \textit{assertion} is a function $f \dbcolon \iexp{mem} \rightarrow \iexp{bool}$ used to make statements about the state of memory.
-    I will use the type synonym $\iexp{assn} := \iexp{mem} \rightarrow \iexp{bool}$ as type annotation for assertions.
+    I use the type synonym $\iexp{assn} := \iexp{mem} \rightarrow \iexp{bool}$ as type annotation for assertions.
   \item $\iexp{emp}$ is an assertion that evaluates to $\iexp{True}$ iff. the given state is $0$, i.e. $\iexp{emp} = \lambda s. s = 0$.
   \item The separating conjunction operator $\ast \dbcolon \iexp{assn} \rightarrow \iexp{assn} \rightarrow \iexp{assn}$ allows for combination of assertions.
-    If $A \dbcolon \iexp{assn}$ and $B \dbcolon \iexp{assn}$ are assertions, then $A \ast B$ is a statement that evaluates to $\iexp{True}$ for a given state $h \dbcolon \iexp{mem}$, iff. there exists a decomposition $h = x + y$ such that $x \#\# y$ (i.e. $x$ and $y$ are disjoint) and $A \app x$ and $B \app y$.
+    If $A \dbcolon \iexp{assn}$ and $B \dbcolon \iexp{assn}$ are assertions, then $A \ast B$ is an assertion that evaluates to $\iexp{True}$ for a given state $h \dbcolon \iexp{mem}$, iff. there exists a decomposition $h = x + y$ such that $x \#\# y$ (i.e. $x$ and $y$ are disjoint) and $A \app x$ and $B \app y$.
   \item $\tv{a} \app \iexp{ptr}$ is the type of pointers to values of type $\tv{a}$.
         Note that, for $\tv{a} \app \iexp{ptr}$ to be recognized by the LLVM code generator of Isabelle-LLVM, $\tv{a}$ must be representable in LLVM.
         In particular, the type of machine words, $w \app \iexp{word}$, is the only representable type directly mentioned in this thesis.\\
-        For $\mapsto \dbcolon \tv{a} \app \iexp{ptr} \rightarrow \tv{a} \rightarrow \iexp{assn}$, the assertion $(p \mapsto a) \sigma $ evaluates to $\iexp{True}$, iff. $p$ is a pointer to $a$ in state $\sigma$ \footnote{The actual assertion $\iexp{ll\_bpto}$ is defined in the theory $\iexp{Isabelle\_LLVM.LLVM\_DS\_Block\_Alloc.thy}$}.
-  \item Similarly to the $\iexp{nres}$ monad, Isabelle-LLVM uses state error monad $\tv{a} \app \iexp{M}$ to describe LLVM programs with return type $\tv{a}$. \todo{There should be at least some intuition of what $\iexp{M}$ does.}
-        Note that $\tv{a}$ should be a type representable in LLVM for the code generator to be able to produce code for a program $P \dbcolon \tv{a} \app \iexp{M}$.
+        For $\mapsto \dbcolon \tv{a} \app \iexp{ptr} \rightarrow \tv{a} \rightarrow \iexp{assn}$, the assertion $(p \mapsto a) \sigma $ evaluates to $\iexp{True}$, iff. $p$ is a pointer to $a$ in state $\sigma$\footnote{$\mapsto$ is based on the assertion $\iexp{ll\_bpto}$, which is defined in the theory $\iexp{Isabelle\_LLVM.LLVM\_DS\_Block\_Alloc}$.}.
+        Note that $p \mapsto a$ implicitly states exclusive ownership of the object $p$ points to, as no object can have multiple separate owners in the separation logic.
+  \item Similarly to the $\iexp{nres}$ monad, Isabelle-LLVM uses a state error nondeterminism monad $\tv{a} \app \iexp{llM}$ to describe LLVM programs with return type $\tv{a}$. \todo{There should be at least some intuition of what $\iexp{llM}$ does.}
+        Note that $\tv{a}$ must be a type representable in LLVM for the code generator to be able to produce code for a program $P \dbcolon \tv{a} \app \iexp{llM}$.
 \end{itemize}
 
-To make assertions independently from the state of memory, a boolean value can be lifted to an assertion by $\uparrow \dbcolon \iexp{bool} \rightarrow \iexp{assn}$ where $\uparrow \app b = \lambda h. \iexp{emp} h \land b$.
+To make assertions independent of the state of memory, a boolean value can be lifted to an assertion by $\uparrow \dbcolon \iexp{bool} \rightarrow \iexp{assn}$ where $\uparrow \app b = \lambda h. \iexp{emp} h \land b$.
 Note that $A \ast \iexp{emp} = A$ for any assertion $A$.
 
-In Isabelle-LLVM, a \textit{refinement assertion} $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ is a special case of an assertion that specifies how abstract values of type $\tv{a}$ are related to concrete values of type $\tv{b}$ that are representable in llvm.
+In Isabelle-LLVM, a \textit{refinement assertion} $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ is a function that produces an assertion for given values of type $\tv{a}$ and $\tv{b}$, where type $\tv{b}$ is representable in LLVM.
+Refinement assertions specify how abstract values are represented in LLVM by concrete values.
 For example, a refinement assertion $\iexp{si\_assn} \dbcolon \iexp{int} \rightarrow 8 \app \iexp{word} \rightarrow \iexp{assn}$ defines how 8-bit machine words, being interpreted as signed 8-bit integers, refine the abstract HOL type of unbounded integers.
 It holds that $\iexp{si\_assn} \app (-128) \app \iexp{0x80} \app 0 = \iexp{True}$, while $\iexp{si\_assn} \app 128 \app w \app \sigma = \iexp{False}$ for any $w$ and $\sigma$, as $128$ is not representable with an 8-bit signed integer.
 
-A \textit{Hoare-triple} $\{\Psi \dbcolon \iexp{assn}\} (P \dbcolon \tv{a} \app \iexp{M}) \{\Phi \dbcolon \tv{a} \rightarrow \iexp{assn}\}$ states that, if a \textit{precondition} $\Psi$ holds initially, then the \textit{postcondition} $\Phi$ holds after the execution of program $P$.
+A \textit{Hoare-triple} $\{\Psi \dbcolon \iexp{assn}\} (P \dbcolon \tv{a} \app \iexp{llM}) \{\Phi \dbcolon \tv{a} \rightarrow \iexp{assn}\}$ states that, if a \textit{precondition} $\Psi$ holds initially, then the program $P$ is executed successfully and the \textit{postcondition} $\Phi$ holds afterwards.
 For example, the Hoare-triple
 $$
   \{\iexp{si\_assn} \app a \app ai \ast \iexp{si\_assn} \app b \app bi\}
@@ -169,18 +199,19 @@ $$
   \{\lambda r. \iexp{si\_assn} \app (a + b) \app r\}
 $$
 can be read as follows:
-If 8-bit machine word $ai, bi$ refine the integers $a, b$ then the result of $\iexp{add} \app ai \app bi$ refines the integer $a + b$.
-Note that in this particular example, the statement is only true, if we can prove that $a + b$ does not overflow and is therefore representable by an 8-bit machine word.
+If 8-bit machine words $ai, bi$ refine the integers $a, b$ then the result of $\iexp{add} \app ai \app bi$ refines the integer $a + b$.
+Note that in this particular example, the statement only holds if $a + b$ does not overflow and is therefore representable by an 8-bit machine word.
 This requirement can be added to the precondition:
 \begin{gather*}
   \{\uparrow(a + b \le 127 \land -128 \le a + b) \ast \iexp{si\_assn} \app a \app ai \ast \iexp{si\_assn} \app b \app bi\} \\
   (\iexp{add} \app ai \app bi) \\
   \{\lambda \app r. \iexp{si\_assn} \app (a + b) \app r\}
 \end{gather*}
-Which makes the statement provable by the $\iexp{vcg}$ tool.
+This addition makes the statement provable by the $\iexp{vcg}$ tool.
 
 As a user of Isabelle-LLVM, one does not typically work with Hoare-triples directly.
-Instead, usually the $\iexp{nres}$ monad is used to define algorithms on HOL-types, the $\iexp{sepref}$ tool can then transform high-level correctness statements using $\le$ into the low-level Hoare-triples and prove statements on those automatically.
+Instead, usually the $\iexp{nres}$ monad is used to define algorithms on HOL-types; the $\iexp{sepref}$ tool can then transform high-level programs defined in $\iexp{nres}$ into low-level programs defined in $\iexp{llM}$ and prove respective correctness statements, given by Hoare-triples automatically.
+\todo{Include an example in hfref notation.}
 
 \subsubsection{Ownership in Isabelle-LLVM}\label{sec:ownership-in-isabelle-llvm}
 This subsection gives a simplified overview of the ownership model that is implemented in Isabelle-LLVM.
