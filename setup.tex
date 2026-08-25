@@ -34,6 +34,7 @@
 \usepackage[all]{hypcap} % to show the full figure when clicking on it's reference
 \usepackage{cleveref} % for \cref/\Cref smart references
 \newcommand{\refsec}[1]{\S\ref{#1}} % section reference prefixed with a section-sign
+\newcommand{\refalgo}[1]{Algorithm~\ref{#1}} % algorithm/listing reference prefixed with "Algorithm"
 \usepackage[dvipsnames]{xcolor}
 \usepackage{graphicx}
 \usepackage{tikz}
@@ -247,6 +248,7 @@
   isabellebox/.style={
     enhanced,
     listing only,
+    listing remove caption=false,
     colback=cd_background_sand_50_percent,
     colframe=cd_blue,
     boxrule=0.4pt,
@@ -254,8 +256,8 @@
     boxsep=0pt,
     left=1em,
     right=1em,
-    top=1em,
-    bottom=1em,
+    top=0.6em,
+    bottom=0.6em,
     breakable,
   }
 }
@@ -279,13 +281,55 @@
   isabellebox,
   listing options={style=isabellestyle,#1},
 }
-\newcommand{\isabellecodeextern}[2][]{%
-  \tcbinputlisting{%
-    isabellebox,
-    listing file={#2},
-    listing options={style=isabellestyle,#1},
-  }%
+\makeatletter
+\def\isacode@stripprefix/isacode/#1\@nil{#1}
+\pgfkeys{
+  /isacode/.is family,
+  /isacode/label/.store in=\isacode@label,
+  /isacode/label/.default=,
+  /isacode/caption/.store in=\isacode@caption,
+  /isacode/caption/.default=,
+  /isacode/.unknown/.code={%
+    \edef\isacode@keyname{\expandafter\isacode@stripprefix\pgfkeyscurrentkey\@nil}%
+    \ifx\isacode@rest\@empty
+      \edef\isacode@rest{\isacode@keyname=\pgfkeyscurrentvalue}%
+    \else
+      \edef\isacode@rest{\isacode@rest,\isacode@keyname=\pgfkeyscurrentvalue}%
+    \fi
+  },
 }
+% label/caption are rendered below the box (in a smaller font) instead of
+% inside it, since listings' native captionpos=b places the caption inside
+% the tcolorbox frame together with the code.
+\newcommand{\isabellecodeextern}[2][]{%
+  \def\isacode@rest{}%
+  \def\isacode@label{}%
+  \def\isacode@caption{}%
+  \pgfkeys{/isacode,#1}%
+  % Force full expansion of \isacode@rest into literal text before
+  % \tcbinputlisting grabs its argument: xkeyval's key=value splitting
+  % (used internally by \lstset) scans for literal "," and "=" characters
+  % and does not expand macros hidden inside an argument to find them.
+  \edef\isacode@fullargs{%
+    isabellebox,%
+    listing file={#2},%
+    listing options={style=isabellestyle,\isacode@rest}%
+  }%
+  \expandafter\tcbinputlisting\expandafter{\isacode@fullargs}%
+  \ifx\isacode@caption\@empty
+    \ifx\isacode@label\@empty\else\label{\isacode@label}\fi
+  \else
+    \vspace{0.5em}%
+    % \label must stay inside this group: \captionof sets \@currentlabel
+    % locally, and it would revert to a stale value (e.g. the enclosing
+    % section number) once the group closes.
+    {\footnotesize
+      \captionof{lstlisting}{\isacode@caption}%
+      \ifx\isacode@label\@empty\else\label{\isacode@label}\fi
+    }%
+  \fi
+}
+\makeatother
 
 \usepackage[section]{placeins}  % To keep all figures inside there section
 \usepackage[stylemods=longextra, symbols, automake]{glossaries-extra}

@@ -141,7 +141,9 @@ which means that $p \dbcolon \tv{b} \app \iexp{node} \app \iexp{ptr}$ refines $a
 A function that destructures a list, which is commonly the case in typical recursive walks over lists, necessarily destroys it.
 
 As an example, consider the following recursive function for summing up the elements of a list:
-\isabellecodeextern[linerange=45-47]{isabelle-code/Lists.thy}
+\isabellecodeextern[linerange=45-47,label=algo:llvm-sum,caption={
+  Recursive summation over a list, destroying the list in the process.
+}]{isabelle-code/Lists.thy}
 
 \inlinecode{sum} destroys the given list.
 If it did not, there would simultaneously exist two pointers into the list, one owned by the caller of \inlinecode{sum}, one owned by \inlinecode{sum}, which is not forbidden in the separation calculus.
@@ -153,12 +155,24 @@ A straight forward solution is to simply create a deep copy of a list and then c
 Assuming the contained elements support copying (c.f. \refsec{sec:interface-hierarchy-for-refinement-assertions}), a deep-copy operation $\iexp{ls\_copy} \dbcolon \tv{a} \app \iexp{ptr} \rightarrow \tv{a} \app \iexp{ptr} \app M$ can easily be implemented by a recursive walk on the list, copying each element into a new list \footnote{c.f. function $\iexp{cl\_copy}$ in theory $\iexp{IICF\_Copying\_List}$}.
 Note that if $A$ instantiates $\iexp{copyable\_assn}$, by use of $\iexp{ls\_copy}$, $\iexp{ls\_assn} \app A$ can in turn also instantiate $\iexp{copyable\_assn}$ meaning that nested lists can also be copied without further setup or code duplication.
 
-If the callee does not modify a given list, creating a deep copy is wasteful.
+If the callee does not need to take ownership of a given list (i.e. it only reads from the list), creating a deep copy is wasteful.
 The presented \inlinecode{sum} function is an example of such a case: The original list is only read from, as the the contained machine words are pure and can be read from the list without having to move ownership out of the list.
 But, presented as is, \inlinecode{sum} uses the destructuring operations on lists which lead to destruction of the original list.
-To address this issue and provide an option to implement read-only operations on lists, I implemented a refinement target for the HOL $\iexp{foldl}$ function \footnote{c.f. function $\iexp{cl\_fold}$ in theory $\iexp{IICF\_Copying\_List}$} as follows:
-
-The more idiomatic functional definition $\iexp{sum'} := \iexp{foldl} \app (\lambda acc \app n.\, acc + n) \app 0$ is equivalent to \inlinecode{sum} and 
+To address this issue and provide an option to implement read-only operations on lists, I implement a refinement target for the HOL $\iexp{foldl}$ function.
+\isabellecodeextern[linerange=51-56,label=algo:llvm-fold,caption={
+  $\iexp{llM}$ level $\iexp{foldl}$ implementation.
+}]{isabelle-code/Lists.thy}
+A simplified version is given in \refalgo{algo:llvm-fold} \footnote{the actual function $\iexp{cl\_fold}$ in defined in theory $\iexp{IICF\_Copying\_List}$}.
+On $\iexp{ll\_foldl}$, I prove a lemma
+\begin{gather*}
+  \{A \app a \app ai \app \ast B \app b \app bi\} \app
+  (fi \app ai \app bi) \app
+  \{\lambda r. A \app (f \app a \app b) \app r \app \ast B \app b \app bi\} \Rightarrow \\
+  \{A \app a \app ai \app \ast (\iexp{ls\_assn} \app B) \app bs \app bsi\} \\
+  (\iexp{ll\_foldl} \app fi \app ai \app bsi)\\
+  \{\lambda r. A \app (\iexp{foldl} \app f \app a \app bs) \app r \app \ast (\iexp{ls\_assn} B) \app bs \app bsi\}
+\end{gather*}
+An alternative functional definition $\iexp{sum'} := \iexp{foldl} \app (\lambda acc \app n.\, acc + n) \app 0$ is equivalent to \inlinecode{sum} and 
 
 % THIS PART IS FOR AN INTERLEAVING FOLD IF WE EVER GET THAT.
 As an example, consider the following implementation of the merge step in a classic merge sort algorithm:

@@ -134,13 +134,10 @@ Programs defined in Imperative-HOL can then be exported to Standard-ML code.
 Sepref uses a separation logic on Imperative-HOL \cite{Separation_Logic_Imperative_HOL-AFP} which enables reasoning on imperative programs defined in Imperative-HOL.
 Note that Imperative-HOL and the separation logic on it are not discussed here, since, for the thesis, I worked with Isabelle-LLVM \cite{isabelle-llvm} (also by Lammich) which can be seen as Sepref's successor and defines its own separation logic on a shallow embedding of LLVM instead of Imperative-HOL (cf. \refsec{sec:isabelle-llvm}).
 
-Consider the example program in \Cref{algo:nres-set-lookup}, lifting a simple set membership test into $\iexp{nres}$.
-\begin{figure}[htbp]
-  \centering
-  \isabellecodeextern[linerange=31-32]{isabelle-code/NRES_Fundamentals.thy}
-  \caption{An example program in the $\iexp{nres}$ monad, checking whether a set contains a given element.}
-  \label{algo:nres-set-lookup}
-\end{figure}
+Consider the example program in \refalgo{algo:nres-set-lookup}, lifting a simple set membership test into $\iexp{nres}$.
+\isabellecodeextern[linerange=31-32,label=algo:nres-set-lookup,caption={
+  An example program in the $\iexp{nres}$ monad, checking whether a set contains a given element.
+}]{isabelle-code/NRES_Fundamentals.thy}
 As is, it is impossible to obtain an executable program for $\iexp{contains\_elem}$, since $\iexp{set}$ is the HOL type of (potentially infinite) sets, which cannot be represented with finite memory.
 If the set $\iexp{s}$ is known to be finite, one could choose to implement $\iexp{contains\_elem}$ using an implementable datatype (e.g. a hashset) to represent $\iexp{s}$.
 In such a case, the \textit{concrete} hashset datatype is said to \textit{refine} the \textit{abstract} set datatype.
