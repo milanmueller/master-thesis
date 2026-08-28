@@ -63,6 +63,10 @@ Throughout this thesis, I assume familiarity with simply typed higher-order logi
         A concrete set is denoted by $\{x,y,z\}$.
   \item For a type $\tv{a}$, $\tv{a} \app \iexp{multiset}$ denotes the type of multisets with elements of type $\tv{a}$.
         A concrete multiset is denoted by $\{\#x,x,y\#\}$.
+  \item For a type $\tv{a}$, $\tv{a} \app \iexp{option}$ denotes Isabelle's optional type
+        $$
+          (\tv{a}) \app \iexp{option} = \iexp{None} \mid \iexp{Some} (\tv{a})
+        $$
   \item I use the following built-in Isabelle types:
   \begin{itemize}
     \item Type $\iexp{bool}$ of booleans,
@@ -257,3 +261,45 @@ If we weaken the the postcondition, the statement becomes provable in Isabelle-L
 \end{gather*}
 We lose the assertion $(\iexp{ls\_assn} \app A) \app xs \app xsi$ in the postcondition, we say that the original list $xsi$ was \textit{destroyed}.
 \refsec{sec:lists-with-tail-pointers} describes the approach that I chose to address this issue for functions working on lists specifically.
+
+\subsection{High-Level Representation of Polynomials}\label{sec:methodology_high-level-representation-of-polynomials}
+The HOL-level algorithms of Pastèque works on polynomials, defined as
+\begin{align*}
+  \iexp{variable}   &= \iexp{string} \\
+  \iexp{term}       &= \ls{\iexp{variable}} \\
+  \iexp{monomial}   &= \iexp{term} \times \iexp{int} \\
+  \iexp{polynomial} &= \ls{\iexp{monomial}}
+\end{align*}
+For instance, a polynomial $3xy + 2x + y$ is represented by
+$[([\iexp{"x"}], 2), ([\iexp{"x"}, \iexp{"y"}], 3), ([\iexp{"y"}], 1)]$ in Pastèque.
+Note that polynomials are sorted lexicographically with regards to the terms of the monomials which are also sorted internally.
+This is an invariant of Pastèque that holds throughout it's execution.
+
+Unfolding the type of a $\iexp{polynomial}$ gives us $\ls{(\ls{\ls{\iexp{char}}} \times \iexp{int})}$.
+Refining a program that works on polynomials as defined here, therefore implies being able to represent nested lists, and supporting typical list operations like prepending and element, destructuring a list.
+The given abstract datatype reveals the two main requirements for porting Pastèque from Imperative-HOL to LLVM:
+
+\begin{enumerate}
+  \item The Isabelle-HOL $\iexp{int}$ type is unbounded and can hold arbitrarily large numbers.
+  The Imperative-HOL backend, which produces SML code that is compiled by MLton \todo{citation}, supports this natively.
+  LLVM only supports bounded numbers, represented as machine words of a fixed width.
+  Eberl et al. have used bindings to GMP \cite{gmp} to implement a verified algorithm for computing Bernoulli numbers \cite{eberl-bernoulli-numbers}.
+  Instead of GMP, I use a native library for arbitrary precision numbers, created by Spinei \todo{How can we cite Mihai?}.
+  This library implements addition and multiplication for unsigned numbers, and can thus refine these operations when applied to natural numbers.
+
+  To use it for Pastèque, we have to extend these operations to support signed numbers, i.e. integers.
+  Furthermore, we need to implement conversion between numbers and strings, which is required for printing error messages and parsing input files.
+  \refsec{sec:multiple-precision-integers} discusses the work on arbitrary-precision integers.
+  \item To my knowledge, the existing list implementation Isabelle-LLVM requires contained elements to be pure.
+  The existing list implementation must therefore be extended to be able to hold impure elements.
+
+  In addition to nestable lists, Pastèque also uses two other data structures, for which I could not find an appropriate existing refinement target in Isabelle-LLVM.
+
+  Firstly, Pastèque stores $\iexp{polynomial}$s in a map where each polynomial is assigned an index, so a refinement target for associative maps must be implemented.
+
+  Secondly, Pastèque uses a hashset to track assigned variables\todo{is that actually the purpose of the hashset?}, which also requires a custom hashset implementation for strings.
+
+  \refsec{sec:low-level-datatypes-in-isabelle-llvm} discusses the implementation of the new required datatypes.
+
+
+\end{enumerate}

@@ -31,11 +31,33 @@
 (add-hook 'after-make-frame-functions (lambda (_) (my/load-terminal-colors-from-zshrc)))
 
 (setq base16-theme-256-color-source 'colors)
-(setq doom-theme 'catppuccin)
+(use-package doom-themes
+  :ensure t
+  :custom
+  ;; Global settings (defaults)
+  (doom-themes-enable-bold t)   ; if nil, bold is universally disabled
+  (doom-themes-enable-italic t) ; if nil, italics is universally disabled
+  ;; for treemacs users
+  (doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
+  :config
+  (load-theme 'doom-one-light t)
+
+  ;; Enable flashing mode-line on errors
+  (doom-themes-visual-bell-config)
+  ;; Enable custom neotree theme (nerd-icons must be installed!)
+  (doom-themes-neotree-config)
+  ;; or for treemacs users
+  (doom-themes-treemacs-config)
+  ;; Corrects (and improves) org-mode's native fontification.
+  (doom-themes-org-config)
+)
+(solaire-global-mode +1)
+; (setq doom-theme 'catppuccin)
 (setq display-line-numbers-type 'relative)
 (global-display-line-numbers-mode t)
 (setq shell-file-name (executable-find "bash"))
-(setq catppuccin-flavor 'latte)
+; (setq catppuccin-flavor 'latte)
+; (setq catppuccin-flavor 'frappe)
 (setq-default tab-width 2)
 (setq window-divider-default-right-width 4
       window-divider-default-bottom-width 4)
@@ -80,8 +102,12 @@
   (push (expand-file-name "isabelle-emacs/src/Tools/emacs-lsp/yasnippet" (getenv "USER_HOME"))
    yas-snippet-dirs)
   (setq lsp-isar-path-to-isabelle (expand-file-name "isabelle-emacs" (getenv "USER_HOME")))
-  (setq lsp-isabelle-options (list "-l" "DevBase"))
+  (setq lsp-isabelle-options (list "-l" "PAC_Checker_LLVM"))
 )
+(after! lsp-isar-decorations
+  (custom-set-faces
+   '(lsp-isar-font-background-quoted ((t (:inherit font-lock-comment-face))))
+   '(lsp-isar-font-foreground-quoted ((t (:inherit font-lock-doc-face))))))
 ;; https://github.com/m-fleury/isabelle-release/issues/21
 (defun ~/evil-motion-range--wrapper (fn &rest args)
   "Like `evil-motion-range', but override field-beginning for performance.

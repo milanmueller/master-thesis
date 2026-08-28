@@ -42,6 +42,19 @@ definition \<open>
 \<close>
   
 fun 
-  sum :: \<open>nat list \<Rightarrow> nat\<close> where
+sum :: \<open>nat list \<Rightarrow> nat\<close> where
   \<open>sum [] = 0\<close> |
   \<open>sum (x#xs) = x + sum xs\<close>
+
+term foldl
+definition
+ll_foldl :: \<open>('a \<Rightarrow> 'b \<Rightarrow> 'a llM) \<Rightarrow> 'a \<Rightarrow> 'b node ptr \<Rightarrow> 'a llM\<close> where
+  \<open>ll_foldl f a p \<equiv> if p = null then Mreturn a else do {
+      n \<leftarrow> ll_load p;
+      a \<leftarrow> f a (node.val n);
+      ll_foldl f (node.next n) a
+  }\<close>
+
+definition
+sum' :: \<open>nat list \<Rightarrow> nat\<close> where
+  \<open>sum' = foldl (+) 0\<close>

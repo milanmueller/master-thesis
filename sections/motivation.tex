@@ -91,25 +91,36 @@ For simplicity, we assume half adders with the usual semantic.\\
   \label{fig:2bit-multiplier}
 \end{figure}
 
-\subsection{Program Verification with Isabelle LLVM}
+\subsection{Program Verification with Isabelle-LLVM}
 
-One of the main challenges that every non-trivial software project is certain to face eventually, is the existence of unforeseen errors.
-Examples of such errors include out-of-bounds errors, use-after-free errors, or semantic errors in overlooked edge-cases, leading to crashes or otherwise unintended program behavior\todo{source of claim}. \\
+One of the main challenges that every non-trivial software project is very likely to face eventually, is the existence of unforeseen errors.
+Examples of such errors include out-of-bounds errors, use-after-free errors, or semantic errors in overlooked edge-cases, leading to crashes or otherwise unintended program behavior. \\
 In critical systems, e.g. authentication engines or medical applications, such errors might lead to severe issues like exposure of sensitive data to bad actors\todo{Some example data breach}, or even pose danger to human lives\todo{The malfunctioning radiation device}.\\
-To detect such errors preemptively, professional software development typically involves extensive testing of the developed product, ranging from unit tests to more sophisticated and automated approaches like fuzzing\todo{Reference}. \\
+To detect such errors preemptively, professional software development typically involves extensive testing of the developed product, ranging from simple unit tests to more sophisticated and automated approaches like fuzzing\todo{Reference}. \\
 While testing is a powerful strategy for detecting errors, even simple programs might have state spaces too large to obtain full coverage of all possible inputs in testing.
 This natural limitation of testing based quality assurance motivates the use of formal methods for verifying correctness of computer programs.
 
-Tools for formal verification of programs might attempt to automatically prove correctness of an existing program, with regards to a given specification, by generating an abstract model of the program's source code, with formally defined semantics, and then applying various strategies to obtain correctness proofs for the abstract model, typically utilizing automatic decision procedures like SMT solvers, which in turn utilize SAT solvers for deciding satisfiability.\todo{Examples, References, more concrete}
-One notable issue with this approach is the fact that decision procedures themselves might produces false results, which motivates the use of proof certificates, emitted by the decision procedure, with which third-party proof checkers can validate the produced results.\todo{Reference}
-Conversely, there is an incentive to formally verify such proof checkers as they face the same potential correctness issues as any other software.
+% Tools for formal verification of programs might attempt to automatically prove correctness of an existing program, with regards to a given specification, by generating an abstract model of the program's source code, with formally defined semantics, and then applying various strategies to obtain correctness proofs for the abstract model, typically utilizing automatic decision procedures like SMT solvers, which in turn utilize SAT solvers for deciding satisfiability.\todo{Examples, References, more concrete}
+% One notable issue with this approach is the fact that decision procedures themselves might produces false results, which motivates the use of proof certificates, emitted by the decision procedure, with which third-party proof checkers can validate the produced results.\todo{Reference}
+% Conversely, there is an incentive to formally verify such proof checkers as they face the same potential correctness issues as any other software.
 
-In this thesis we consider an interactive approach to developing formally verified programs, using the interactive theorem prover Isabelle/HOL \cite{isabelle} with the framework Isabelle-LLVM \cite{isabelle-llvm}, developed by Peter Lammich, which extends Lammich's previous tool Sepref \cite{sepref} with the ability to generate LLVM code from the verified programs.\\
-Sepref was used in developing Pas\`{e}que \cite{pasteque}, a verified proof checker for the practical algebraic calculus (PAC), by Mathias Fleury. \\
-With Sepref, it is possible to generate Standard-ML code for Pas\`{e}que. Migrating Pas\`{e}que to Isabelle-LLVM, and thus generating LLVM code, which we expect to be faster than Standard ML, was not possible due to lack of support for arbitrarily large numbers in LLVM.
-While it is now possible to use the c-library gmp \cite{gmp} in Isabelle-LLVM, doing so effectively adds gmp to the trusted code base, incentivizing the implementation of a native library for big numbers in Isabelle-LLVM. \\
-Building on previous work by Mihai Spinei\todo{Reference}, the aim of this thesis is to migrate Pas\`{e}que to Isabelle-LLVM which requires us to implement base exchange for big numbers\todo{More on implementation, which algorithm?} to allow us to print them.
+Formal verification of non-trivial, efficient programs is typically a hard task as programs will likely use complex data structures, like hashmaps, nested container structures, or tree-based structures, and a proper correctness proof must consider the exact semantics of such data structures, which significantly increases their complexity. 
+In addition, many algorithms most efficient implementations rely on mutation of data in memory, typically seen in imperative languages like C/C++, which further complicates the construction of accurate formals models of such programs, compared to pure functional approaches, where immutability of data is an intrinsic invariant. 
+The PAC checker Pastèque\cite{pasteque}, developed by Fleury, is formally verified by use of the interactive theorem prover Isabelle/HOL \cite{isabelle} with the Sepref framework \cite{sepref}, developed by Lammich.
+Sepref addresses both of the aforementioned challenges in formal verification;
+Firstly, separation logic is used to effectively reasoning about memory mutation.
+Secondly, Sepref's refinement approach allows for splitting up correctness proofs into multiple steps of refinement, starting with abstract, idealized algorithms with are easier to reason on, and then concretizing the algorithms implementation in separate proof steps.
+Sepref automates significant proportions of these steps.
+The final, concrete programs can be exported to Standard-ML code. 
+\refsec{sec:isabelle-refinement-framework} and \refsec{sec:sepref} present the fundamental concepts of working with Sepref.
 
-\refsec{sec:fundamentals} introduces Isabelle/HOL alongside the aforementioned Isabelle-LLVM, and presents a formalization of big numbers which we then use to give a formal specification for our base exchange algorithm.
-\refsec{sec:methodology} discusses the implementation of the base exchange algorithm and the migration of Pas\`{e}que from Standard ML to LLVM.
-In \refsec{sec:evaluation}, we then compare Pas\`{e}que's performance with the LLVM backend to the Standard ML backend.
+The Isabelle-LLVM framework \cite{isabelle-llvm}, also by Lammich, can be seen as the Successor of Sepref. 
+Instead of Standard-ML code, Isabelle-LLVM can be used to generate LLVM code, allowing for even more efficient verified programs.
+\refsec{sec:isabelle-llvm} introduces the fundamental concepts for working Isabelle-LLVMs LLVM backend the separation logic defined on it. 
+
+Migrating Pastèque from the Standard-ML backend to LLVM is the objective of this thesis. 
+While the the main high-level algorithms remain unchanged, the concrete low-level implementation requires some preliminary work, which is the main workload in this thesis;
+Pastèque relies on multiple precision integer arithmetic which is natively supported in the Standard-ML backend.
+LLVM has no built-in support for multiple precision integers, I therefore use a native multiple precision integer implementation for Isabelle-LLVM by Spinei \todo{citation} with some extensions to support signed numbers, and translation from and to ascii-encoded strings, which is required for parsing and for printing error messages.
+In addition, Pastèque relies on nestable lists, a hashmap and a hashset implementation for strings which are not directly available in Isabelle-LLVMs collection of data structures.
+I therefore implement an opinionated nestable linked list, which copies elements where necessary (cf. \ref{sec:lists-with-tail-pointers}), and I implement generic (but tailored to Pastèque specifically) partial maps, hashmaps and hashsets. 

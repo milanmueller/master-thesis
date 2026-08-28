@@ -27,4 +27,8 @@ where
 | \<open>FAIL  \<le> RES X \<longleftrightarrow> False\<close>
 | \<open>RES X \<le> RES Y \<longleftrightarrow> X \<subseteq> Y\<close>
 
+definition
+contains_elem :: \<open>'a \<Rightarrow> 'a set \<Rightarrow> bool nres\<close> where
+\<open>contains_elem x s = RETURN (x \<in> s)\<close>
+
 end

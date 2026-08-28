@@ -1,0 +1,312 @@
+\section{Data Structures for Pastèque}\label{sec:low-level-datatypes-in-isabelle-llvm}
+
+In this section, I introduce the fundamental datatypes, I created to represent polynomials in LLVM.
+In particular, I have extended the existing open list implementation\footnote{c.f. $\iexp{Isabelle\_LLVM.LLVM\_DS\_Open\_List}$} to be able to contain impure objects.
+In addition, I have implemented basic partial maps using an array as the outer container that can also hold impure objects.
+I have also implemented a basic hash set and hash map for strings, using lists for the buckets.
+
+The implementations are designed to be modular and reusable, but they make some assumptions about the contained elements which are discussed in \refsec{sec:interface-hierarchy-for-refinement-assertions}.
+
+\subsection{Interface Hierarchy for Refinement Assertions}\label{sec:interface-hierarchy-for-refinement-assertions}
+
+For the implemented data structures to be useful in practice, the data structure might require certain functionality from the contained elements.
+For example, the list implementation supports a deep copy operation, for which an existing copy function on the inner elements is required.
+Similarly, a hashmap requires the contained elements to support a hash operation.
+
+I use Isabelle's \inlinecode{locale} feature to define requirements for refinement assertions, such that in the implementation of a container data structure, can use required functions without knowledge of which concrete refinement assertions are used for the contained elements.
+
+\begin{itemize}
+  \item A refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ can instantiate $\iexp{freeable\_assn}$ if there exists a function $\iexp{afree} \dbcolon \tv{b} \rightarrow \iexp{unit} \app M$ that frees the elements from memory. The Hoare-triple $\{A \app a \app ai\}(\iexp{afree} \app ai)\{\iexp{emp}\}$ must hold. Note that pure elements are trivially freeable.
+  \item A refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ can instantiate $\iexp{copyable\_assn}$ if there exists a function $\iexp{acopy} \dbcolon \tv{b} \rightarrow \tv{b} \app M$ that copies an element of type $\tv{b}$.
+    The Hoare-triple $\{A \app a \app ai\}(\iexp{acopy} \app ai)\{\lambda r. A \app a \app ai \ast A \app a \app r\}$ must hold.
+    All copyable refinement assertions must also be freeable.
+    Pure elements a trivially copyable.
+  \item A refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ can instantiate $\iexp{eq\_assn}$ if there exists a function $\iexp{aeq} \dbcolon \tv{b} \rightarrow \tv{b} \rightarrow \iexp{bool} \app \iexp{llM}$\footnote{Booleans are actually refined by 1-bit machine words, but for the thesis I assume a return type $\iexp{bool} \app \iexp{llM}$, instead of $1 \app \iexp{word} \app \iexp{llM}$ for simplicity.} that evaluates to true if both given elements are equal.
+    The Hoare-triple $\{A \app a \app ai \ast A \app b \app bi\}(\iexp{aeq} \app ai \app bi)\{\lambda r. \uparrow(r = (a=b))\}$ must hold.
+  \item A refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ can instantiate $\iexp{linord\_assn}$ if it instantiates $\iexp{eq\_assn}$ and there exists a function $\iexp{alt} \dbcolon \tv{b} \rightarrow \tv{b} \rightarrow \iexp{bool} \app M$ that evaluates to true if the first element is less than the second element.
+    The Hoare-triple $\{A \app a \app ai \ast A \app b \app bi\}(\iexp{alt} \app ai \app bi)\{\lambda r. \uparrow(r = (a<b))\}$ must hold.
+  \item A refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ can instantiate $\iexp{hashable\_assn}$ if there exists a function $\iexp{ahash} \dbcolon \tv{b} \rightarrow 64 \app \iexp{word} \app M$.
+    There are no requirements for the given hash function.
+\end{itemize}
+
+With these definitions, deep free, deep copy or a lexicographic order on lists, can be implemented generically, using $\iexp{afree}$, $\iexp{acopy}$, $\iexp{aeq}$ and $\iexp{alt}$ for element-wise freeing, copying or comparisons.
+In particular, if some datatype $\tv{a}$ supports freeing and copying (i.e. it instantiates $\iexp{freeable\_assn}$ and $\iexp{copyable\_assn}$), then a list of elements of type $\tv{a}$ can itself also supports freeing and copying.
+This allows nested data structures to be usable with only little setup.
+
+\subsection{Linked Lists with Tail Pointers}\label{sec:lists-with-tail-pointers}
+
+\subsubsection{A Refinement Assertion for Lists}
+
+To represent lists in LLVM, I reuse existing definitions from Isabelle-LLVM \footnote{In particular from the theory $\iexp{Isabelle\_LLVM.LLVM\_DS\_Open\_List}$} with some modifications.
+Lists are implemented as a chain of nodes, where a node carries a value and a pointer to the next node:
+$$
+  \tv{a} \app \iexp{node} = \iexp{Node} \app (\iexp{val} \dbcolon \tv{a}) \app (\iexp{next} \dbcolon \tv{a} \app \iexp{node} \app \iexp{ptr})
+$$
+A list in LLVM is a pointer to a node, i.e., a value of type $\tv{b} \app \iexp{node} \app \iexp{ptr}$.
+The empty list is represented by a null pointer.
+A node with $\iexp{node}.\iexp{next} = \iexp{null}$ denotes the end of a list.
+
+In the following, assume that $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ is a refinement assertion.
+Note that, $\tv{a}$ is a high-level type that is not directly representable in LLVM, while $\tv{b}$ is representable in LLVM.
+To refine lists of type $\ls{\tv{a}}$ a refinement assertion of type $\ls{\tv{a}} \rightarrow \tv{b} \app \iexp{node} \app \iexp{ptr} \rightarrow \iexp{assn}$ is required.
+In order to obtain such a refinement assertion, some preliminary definitions are required.
+
+Firstly, a notion of element-wise refinement is given by an assertion $\iexp{list\_aux} \dbcolon (\tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}) \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{b} \app \iexp{list} \rightarrow \iexp{assn}$
+\footnote{$\iexp{list\_aux}$ mirrors $\iexp{list\_assn}$, which is defined in $\iexp{Isabelle\_LLVM.Proto\_EOArray}$.}:
+\begin{align*}
+  \iexp{list\_aux} \app A \app xs \app xsi =  &(\iexp{length} \app xs = \iexp{length} \app xsi) \\
+                                                  &\ast (\forall i.\ 0 \le i < \iexp{length} \app xs \Rightarrow A \app (xs[i]) \app (xsi[i]))
+\end{align*}
+$xs[i]$ denotes the $i$-th element of list $xs$.
+$\iexp{list\_aux}$ can be seen as the characteristic function of a relation between lists $xs \dbcolon \ls{\tv{a}}$ of abstract elements and lists $xsi \dbcolon \ls{\tv{b}}$ of concrete elements where for each position, the refinement assertion $A$ holds for the respective abstract and concrete element.
+Note that $\ls{\tv{b}}$ is not representable in LLVM and will not be recognized by the code generator.
+
+Secondly, a function $\iexp{lseg} \dbcolon \ls{\tv{b}} \rightarrow \tv{b} \app \iexp{node} \app \iexp{ptr} \rightarrow \tv{b} \app \iexp{node} \app \iexp{ptr} \rightarrow \iexp{bool}$ relates lists of type $\tv{b}$ to segments of lists in LLVM, where the first $\tv{b} \app \iexp{node} \app \iexp{ptr}$ is a pointer to the start of the segment and the second $\tv{b} \app \iexp{node} \app \iexp{ptr}$ is a pointer to the end of the segment.
+$\iexp{lseg}$ is recursively defined as
+\footnote{The actual $\iexp{lseg}$ is defined in $\iexp{Isabelle\_LLVM.LLVM\_DS\_List\_Seg}$.}
+\begin{align*}
+  \iexp{lseg} \app xs \app p \app s =
+  \begin{cases}
+    p = s & \text{, if $xs = []$} \\
+    \iexp{False} & \text{, if $xs \neq []$ and $p=\iexp{null}$} \\
+    \exists q. p \mapsto (\iexp{Node} \app x \app q) \ast \iexp{lseg} \app \iexp{xs} \app q \app s &\text{, otherwise}
+  \end{cases}
+\end{align*}
+\begin{itemize}
+\item If the given list is empty, then both pointers are equal.
+\item If the given list is not empty, then $p$ must not be $\iexp{null}$.
+\item If the list is not empty, then $p$ is a pointer to $\iexp{Node} \app x \app q$, where $x$ is the value held by the node and $q$ is the pointer to the next node.
+      Also, for the tail of the list it must hold that $\iexp{lseg} \app \iexp{xs} \app q \app s$.
+\end{itemize}
+
+Using $\iexp{list\_aux}$ and $\iexp{lseg}$, a refinement assertion for lists, parameterized by $A$, can be defined by
+\begin{align*}
+  \iexp{ls\_assn} \app A \iexp{xs} \iexp{p} = \exists \iexp{xsi}.\ \iexp{lseg} \app \iexp{xsi} \app p \app \iexp{null} \ast \iexp{list\_aux} \app A \app \iexp{xs} \app \iexp{xsi}
+\end{align*}
+which means that $p \dbcolon \tv{b} \app \iexp{node} \app \iexp{ptr}$ refines $a \dbcolon \ls{\tv{a}}$ if there exists a list $\iexp{xsi} \dbcolon \ls{\tv{b}}$ such that $\iexp{lseg} \app b \app p \app \iexp{null}$, i.e., $p$ is the start pointer of a list segment related to $\iexp{xsi}$, terminated by the $\iexp{null}$ pointer, and $\iexp{xsi}$ and $\iexp{xs}$ are related element-wise as specified by $\iexp{ls\_aux}$.
+
+\subsubsection{Non-destructive List Access using \iexp{foldl}}\label{sec:non-destructive-list-access-using-fold}
+
+\refsec{sec:ownership-in-isabelle-llvm} describes a particular challenge when working with lists in LLVM that was not present with the old Imperative-HOL backend:
+A function that destructures a list, which is commonly the case in typical recursive walks over lists, necessarily destroys it.
+
+As an example, consider the following recursive function for summing up the elements of a list:
+\isabellecodeextern[linerange=45-47,label=algo:llvm-sum,caption={
+  Recursive summation over a list, destroying the list in the process.
+}]{isabelle-code/Lists.thy}
+
+\inlinecode{sum} destroys the given list.
+If it did not, there would simultaneously exist two pointers into the list, one owned by the caller of \inlinecode{sum}, one owned by \inlinecode{sum}, which is not forbidden in the separation calculus.
+Note that, in principle, \inlinecode{sum} does not modify the given list, as the contained elements (machine words, refining natural numbers) are pure in LLVM and can be cloned without destroying the original element.
+Pastèque employs multiple recursive functions working on lists, in particular for performing arithmetic operation on polynomials.
+When performing the arithmetic operations, the original polynomials must stay intact as they might be used again in further operations.
+
+A straight forward solution is to simply create a deep copy of a list and then call the function on the list copy.
+Assuming the contained elements support copying (c.f. \refsec{sec:interface-hierarchy-for-refinement-assertions}), a deep-copy operation $\iexp{ls\_copy} \dbcolon \tv{a} \app \iexp{ptr} \rightarrow \tv{a} \app \iexp{ptr} \app M$ can easily be implemented by a recursive walk on the list, copying each element into a new list \footnote{c.f. function $\iexp{cl\_copy}$ in theory $\iexp{IICF\_Copying\_List}$}.
+Note that if $A$ instantiates $\iexp{copyable\_assn}$, by use of $\iexp{ls\_copy}$, $\iexp{ls\_assn} \app A$ can in turn also instantiate $\iexp{copyable\_assn}$ meaning that nested lists can also be copied without further setup or code duplication.
+
+If the callee does not need to take ownership of a given list (i.e. it only reads from the list), creating a deep copy is wasteful.
+The presented \inlinecode{sum} function is an example of such a case: The original list is only read from, as the the contained machine words are pure and can be read from the list without having to move ownership out of the list.
+But, presented as is, \inlinecode{sum} uses the destructuring operations on lists which lead to destruction of the original list.
+To address this issue and provide an option to implement read-only operations on lists, I implement a refinement target for the HOL $\iexp{foldl}$ function.
+\isabellecodeextern[linerange=51-56,label=algo:llvm-fold,caption={
+  $\iexp{llM}$ level $\iexp{foldl}$ implementation.
+}]{isabelle-code/Lists.thy}
+A simplified version is given in \refalgo{algo:llvm-fold} \footnote{the actual function $\iexp{cl\_fold}$ in defined in theory $\iexp{IICF\_Copying\_List}$}.
+On $\iexp{ll\_foldl}$, I prove a lemma
+\begin{gather*}
+  \{A \app a \app ai \app \ast B \app b \app bi\} \app
+  (fi \app ai \app bi) \app
+  \{\lambda r. A \app (f \app a \app b) \app r \app \ast B \app b \app bi\} \Rightarrow \\
+  \{A \app a \app ai \app \ast (\iexp{ls\_assn} \app B) \app bs \app bsi\} \\
+  (\iexp{ll\_foldl} \app fi \app ai \app bsi)\\
+  \{\lambda r. A \app (\iexp{foldl} \app f \app a \app bs) \app r \app \ast (\iexp{ls\_assn} B) \app bs \app bsi\}
+\end{gather*}
+The lemma can be read as follows: For two given refinement assertions $A \dbcolon \tv{a} \rightarrow \tv{ai} \rightarrow \iexp{assn}, B \dbcolon \tv{b} \rightarrow \tv{bi} \rightarrow{assn}$, if $fi \dbcolon \tv{ai} \rightarrow \tv{bi} \rightarrow \tv{bi} \app \iexp{llM}$ refines a function $f \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \tv{a}$ such that the second argument of type $\tv{bi}$ is kept intact, then $\iexp{ll\_foldl} \app fi \dbcolon \tv{ai} \rightarrow \tv{bi} \app \iexp{node} \iexp{ptr}$ refines $\iexp{foldl} \app f \dbcolon \tv{a} \rightarrow \tv{b} \app \iexp{list}$ such that the given list is kept intact.
+
+With this lemma, it is possible to define
+\isabellecodeextern[linerange=59-60,label=algo:sum-alt,caption={
+  Alternative, equivalent reformulation of \iexp{sum}, using \iexp{foldl}.
+}]{isabelle-code/Lists.thy}
+
+It is then straight forward to prove $\iexp{sum'} \equiv \iexp{sum}$ and also a Hoare-triple
+\begin{gather*}
+  \{(\iexp{ls\_assn} \app \iexp{si\_assn}) \app xs \app xsi \app \ast \uparrow((\iexp{sum'} \app (+) \app 0 \app xs) \le 127 \land -128 \le (\iexp{sum'} \app (+) \app 0 \app xs))\} \\
+  (\iexp{ll\_foldl} \app \iexp{add} \app \iexp{0x0} \app xsi) \\
+  \{\lambda r. \iexp{si\_assn} \app (\iexp{sum'} \app (+) \app 0 \app xs) \app r \app \ast (\iexp{ls\_assn} \app \iexp{si\_assn}) \app xs \app xsi\}
+\end{gather*}
+Where $\iexp{add}$ is a refinement of the HOL addition $+$, which can easily be refined non-destructively.
+
+% THIS PART IS FOR AN INTERLEAVING FOLD IF WE EVER GET THAT.
+% As an example, consider the following implementation of the merge step in a classic merge sort algorithm:
+% $$
+%   \iexp{merge} \dbcolon \ls{\iexp{nat}} \rightarrow \ls{\iexp{nat}} \rightarrow \ls{\iexp{nat}}
+% $$
+% where
+% \begin{alignat*}{6}
+%   &\iexp{merge} &\app &[]                         &\app &q            &\app &= [] \\
+%   &\iexp{merge} &\app &p                          &\app &[]           &\app &= p \\
+%   &\iexp{merge} &\app &(p \mathbin{\#} ps) &\app &(q \mathbin{\#} qs) &\app &= \begin{cases} p \mathbin{\#} \iexp{merge} \app ps \app (q \mathbin{\#} qs) & \text{if } p \le q \\ q \mathbin{\#} \iexp{merge} \app (p \mathbin{\#} ps) \app qs & \text{otherwise} \end{cases}
+% \end{alignat*}
+% For the merge function, it is possible to prove the Hoare-triple
+% \begin{gather*}
+%  \{\iexp{ls\_assn} \app xs \app xsi \ast \iexp{ls\_assn} \app ys \app ysi \ast (\iexp{sorted} \app xs \land \iexp{sorted} \app ys)\} \\
+% (\iexp{merge} \app xsi \app ysi) \\
+% \{\lambda r. \exists zs. \iexp{mset} \app zs = \iexp{mset} \app xs \cup \iexp{mset} \app ys \land \iexp{sorted} \app zs \land \iexp{ls\_assn} zs r\}
+% \end{gather*}
+% Where $\iexp{sorted} \dbcolon \tv{a} \app \iexp{list} \rightarrow \iexp{bool}$ evaluates to $\iexp{True}$ if the given list is sorted and $\iexp{mset} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{mset}$ is the multiset of all elements of a given list.
+% Note that the original lists $xs$ and $ys$ are destroyed after the execution of $\iexp{merge}$, proving a hoare triple where $xs$ and $ys$ are kept intactk
+
+\subsubsection{A Generic Merge Sort Implementation for Lists}\label{sec:generic-merge-sort-for-lists}
+
+As a preprocessing step, Pastèque sorts variables of a term and the terms of a polynomial by an lexicographic order.
+The existing merge sort implementation, used in Pastèque splits up the lists, using $\iexp{drop}$ and $\iexp{take}$ functions, which are not implemented for $\iexp{ls\_assn}$.
+I therefore implement a generic merge sort algorithm that is designed to work well with $\iexp{ls\_assn}$.
+
+For this subsection, I assume that a refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ instantiates $\iexp{linord\_assn}$.
+In particular, I assume a function $(<) \dbcolon \tv{a} \rightarrow \tv{a} \rightarrow \iexp{bool}$ is defined with a corresponding refinement target $\iexp{alt} \dbcolon \tv{b} \rightarrow \tv{b} \rightarrow \iexp{bool} \app \iexp{llM}$.
+On $(<)$, I assume transitivity and totality.
+
+As a first step, the list is split into singleton lists by a function $\iexp{explode} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list} \app \iexp{list}$ with $\iexp{explode} = \iexp{map} \app (\lambda x. \app [x])$.
+$\iexp{explode}$ is refined by a while-based implementation in $\iexp{nres}$.
+
+\subsection{Partial Maps}
+
+One input of the PAC format is a list of polynomials in the ideal, each of which is assigned a number, which I will refer to as the polynomials index. 
+On HOL-level, this list of polynomials is modeled by a partial map of type $\iexp{nat} \rightharpoonup \iexp{polynomial}$ (cf. \refsec{sec:methodology_high-level-representation-of-polynomials} for the definition of polynomials).
+A proof step may then reference polynomials for use in arithmetic operations and may add new polynomials to the map.
+Adding a new polynomial with an existing index is treated as overwriting the existing polynomial.
+
+The high-level datatype indicates three requirements for it's low-level refinement target:
+\begin{enumerate}
+  \item The map must be able to hold impure values, while indices can be refined by 64-bit machine words. Note that this adds the constraint that the number of stored polynomials must not exceed the largest representable index of $2^{63}-1$ (indices use signed integers), which was not the case with the old Standard-ML backend, which supports arbitrarily large indices.
+  \item Lookup and update should have $\mathcal{O}(1)$ time complexity.
+  \item The map must be able to represent empty slots, i.e. it might be that Pastèque references an index at which no polynomial is stored.
+        This would result in a runtime error, but the state where a slot is inhabited must still be representable.
+        More concretely, the cells in the map must refine Isabelle/HOL's option type.
+\end{enumerate}
+For the lookup operation, there are two options to chose from:
+Retrieving an element could either transfer ownership of the element to the caller, leaving the slot empty, or the contained element can be copied out of the list.
+I chose the latter by requiring contained elements to instantiate $\iexp{copyable\_assn}$.
+
+The linked lists in \refsec{sec:lists-with-tail-pointers} directly refine Isabelle/HOL's list type.
+For the partial maps, the high-level type to refine is $\iexp{nat} \rightarrow \tv{a} \app \iexp{option}$.
+I choose a two-step refinement approach here; I first implement $\iexp{nat} \rightarrow \tv{a} \app \iexp{option}$ by $\tv{a} \app \iexp{option} \app \iexp{list}$ purely on HOL level, then I define a concrete LLVM-level refinement of $\tv{a} \app \iexp{option} \app \iexp{list}$.
+
+\subsubsection{High-Level Refinement of Partial Map by List of Optionals}\label{sec:partial-map-by-list-of-optionals}
+
+The relation between a partial map $\iexp{nat} \rightarrow \tv{a}$ and a list of optionals $\tv{a} \app \iexp{option} \app \iexp{list}$ is given by an abstraction function $\iexp{opt\_list\_}\alpha \dbcolon \tv{a} \app \iexp{option} \app \iexp{list} \rightarrow \iexp{nat} \rightarrow \tv{a}$ where
+\begin{gather*}
+  \iexp{opt\_list\_}\alpha \app ol = \lambda \app n.
+  \begin{cases}
+    ol[n] & \text{, if $n < \iexp{length} \app ol$}\\
+    \iexp{None} & \text{, otherwise}
+  \end{cases}
+\end{gather*}
+Such that $\iexp{opt\_list\_}\alpha$ yields a partial map for a given list of optionals.
+
+I implement all required operations from Isabelle-LLVM's map interface\footnote{cf. theory $\iexp{Isabelle\_LLVM.IICF\_Map}$.} on lists of optionals. 
+I discuss lookup and update here, the other functions are implemented in a similar manner\footnote{cf. theory $\iexp{IICF\_PartialMap}$.}
+\begin{itemize}
+  \item The lookup function, $\iexp{opt\_list\_lookup} \dbcolon \iexp{nat} \rightarrow \tv{a} \app \iexp{option} \app \iexp{list}$ for a given key $k$ and a list of optionals $m$ is implemented by
+  \begin{gather*}
+    \iexp{opt\_list\_lookup} \app k \app ol =
+    \begin{cases}
+      ol[k] &\text{, if $k < \iexp{length} ol$} \\
+      \iexp{None} &\text{, otherwise}
+    \end{cases}
+  \end{gather*}
+  In the next section, the list is eventually refined by an array, so $m[k]$ has $\mathcal{O}(1)$ runtime.
+  \item The update function, $\iexp{opt\_list\_update} \dbcolon \iexp{nat} \rightarrow \tv{a} \rightarrow \tv{a} \app \iexp{option} \app \iexp{list}$, for given key $k$, value $v$ and list $m$ of optionals is implemented by 
+  \begin{gather*}
+    \iexp{opt\_list\_update} \app k \app v \app ol = (ol \app \iexp{@} \app \iexp{None}^{(k + 1 - \iexp{length} \app m)})[k:=v]
+  \end{gather*}
+  Where $\iexp{@}$ concatenates two lists, $\iexp{None}^x$ denotes the list $[\iexp{None},\dots,\iexp{None}]$ containing $\iexp{None}$ $x$ times, and $l[i:=x]$ denotes list $l$ with the element at position $i$ being updated to $x$.\\
+  This implementation introduces some further requirements for the low-level implementation: The array must be growable, and newly allocated slots must be initialized with (the refinement target of) $\iexp{None}$.
+\end{itemize}
+
+For each implemented operation I then prove correctness.
+For $\iexp{opt\_list\_lookup}$, correctness is proved by a lemma\footnote{The actual lemmas in theory $\iexp{IICF\_PartialMap}$ are given in "fref" notation with operations lifted into $\iexp{nres}$. For the thesis, I use a simplified formulation which implies the fref notation.}
+\begin{gather*}
+  m = \iexp{ol\_list\_}\alpha \app ol \Rightarrow 
+  \iexp{ol\_list\_lookup} \app k \app ol = m \app k
+\end{gather*}
+For $\iexp{ol\_list\_update}$, correctness is given by
+\begin{gather*}
+  m = \iexp{ol\_list\_}\alpha \app ol \Rightarrow 
+  \iexp{ol\_list\_}\alpha \app (\iexp{opt\_list\_update} \app k \app v \app ol) = m(k\mapsto v)
+\end{gather*}
+Where $m(k \mapsto v)$ is map $m$ with $k$ mapped to $v$.
+
+\subsubsection{Low-Level Refinement of Lists of Optionals}\label{sec:low-level-refinement-of-lists-of-optionals}
+
+The lists of optionals from \refsec{sec:partial-map-by-list-of-optionals} need a concrete refinement target in $\iexp{llM}$.
+Isabelle-LLVM defines a refinement target for optionals through the locale $\iexp{dflt\_option\_private}$\footnote{defined in theory $\iexp{Isabelle\_LLVM.Sepref\_HOL\_Bindings}$.}, which requires the contained elements to provide check for whether they are initialized.
+A type's default value $\iexp{dflt}$ represents uninitialized values.
+When allocating an array for instance, all slots have value $\iexp{dflt}$ initially\footnote{cf. lemma $\iexp{narray\_new\_rule\_snat}$ in theory $\iexp{Isabelle\_LLVM.LLVM\_DS\_NArray}$.}.
+To refine optionals, a refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ has to provide a function $\iexp{is\_dflt} \dbcolon \tv{b} \rightarrow \iexp{bool} \app \iexp{llM}$.
+With $\iexp{is\_dflt}$, $A$ can instantiate $\iexp{dflt\_option\_private}$, and obtain $A\iexp{.option\_assn} \dbcolon \tv{a} \app \iexp{option} \rightarrow \tv{b} \rightarrow \iexp{assn}$ which is a refinement assertion for optionals of type $\tv{a} \app \iexp{option}$.
+
+For pointers in particular, it holds that $\iexp{dflt} = \iexp{null}$ and it is possible to check if a pointer $p$ is $\iexp{null}$ using Isabelle-LLVM's $\iexp{ll\_ptrcmp\_eq}$\footnote{Defined in theory $\iexp{Isabelle\_LLVM.LLVM\_Shallow}$.}.
+I therefore define a refinement assertion $\iexp{box\_assn} \dbcolon (\tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}) \rightarrow \tv{a} \rightarrow \tv{b} \app \iexp{ptr} \rightarrow \iexp{assn}$ that simply wraps arbitrary data types in a pointer by 
+\begin{gather*}
+  \iexp{box\_assn} \app A = \lambda a \app p. \app \exists ai. \app A \app a \app ai \app \ast p\mapsto ai
+\end{gather*}
+Where $A \dbcolon \tv{a} \rightarrow \tv{b}$ is an existing refinement assertion.
+It is then straight forward to use $\iexp{box\_assn}$ as a generic implementation for optionals, where for $a \dbcolon \tv{a}$, $\iexp{Some} \app a$ with $A \app a \app ai$, is refined by a pointer $p \dbcolon \tv{b} \app \iexp{ptr}$ with $p \mapsto ai$ and $\iexp{None}$ is refined by the null pointer.
+$\iexp{box\_assn} \app A$ can then be used to instantiate $\iexp{dflt\_option\_private}$ even if the refinement assertion $A$ itself does not define an $\iexp{is\_dflt}$ check.
+For the remainder of this subsection, I assume $A \dbcolon \tv{a} \rightarrow \tv{b}$ to be a refinement assertion that instantiates $\iexp{dflt\_option\_private}$ (which in the Pastèque implementation is always achieved through the $\iexp{box\_assn}$ wrapper).
+
+I refine the outer list of the high level $\tv{a} \app \iexp{option} \app \iexp{list}$ using a variation of Isabelle-LLVM's $\iexp{arl\_assn}$\footnote{Defined in theory $\iexp{Isabelle\_LLVM.LLVM\_DS\_Array\_List}$.}.
+$\iexp{arl\_assn}$ refines lists by arrays and stores the array's length and capacity (which might be greater than the length).
+The variation of $\iexp{arl\_assn}$ I use is defined by $\iexp{iarl\_assn} \dbcolon \tv{a} \app \iexp{list} \rightarrow (64 \app \iexp{word} \app \times \app 64 \app \iexp{word} \app \times \app \tv{a} \app \iexp{ptr}) \rightarrow \iexp{assn}$ as follows:\footnote{The notation given here is slightly simplified, the actual assertion is defined in theory $\iexp{IICF\_PartialMap}$.}
+\begin{align*}
+  \iexp{iarl\_assn} &\app xs \app (li,ci,ai) = \\
+    \exists c \app xs'. &\iexp{sn64\_assn} \app (\iexp{length} \app xs) \app li \\
+    &\ast \app \iexp{sn64\_assn} \app c \app ci \\
+    &\ast \app \iexp{narray\_assn} \app xs' \app ai \\ 
+    &\ast \app \uparrow(\iexp{length} \app xs \leq c \land c = \iexp{length} \app xs' \land xs' = xs \app \iexp{@} \app \iexp{init}^{(c - \iexp{length} \app xs)})
+\end{align*}
+Where $\iexp{narray\_assn} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{ptr} \rightarrow \iexp{assn}$ is Isabelle-LLVM's existing refinement assertion for refining lists by arrays and $\iexp{sn64\_assn} \dbcolon \iexp{nat} \rightarrow 64 \app \iexp{word} \rightarrow \iexp{assn}$ is another existing refinement assertions for refinement of natural numbers by 64-bit machine words (which are interpreted as signed numbers).
+$li \dbcolon 64 \app \iexp{word}$ is the array's length, $ci \dbcolon 64 \app \iexp{word}$ is the allocated capacity and $ai \dbcolon \tv{a} \app \iexp{ptr}$ is a pointer to the actual array.
+Note that $xs' \dbcolon \tv{a} \app \iexp{list}$ is an auxiliary list that allows reasoning about the allocated space exceeding the array's length.
+
+There are only two differences, compared to the original $\iexp{arl\_assn}$; firstly, the width of length and capacity is fixed to 64 bits.
+This makes proofs simpler but makes the implementation less generic, compared to the original $\iexp{arl\_assn}$ for which the bit-width is generic (with a lower bound of 5).
+Secondly, $\iexp{iarl\_assn}$ also asserts that the allocated cells beyond the current length are initialized with $\iexp{init}$.
+This is always the case for allocated arrays, but $\iexp{arl\_assn}$ does not carry this information.
+For the purpose of carrying the option type, given by $\iexp{box\_assn}$, it is required that newly allocated space explicitly has value $\iexp{init}$, which would be impossible to prove (despite being true) if $\iexp{arl\_assn}$ was used.
+As $\iexp{iarl\_assn}$ only extends $\iexp{arl\_assn}$ by information required for proofs, but otherwise uses the same underlying representation, operations already defined on $\iexp{arl\_assn}$ (in particular accessing or updating elements and initializing or resizing the array) can be reused and corresponding correctness proofs carry over to $\iexp{iarl\_assn}$ easily.
+
+To finally obtain a refinement target for lists of optionals, I define $\iexp{pmap\_assn} \dbcolon \tv{a} \app \iexp{option} \app \iexp{list} \rightarrow (64 \app \iexp{word} \app \times \app 64 \app \iexp{word} \app \times \app \tv{b} \app \iexp{ptr}) \rightarrow \iexp{assn}$ as follows
+\begin{gather*}
+  \iexp{pmap\_assn} = \lambda xs \app p. \app \exists xsi. \app \iexp{iarl\_assn} \app xsi \app p \app \ast \app (\iexp{list\_aux} \app A\iexp{.option\_assn}) \app xs \app xsi
+\end{gather*}
+Using the auxiliary $\iexp{list\_aux}$ assertion as defined in \refsec{sec:lists-with-tail-pointers}.
+
+All operations from the high-level list of optionals implementation are then implemented on $\iexp{llM}$ level.
+\isabellecodeextern[linerange=346-358,label=algo:pmap_update-implementation,caption={
+  Implementation of the update function on partial maps at $\iexp{llM}$ level (actual Isabelle source code).
+}]{isabelle/IsaFoL-Pasteque-LLVM/PAC_Checker_LLVM/IICF_PartialMap.thy}
+As an example, the update function is implemented as shown in \refalgo{algo:pmap_update-implementation}:
+$\iexp{ll\_icmp\_ult} \app \iexp{ki} \app \iexp{l}$ returns the 1-bit machine word $\iexp{0x1}$ (which corresponds to $\iexp{True}$) if the given key $\iexp{ki}$ is less than the length $\iexp{l}$ of the array.
+If the given key is allocated already, the previous element at position $\iexp{ki}$ is freed and the new given value is inserted.
+If the given key is not yet allocated, the array is grown if needed before the given element is inserted.
+Note that $\iexp{arl\_len}$, $\iexp{arl\_nth}$ and $\iexp{arl\_upd}$ are existing functions from Isabelle-LLVM's $\iexp{arl\_assn}$ implementation.
+
+I then prove a Hoare-triple
+\begin{gather*}
+  \{\iexp{sn64\_assn} \app k \app ki \app \ast \app A \app a \app ai \app \iexp{pmap\_assn} \app xs \app ai \app \ast \app \uparrow(k + 1 < 2^{63}-1)\} \\
+  (\iexp{pmap\_update} \app ki \app vi \app ai)\\
+  \{\lambda r. \app \iexp{pmap\_assn} \app (\iexp{opt\_list\_update} \app k \app v \app xs) \app r\}
+\end{gather*}
+The triple can be read as follows:
+If $ki \dbcolon 64 \app \iexp{word}$ refines a key $k \dbcolon \iexp{nat}$, which fits into a signed 64-bit integer, $ai \dbcolon \tv{b}$ refines $a \dbcolon \tv{a}$ (as specified by refinement assertion $A$) and $ai \dbcolon 64 \app \iexp{word} \times 64 \app \iexp{word} \times \tv{b} \app \iexp{ptr}$ (which is an $\iexp{llM}$ level array) refines $xs \dbcolon \tv{a} \app \iexp{option} \app \iexp{list}$ (as specified by $\iexp{pmap\_assn}$), then, after executing $\iexp{pmap\_update} \app ki \app vi \app ai$, the result refines the result of the high-level implementation $\iexp{opt\_list\_update} \app k \app v \app xs$.
+Note that the array takes ownership of the given value, so if the caller wants to keep the value, they must first copy it.
+
+Through this Hoare-triple and the correctness proof of $\iexp{opt\_list\_update}$ in \refsec{sec:partial-map-by-list-of-optionals}, I define a refinement chain $\iexp{pmap\_update} \rightsquigarrow \iexp{opt\_list\_update} \rightsquigarrow (\lambda k \app v \app m. \app m(k\mapsto v))$ which is the picked up by sepref for each map update operation in the high-level Pastèque implementation.
+
+Other operations on the maps are implemented in a similar manner and also have a corresponding Hoare-triple for proving refinement of the higher-level list of optionals implementation.
+For the lookup function, I choose to require $A$ to instantiate $\iexp{copyable\_assn}$ such that retrieved elements are copied out of the array while the array keeps ownership of the original elements.
+For Pastèque, I consider this to be a reasonable choice as a stored polynomial might be retrieved multiple times.
+In other applications, it might be more desirable to move ownership out of the array and overwrite it's position by $\iexp{init}$ instead, avoiding the potentially costly copy operation.
