@@ -58,7 +58,9 @@ Throughout this thesis, I assume familiarity with simply typed higher-order logi
   \item $\lambda$ denotes anonymous functions, e.g. $\lambda \app a \app b. f \app a \app b$ is an anonymous function that applies the named function $f$ to arguments $a$,$b$.
   \item For types $\tv{a}$ and $\tv{b}$, $\tv{a} \times \tv{b}$ denotes the product type of tuples $(a \dbcolon \tv{a}, b \dbcolon \tv{b})$.
   \item For a type $\tv{a}$, $\ls{\tv{a}}$ denotes the type of lists with elements of type $\tv{a}$.
-        A concrete list is denoted by $[x,y,z]$.
+        A concrete list is denoted by $[x,y,z]$.\\
+        The infix operator $\iexp{\#} \dbcolon \tv{a} \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$ is used for prepending element $x \dbcolon \tv{a}$ to a list $xs \dbcolon \tv{a} \app \iexp{list}$, denoted by $x \iexp{\#} xs$.\\
+        The infix operator $\iexp{@} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$ concatenates two lists, denoted by $xs \iexp{@} ys$ for two lists $xs \dbcolon \tv{a} \app \iexp{list}$ and $ys \dbcolon \tv{a} \app \iexp{list}$.
   \item For a type $\tv{a}$, $\set{\tv{a}}$ denotes the type of sets with elements of type $\tv{a}$.
         A concrete set is denoted by $\{x,y,z\}$.
   \item For a type $\tv{a}$, $\tv{a} \app \iexp{multiset}$ denotes the type of multisets with elements of type $\tv{a}$.
@@ -74,6 +76,8 @@ Throughout this thesis, I assume familiarity with simply typed higher-order logi
     \item Type $\iexp{int}$ of integers (unbounded),
     \item Type $w \app \iexp{word}$ of machine words with bit-width $w$,
     \item Unit type $\iexp{unit}$ with the only value $\iexp{()}$.
+    \item Type $\iexp{char}$ of characters, where a character is defined by eight booleans, modeling a byte.
+    \item Type $\iexp{string} = \iexp{char} \app \iexp{list}$.
   \end{itemize}
 \end{itemize}
 
@@ -240,7 +244,7 @@ $$
 that defines refinement of abstract lists of type $\ls{\tv{a}}$ by an imaginary concrete list implementation $\tv{b} \app \iexp{llvm\_list}$.
 Then, the following Hoare-triple could, in principle, be provable with the Imperative-HOL backend:
 \begin{gather*}
-  \{(\iexp{ls\_assn} \app A) \app xs \app xsi \ast \uparrow(xs \neq [])\} \\
+  \{(\iexp{ls\_assn} \app A) \app xs \app xsi \ast \uparrow(xs \neq [ \app ])\} \\
   (\iexp{tl\_impl} \app xsi) \\
   \{\lambda \app r.\, (\iexp{ls\_assn} \app A) \app (\iexp{tl} \app xs) \app r \ast (\iexp{ls\_assn} \app A) \app xs \app xsi\}
 \end{gather*}
@@ -255,7 +259,7 @@ The underlying separation logic requires that there can only be a single referen
 The Hoare-triple above violates this requirement, as both $r$ and $xsi$ would now reference the same list.
 If we weaken the the postcondition, the statement becomes provable in Isabelle-LLVM:
 \begin{gather*}
-  \{(\iexp{ls\_assn} \app A) \app xs \app xsi \ast \uparrow(xs \neq [])\} \\
+  \{(\iexp{ls\_assn} \app A) \app xs \app xsi \ast \uparrow(xs \neq [ \app ])\} \\
   (\iexp{tl\_impl} \app xsi) \\
   \{\lambda \app r.\, (\iexp{ls\_assn} \app A) \app (\iexp{tl} \app xs) \app r\}
 \end{gather*}

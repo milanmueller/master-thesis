@@ -67,8 +67,8 @@ $\iexp{lseg}$ is recursively defined as
 \begin{align*}
   \iexp{lseg} \app xs \app p \app s =
   \begin{cases}
-    p = s & \text{, if $xs = []$} \\
-    \iexp{False} & \text{, if $xs \neq []$ and $p=\iexp{null}$} \\
+    p = s & \text{, if $xs = [ \app ]$} \\
+    \iexp{False} & \text{, if $xs \neq [ \app ]$ and $p=\iexp{null}$} \\
     \exists q. p \mapsto (\iexp{Node} \app x \app q) \ast \iexp{lseg} \app \iexp{xs} \app q \app s &\text{, otherwise}
   \end{cases}
 \end{align*}

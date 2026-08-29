@@ -93,7 +93,7 @@
                 clang-tools
                 clang
                 ripgrep
-                gemini-cli
+                python3
                 (pkgs.writeShellScriptBin "emacs" ''
                   export EMACSDIR="''${USER_HOME:-.}/.emacs/doom"
                   export DOOMDIR="''${USER_HOME:-.}/.emacs/user"

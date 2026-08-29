@@ -1,5 +1,187 @@
-\section{\iflanguage{english}{Multiple Precision Integers}{Ganzzahlen beliebiger Genauigkeit}}\label{sec:multiple-precision-integers}
+\section{Multiple Precision Integers}\label{sec:multiple-precision-integers}
 
-\todo{Introduce multiple precision arithmetic, the representation of numbers used by Spinei's library, and why GMP was not used.}
+This section introduces the native Isabelle-LLVM library by Spinei and Lammich \todo{citation}.
+It then describes the additions I have made to use the library for Pastèque.
 
 \subsection{Native Arbitrary Precision Integers for Isabelle-LLVM}\label{sec:native-arbitrary-precision-integers-for-isabelle-llvm}
+
+The native precision integer library models natural numbers by lists of 64-bit machine words.
+It defines an abstraction function $\iexp{big\_int\_}\alpha \dbcolon 64 \app \iexp{word} \rightarrow \iexp{nat}$, recursively defined as
+\begin{gather*}
+	\iexp{big\_int\_}\alpha \app xs =
+	\begin{cases}
+		0 &\text{, if $xs=[ \app ]$} \\
+		\iexp{unat} \app x + 2^{64} \cdot (\iexp{big\_int\_}\alpha \app xs') &\text{, if $xs = (x \iexp{\#} xs')$}
+	\end{cases}
+\end{gather*}
+where $\iexp{unat} \dbcolon \tv{l} \app \iexp{word} \rightarrow \iexp{nat}$ is the natural number encoded by an (unsigned) machine word of bit-width $\tv{l}$.
+
+The library also defines an invariant $\iexp{big\_int\_invar} \dbcolon 64 \app \iexp{word} \rightarrow \iexp{bool}$ with $\iexp{big\_int\_invar} \app xs = (xs = [ \app ] \lor \iexp{last} \app xs \neq 0)$, where $\iexp{last} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a}$ yields the last element of a list.
+In particular $\iexp{last} \app xs \neq 0$ implies that $xs$ is non empty.
+
+A relation $\iexp{big\_int\_rel} \dbcolon (64 \app \iexp{word}, \iexp{nat}) \app \iexp{set}$ is then defined such that $(ws,n) \in \iexp{big\_int\_rel} \Leftrightarrow n = \iexp{big\_int\_}\alpha \app ws \land \iexp{big\_int\_invar} \app ws$.
+Note that the invariant $\iexp{big\_int\_invar}$ forces a unique representation; the lists $[\iexp{0x0},\iexp{0x0},\iexp{0x0},\iexp{0x1}]$ and $[\iexp{0x1}]$ both evaluate to $1$ under $\iexp{big\_int\_}\alpha$, but only $[\iexp{0x1}]$ satisfies the invariant.
+Also, $[ \app ]$ is the unique representation of $0$.
+
+Spinei then implements addition, subtraction and multiplication operations for the 64-bit word lists, including correctness proofs of the form
+\begin{gather*}
+	(xs,n) \in \iexp{big\_int\_rel} \land (ys,m) \in \iexp{big\_int\_rel} \\
+	\Rightarrow (\iexp{big\_int\_add} \app xs \app ys, n + m) \in \iexp{big\_int\_rel}
+\end{gather*}
+where $\iexp{big\_int\_rel} \dbcolon 64 \app \iexp{word} \app \iexp{list} \rightarrow 64 \app \iexp{word} \app \iexp{list} \rightarrow 64 \app \iexp{word} \app \iexp{list}$ is the addition implementation.
+The other operations have analogous correctness proofs.
+The library contains a work-in-progress implementation of Karatsuba multiplication and a completed school book multiplication.
+For Pastèque, I use the school book multiplication.
+
+Eventually, the $64 \app \iexp{word} \app \iexp{lists}$s are refined by arrays, to obtain a complete refinement chain down to $\iexp{llM}$ level.
+This introduces an upper bound on the length of the arrays, as the length of arrays are stored in a 64-bit integer.
+In addition and multiplication operations, this bound can potentially be exceeded.
+Ideally, a dynamic runtime check would abort the program at runtime, if the upper bound is exceeded.
+At the time of writing this thesis, this is not supported in Isabelle-LLVM, but it is planned to add this feature to Isabelle-LLVM.
+To still obtain a usable multiple precision integer implementation without a dynamic overflow check, the library assumes that operations do not overflow using Isabelles \inlinecode{sorry}.
+This is the only position in the library, and in the LLVM port of Pastèque, where \inlinecode{sorry} is used.
+
+\subsection{Signed Arbitrary Precision Integers}\label{sec:signed-arbitrary-precision-integers}
+
+Spineis library refines natural numbers by lists of 64-bit machine words.
+Pastèque uses (signed) multiple precision integers for polynomials coefficients, meaning a unbounded refinement target for Isabelles $\iexp{int}$ type is required.
+I therefore extend the library by representing signed integers by tuples of type $(64 \app \iexp{word} \app \iexp{list}, \iexp{bool})$, where the list represents the numbers absolute value and the boolean represents the sign.
+Analogous to the library, I define an abstraction function $\iexp{signed\_big\_int\_}\alpha \dbcolon (64 \app \iexp{word} \app \iexp{list}, \iexp{bool}) \rightarrow int$ as
+\begin{gather*}
+\iexp{signed\_big\_int\_}\alpha (ws,\sigma) =
+    \begin{cases}
+		- \iexp{int} \app (\iexp{big\_int\_}\alpha \app ws) &\text{, if $\sigma$} \\
+		\iexp{int} \app (\iexp{big\_int\_}\alpha \app ws) &\text{, otherwise}
+	\end{cases}
+\end{gather*}
+where $\iexp{int}$ converts $\iexp{nat}$ to $\iexp{int}$.
+I also define an invariant $\iexp{signed\_big\_int\_invar} \dbcolon (64 \app \iexp{word} \app \iexp{list}, \iexp{bool}) \rightarrow \iexp{bool}$ as
+\begin{gather*}
+	\iexp{signed\_big\_int\_invar} \app (ws,\sigma) = \iexp{big\_int\_invar} \app ws \land (ws=[ \app ] \Rightarrow \lnot \sigma)
+\end{gather*}
+which forces a unique representation of 0, since $\iexp{signed\_big\_int\_invar} \app ([ \app ],\iexp{False}) = \iexp{True}$, while $\iexp{signed\_big\_int\_invar} \app ([ \app ], \iexp{True}) = \iexp{False}$.
+I then define a relation $\iexp{signed\_big\_int\_rel} \dbcolon ((64 \app \iexp{word} \app \iexp{list}, \iexp{bool}), \iexp{int}) \app \iexp{set}$ with
+\begin{gather*}
+    ((ws,\sigma),i) \in \iexp{signed\_big\_int\_rel} \\
+	\Leftrightarrow i = \iexp{signed\_big\_int\_}\alpha (ws,\sigma) \land \iexp{signed\_big\_int\_invar} (ws,\sigma)
+\end{gather*}
+analogously to $\iexp{big\_int\_rel}$.
+
+Implementing arithmetic functions for addition and multiplication, which are the only operations needed for Pastèque, is straight forward by case analysis on the signs of two given input numbers.
+Addition of two inputs $(ws_1,\sigma_1), (ws_2,\sigma_2)$ is achieved by
+\begin{align*}
+	&\iexp{signed\_big\_int\_add} \app (ws_1,\sigma_1) \app (ws_2,\sigma_2) \\
+	& = \begin{cases}
+		(\iexp{big\_int\_add} \app ws_1 \app ws_2,\iexp{False}) &\text{, if $\lnot \sigma_1 \land \lnot \sigma_2$} \\
+		(\iexp{big\_int\_add} \app ws_1 \app ws_2,\iexp{True}) &\text{, if $\sigma_1 \land \sigma_2$} \\
+		(\iexp{big\_int\_sub} \app ws_1 \app ws_2,\sigma_1) &\text{, if $\sigma_1 \neq \sigma_2 \land$ \parbox[t]{7cm}{$(\iexp{length} \app ws_1 > \iexp{length} \app ws_2$\\$\lor \iexp{length} \app ws_1 = \iexp{length} \app ws_2 \land \iexp{last} \app ws_1 \geq \iexp{last} \app ws_2)$}} \\
+		(\iexp{big\_int\_sub} \app ws_2 \app ws_1,\sigma_2) &\text{, otherwise}
+	\end{cases}
+\end{align*}
+where $\iexp{big\_int\_sub}$ is the subtraction implementation from the library. 
+Multiplication is implemented by
+\begin{gather*}
+	\iexp{signed\_big\_int\_mult} \app (ws_1,\sigma_1) \app (ws_2,\sigma_2) = (\iexp{big\_int\_mult} \app ws_1 \app ws_2, \sigma_1 \iexp{XOR} \sigma_2)
+\end{gather*}
+where $\iexp{big\_int\_mult}$ is the multiplication implementation from the library.
+
+I then prove correctness analogously to the unsigned case; in case of addition for example, I prove 
+\begin{gather*}
+	((ws_1,\sigma_1),i_1) \in \iexp{big\_int\_rel} \land ((ws_2,\sigma_2),i_2) \in \iexp{signed\_big\_int\_rel} \\
+	\Rightarrow (\iexp{signed\_big\_int\_add} \app (ws_1,\sigma_1) \app (ws_2,\sigma_2), i_1 + i_2) \in \iexp{signed\_big\_int\_rel}
+\end{gather*}
+For multiplication I prove an analogous lemma.
+
+\subsection{Relating Integers and ASCII Encoded Strings}\label{sec:relating-integers-and-ascii-encoded-strings}
+
+For parsing input files, and for printing error messages, Pastèque requires conversion between arbitrary precision integers and ascii encoded strings. 
+I implement end-to-end verified conversion functions, using school book division for printing multiple precision integers.
+For the correctness proof, I define a relation between Isabelle/HOLs $\iexp{string}$ and $\iexp{int}$ times to define semantics of integers as ascii encoded strings.
+
+The digits $"0"-"9"$ have ascii codes $48-57$, I define conversion from Isabelle/HOLs $\iexp{char}$ type to $\iexp{nat}$ by a function
+\begin{gather*}
+	\iexp{char\_uval} \app c = (\iexp{of\_char} \app c) - 48
+\end{gather*}
+where $\iexp{of\_char} \dbcolon \iexp{char} \rightarrow \iexp{nat}$ converts a character to its ascii code.
+I also define an invariant $\iexp{is\_ascii\_char} \dbcolon \iexp{char} \rightarrow \iexp{bool}$ by
+\begin{gather*}
+	\iexp{is\_ascii\_char} \app c = 48 \leq (\iexp{of\_char} \app c) \land (\iexp{of\_char} \app c) \leq 57
+\end{gather*}
+A relation between ascii digits and natural numbers is then given by relation $\iexp{ascii\_char\_nat\_rel} \dbcolon (\iexp{char} \times \iexp{nat}) \app \iexp{set}$ where
+\begin{gather*}
+	(c,n) \in \iexp{ascii\_char\_nat\_rel} \Leftrightarrow n = \iexp{char\_uval} \app c \land \iexp{is\_ascii\_char} \app c
+\end{gather*}
+
+The relation between ascii characters and natural numbers is extended to a relation between ascii strings and natural numbers through a conversion function $\iexp{str\_uval} \dbcolon \iexp{string} \rightarrow \iexp{nat}$
+with
+\begin{gather*}
+	\iexp{str\_uval} = \iexp{foldl} \app (\lambda acc \app c. \app 10 \cdot acc + \iexp{char\_uval} \app c) \app 0 
+\end{gather*}
+An invariant for ascii string representing natural numbers is given by $\iexp{is\_ascii\_unum\_str} \dbcolon \iexp{string} \rightarrow \iexp{nat}$ where
+\begin{gather*}
+	\iexp{is\_ascii\_unum\_str} \app cs = (cs \neq [ \app ] \land \forall c \in \iexp{set} \app cs. \app \iexp{is\_ascii\_char} \app c)
+\end{gather*}
+The relation $\iexp{ascii\_str\_nat\_rel} \dbcolon (\iexp{string},\iexp{nat}) \app \iexp{set}$ is then defined with
+\begin{gather*}
+	(cs,n) \in \iexp{ascii\_str\_nat\_rel} \Leftrightarrow n = \iexp{str\_uval} \app cs \land \iexp{is\_ascii\_unum\_str}
+\end{gather*}
+
+To finally obtain a relation between ascii string and integers, in a final step I extend $\iexp{ascii\_str\_nat\_rel}$ to consider a leading $\iexp{'-'}$ character which has ascii code $45$.
+The final conversion function $\iexp{str\_sval} \dbcolon \iexp{string} \rightarrow \iexp{int}$ is implemented as
+\begin{gather*}
+	\iexp{str\_sval} \app cs =
+	\begin{cases}
+		- \iexp{int} \app (\iexp{str\_uval} \app cs') &\text{, if $cs = c \iexp{\#} cs' \land c = 45$} \\
+		\iexp{int} \app   (\iexp{str\_uval} \app cs)  &\text{, otherwise}
+	\end{cases}
+\end{gather*}
+An invariant for ascii string representations of integers is given by $\iexp{is\_ascii\_snum\_str} \dbcolon \iexp{string} \rightarrow \iexp{bool}$ with
+\begin{gather*}
+	\iexp{is\_ascii\_snum\_str} \app cs =
+	\begin{cases}
+		\iexp{is\_ascii\_unum\_str} cs' &\text{, if $cs = c \iexp{\#} cs' \land c = 45$} \\
+		\iexp{is\_ascii\_unum\_str} cs  &\text{, otherwise}
+	\end{cases}
+\end{gather*}
+The final relation $\iexp{ascii\_str\_int\_rel} \dbcolon (\iexp{string},\iexp{int}) \app \iexp{set}$, which is used in the correctness proofs of the string to multiple precision integer conversion (parsing), is then given by
+\begin{gather*}
+	(cs,i) \in \iexp{ascii\_str\_int\_rel} \Leftrightarrow i = \iexp{str\_sval} cs \land \iexp{is\_ascii\_snum\_str} cs
+\end{gather*}
+
+Conversely, I define a relation $\iexp{int\_ascii\_str\_rel} \dbcolon (\iexp{int}, \iexp{string}) \dbcolon \iexp{set}$ for verifying the multiple precision integer to string conversion (printing).
+Unlike $\iexp{ascii\_str\_int\_rel}$, $\iexp{int\_ascii\_str\_rel}$ does not require defining an invariant on the integers, as every integer must be representable by a string, while not every string can be converted to an integer.
+The invariant $\iexp{is\_ascii\_snum\_str}$ is satisfied exactly by strings which can be parsed to an integer.
+
+Conversion from natural numbers to strings is implemented by $\iexp{chars\_of\_nat} \dbcolon \iexp{nat} \rightarrow \iexp{string}$ with
+\begin{gather*}
+	\iexp{chars\_of\_nat} \app n =
+	\begin{cases}
+		[n] &\text{, if $n<10$} \\
+		\iexp{chars\_of\_nat} (\lfloor \frac{n}{10} \rfloor) @ [\iexp{char\_of} \app (n \text{ mod } 10) + 48] &\text{, otherwise}
+	\end{cases}
+\end{gather*}
+where $\iexp{char\_of} \dbcolon \iexp{nat} \rightarrow \iexp{char}$ converts a natural number $n$ to the character with ascii code $n \text{ mod } 256$.
+Extending to conversion from integers to strings is achieved by $\iexp{chars\_of\_int} \dbcolon \iexp{int} \rightarrow \iexp{nat}$ where
+\begin{gather*}
+	\iexp{chars\_of\_int} \app i =
+	\begin{cases}
+		\iexp{chars\_of\_nat} \app i &\text{, if $0 \leq i$} \\
+		(\iexp{'-'}) \iexp{\#} (\iexp{chars\_of\_nat} \app i) &\text{, otherwise}
+	\end{cases}
+\end{gather*}
+The relation $\iexp{int\_ascii\_str\_rel} \dbcolon (\iexp{int}, \iexp{string}) \dbcolon \iexp{set}$ is then given by
+\begin{gather*}
+	(i,cs) \in \iexp{int\_ascii\_str\_rel} \Leftrightarrow cs = \iexp{chars\_of\_int} \app i
+\end{gather*}
+As a corollary, I prove that $\iexp{int\_ascii\_str\_rel} \circ \iexp{ascii\_str\_int\_rel} = \iexp{Id}$, where $\circ \dbcolon (\tv{a},\tv{b}) \app \iexp{set} \rightarrow (\tv{b},\tv{c}) \app \iexp{set} \rightarrow (\tv{a},\tv{c}) \app \iexp{set}$ is the composition of two relations and $\iexp{Id} \dbcolon (\tv{a},\tv{a}) \app \iexp{set}$ is the identity relation.
+Note that the inverse does not hold, i.e. $\iexp{ascii\_str\_int\_rel} \circ \iexp{int\_ascii\_str\_rel} \neq \iexp{Id}$, because $\iexp{ascii\_str\_int\_rel}$ is not injective as the strings $\iexp{"01"}$ and $\iexp{"1"}$ are both mapped to $1$.
+
+Note that the definition of $\iexp{chars\_of\_nat}$ indicates the approach I chose to implement conversion of integer to string: A given string is continuously divided by 10 (with remainder) until the result is representable by a single digit, the resulting string is then constructed from the collected remainders and final digit.
+
+\subsection{Implementation of Conversion between String and Multiple Precision Integer}\label{sec:conversion-between-string-and-integer}
+The previous subsection, \refsec{sec:relating-integers-and-ascii-encoded-strings}, defines the semantics integers encoded as ascii strings.
+This subsection describes the concrete conversion implementation of the conversion between strings and arbitrary precision integers, required for parsing input files and printing coefficients in error messages.
+
+The Isabelle/HOL $\iexp{char}$ type is implemented by the type of 8-bit machine words, $8 \app \iexp{word}$, in LLVM.
+The refinement assertion $\iexp{char\_assn} \dbcolon \iexp{char} \rightarrow 8 \app \iexp{word} \rightarrow \iexp{assn}$ is built on $(\iexp{char\_of} \circ \iexp{unat}) \dbcolon 8 \app \iexp{word} \rightarrow \iexp{char}$, i.e. an 8-bit machine word is mapped to its ascii code, as a natural number, 
+

@@ -15,7 +15,10 @@ build:
 	$(ISABELLE_BIN) build
 
 build_devbase:
-	$(ISABELLE_BIN) build -b -d . -d $(ISABELLE_LLVM)/thys -d $(AFP)/thys DevBase
+	$(ISABELLE_BIN) build -b -d . -d $(ISABELLE_LLVM)/thys -d $(AFP)/thys -d $(ISABELLE_BIGINT) DevBase
+
+build_pasteque_llvm:
+	$(ISABELLE_BIN) build -b -d . -d $(ISABELLE_LLVM)/thys -d $(AFP)/thys -d $(ISABELLE_BIGINT) PAC_Checker_LLVM
 
 build_pasteque_sml:
 	ISAFOL=$(ISA_FOL) $(ISABELLE_BIN) build -d $(AFP)/thys -d $(ISABELLE_LLVM)/thys -d $(ISA_FOL)/Weidenbach_Book -b -D $(ISA_FOL)/PAC_Checker2
