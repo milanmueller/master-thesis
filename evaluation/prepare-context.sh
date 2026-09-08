@@ -14,7 +14,7 @@ REPO_ROOT="$(cd "$EVAL_DIR/.." && pwd)"
 
 PACHECK2_SRC="$EVAL_DIR/pacheck2"
 SML_SRC="$REPO_ROOT/isabelle/IsaFoL/PAC_Checker2/code"
-LLVM_SRC="$REPO_ROOT/isabelle/IsaFoL-Pasteque-LLVM/PAC_Checker2/code"
+LLVM_SRC="$REPO_ROOT/isabelle/IsaFoL-Pasteque-LLVM/PAC_Checker_LLVM/code"
 
 CTX="$EVAL_DIR/.ctx"
 INSTANCES="$EVAL_DIR/instances"
@@ -44,7 +44,7 @@ if [ ${#missing[@]} -gt 0 ]; then
        The .ll/.h files are gitignored (working tree only). Regenerate them with:
          cd $REPO_ROOT/isabelle && isabelle build \\
            -d mirror-afp-2025-1/thys -d isabelle_llvm/thys -d IsabelleBigInteger \\
-           -d IsaFoL-Pasteque-LLVM PAC_Checker2_LLVM"
+           -d IsaFoL-Pasteque-LLVM PAC_Checker_LLVM"
 fi
 
 # Sanity-check that the two LLVM exports really are the two different checkers.
@@ -58,11 +58,11 @@ check_variant() {
     llvm_variant_mismatch=true
     warn "WARNING: $file does not reference $want."
     warn "         The $label LLVM checker is not what will be benchmarked."
-    warn "         Re-run the PAC_Checker2_LLVM export (see README.md), then re-run this script."
+    warn "         Re-run the PAC_Checker_LLVM export (see README.md), then re-run this script."
   fi
 }
-check_variant pasteque.ll LPAC_Checker_Synthesis_full_checker_l3_impl "non-shared"
-check_variant pasteque_shared.ll LPAC_Efficient_Checker_Synthesis_full_checker_l_s3_impl "shared-variables"
+check_variant pasteque.ll LPAC_Checker_Synthesis_full_checker_l_impl "non-shared"
+check_variant pasteque_shared.ll LPAC_Efficient_Checker_Synthesis_full_checker_l_s2_impl "shared-variables"
 
 # --- stage -----------------------------------------------------------------
 
