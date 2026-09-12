@@ -19,7 +19,8 @@ indent.log
 *-blx.bib
 *.bbl
 *.run.xml
-# Tectonic build directory
+# Tectonic build directory (also holds generated Isabelle listing copies,
+# see scripts/prepare-isabelle-listings.sh)
 build/
 # Titlepage: ignore source files but keep the rendered PDF
 titlepage/*

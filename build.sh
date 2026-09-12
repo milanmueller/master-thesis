@@ -21,8 +21,13 @@ if [ ! -f "titlepage/Thesis_Titlepage.pdf" ]; then
 fi
 echo -e "${GREEN}Titlepage PDF found${NC}"
 
-# Step 2: Build with Tectonic (V1 mode for compatibility)
-echo -e "${YELLOW}Step 2: Building document with Tectonic...${NC}"
+# Step 2: Generate rendering-only copies of Isabelle theory listings
+echo -e "${YELLOW}Step 2: Preparing Isabelle listings...${NC}"
+bash "$(dirname "$0")/scripts/prepare-isabelle-listings.sh"
+echo -e "${GREEN}Isabelle listings prepared${NC}"
+
+# Step 3: Build with Tectonic (V1 mode for compatibility)
+echo -e "${YELLOW}Step 3: Building document with Tectonic...${NC}"
 
 # Check if user wants to keep intermediate files for debugging
 if [ "$1" == "--keep-intermediates" ]; then

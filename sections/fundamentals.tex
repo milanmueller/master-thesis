@@ -84,7 +84,7 @@ Throughout this thesis, I assume familiarity with simply typed higher-order logi
 \subsection{Isabelle Refinement Framework}\label{sec:isabelle-refinement-framework}
 The Isabelle Refinement Framework by Lammich \cite{isabelle-refinement-framework} enables a refinement approach to defining imperative programs and proving correctness properties of such programs. \todo{In motivation, write a section on what the idea of refinement is, and which problem it solves.}
 This subsection introduces a simplified view on the underlying \texttt{nres} monad and sketches its usage for defining and verifying imperative programs in Isabelle-HOL.
-Most of the algorithms I implemented for this thesis are defined in the \texttt{nres} monad, the exception being fundamental operations on custom datatypes that \refsec{sec:low-level-datatypes-in-isabelle-llvm} introduces.
+Most of the algorithms I implemented for this thesis are expressed in the \texttt{nres} monad, the exception being fundamental operations on custom datatypes that \refsec{sec:low-level-datatypes-in-isabelle-llvm} introduces.
 
 Nondeterministic computations are represented using the \texttt{nres} monad.
 \texttt{nres} over some type $\tv{a}$, representing computations with results of type $\tv{a}$, is defined as
@@ -125,10 +125,16 @@ For instance, $\iexp{P} \app a \app b \le \iexp{add\_spec} \app a \app b$ states
 
 Note that $(\tv{a} \app \iexp{nres}, \le)$ is a complete lattice with top element $\iexp{FAIL}$. In particular, a refining program may only fail if the refined program also fails.
 
-The Refinement Framework implements a $\iexp{bind} \dbcolon \tv{a} \app \iexp{nres} \rightarrow (\tv{a} \rightarrow \tv{b} \app \iexp{nres}) \rightarrow \tv{b} \app \iexp{nres}$ operator on $\iexp{nres}$ to enable sequential composition of two programs.
-In addition, it provides loops and can be used with Isabelle's builtin $\iexp{if}$ expressions such that typical imperative programs can be expressed.
+A $\iexp{bind} \dbcolon \tv{a} \app \iexp{nres} \rightarrow (\tv{a} \rightarrow \tv{b} \app \iexp{nres}) \rightarrow \tv{b} \app \iexp{nres}$ operator on $\iexp{nres}$, coupled with do-notation syntax, enables convenient denotation of sequential programs.
+In addition while loops and Isabelle's builtin $\iexp{if}$ expressions can be used to define programs in a typical imperative style.
+\isabellecodeextern[linerange=61-74,label=algo:sum-imperative,caption={
+  Imperative-style example Program for computing the sum of a list of natural numbers.
+}]{isabelle-code/LLVM_Basics.thy}
+\refalgo{algo:sum-imperative} shows an example program for computing the sum of a list of natural numbers, using a while loop.
+In the while notation, the first lambda function specifies the break condition; if $\iexp{i} < \iexp{length} \app \iexp{xs}$ evaluates to $\iexp{False}$, the loop is exited.
+The second lambda function then specifies the loop body, in which the accumulator is updated.
 
-Statements like $\iexp{P} \app a \app b \le \iexp{add\_spec} \app a \app b$ must be proven in Isabelle by the user.
+Correctness statements like $\iexp{P} \app a \app b \le \iexp{add\_spec} \app a \app b$ must be proven in Isabelle by the user.
 The Refinement Framework offers tools to automate significant portions of such proofs.
 In particular, the $\iexp{refine\_vcg}$ verification condition generator can be used to transform goals expressed in the $\iexp{nres}$ monad to standard Isabelle-HOL goals, on which Isabelle's proof automation (in particular $\iexp{sledgehammer}$) can then often be used effectively.
 
@@ -139,8 +145,8 @@ This section gives an informal overview of the Sepref tool \cite{sepref} by Lamm
 
 The Imperative-HOL framework \cite{Imperative-HOL} defines a semantics of imperative programs in Isabelle/HOL.
 Programs defined in Imperative-HOL can then be exported to Standard-ML code.
-Sepref uses a separation logic on Imperative-HOL \cite{Separation_Logic_Imperative_HOL-AFP} which enables reasoning on imperative programs defined in Imperative-HOL.
-Note that Imperative-HOL and the separation logic on it are not discussed here, since, for the thesis, I worked with Isabelle-LLVM \cite{isabelle-llvm} (also by Lammich) which can be seen as Sepref's successor and defines its own separation logic on a shallow embedding of LLVM instead of Imperative-HOL (cf. \refsec{sec:isabelle-llvm}).
+Sepref utilizes a separation logic, using a heap monad in Imperative-HOL \cite{Separation_Logic_Imperative_HOL-AFP} which enables reasoning on imperative programs defined in Imperative-HOL.
+Note that Imperative-HOL and the separation logic on it are not discussed here, since, for the thesis, I work with Isabelle-LLVM \cite{isabelle-llvm} (also by Lammich) which can be seen as Sepref's successor and defines its own separation logic on a shallow embedding of LLVM instead of Imperative-HOL (cf. \refsec{sec:isabelle-llvm}).
 
 Consider the example program in \refalgo{algo:nres-set-lookup}, lifting a simple set membership test into $\iexp{nres}$.
 \isabellecodeextern[linerange=31-32,label=algo:nres-set-lookup,caption={
@@ -170,7 +176,7 @@ This section gives an overview of the notion of \textit{refinement assertions} i
 
 Isabelle-LLVM defines a shallow embedding of the LLVM intermediate language (i.e. a formalization of a subset of LLVM) and models the state of memory during the execution of a program.
 Details regarding the LLVM embedding and memory model are described in Lammich's paper \cite{isabelle-llvm}.
-For the thesis I use a simplified notion of refinement assertions and introduce the following types and functions only informally:
+The following definitions and terminology depend on the memory model and are only introduced informally here:
 \begin{itemize}
   \item States of memory are reasoned about using a separation algebra $(\iexp{mem}, \#\#, +, 0)$ as defined in the AFP's Separation Algebra by Klein et al.~\cite{Separation_Algebra-AFP}, which is based on the Abstract Separation Logic by Calcagno et al.~\cite{Abstract_Separation_Logic}.
     Isabelle-LLVM instantiates the abstract separation algebra with its memory model.
@@ -179,92 +185,137 @@ For the thesis I use a simplified notion of refinement assertions and introduce 
   \item $\iexp{emp}$ is an assertion that evaluates to $\iexp{True}$ iff. the given state is $0$, i.e. $\iexp{emp} = \lambda s. s = 0$.
   \item The separating conjunction operator $\ast \dbcolon \iexp{assn} \rightarrow \iexp{assn} \rightarrow \iexp{assn}$ allows for combination of assertions.
     If $A \dbcolon \iexp{assn}$ and $B \dbcolon \iexp{assn}$ are assertions, then $A \ast B$ is an assertion that evaluates to $\iexp{True}$ for a given state $h \dbcolon \iexp{mem}$, iff. there exists a decomposition $h = x + y$ such that $x \#\# y$ (i.e. $x$ and $y$ are disjoint) and $A \app x$ and $B \app y$.
+  \item Some datatypes can be represented in LLVM.
+        In particular, the type $w \app \iexp{word}$, of machine words with width $w$, where $w$ is one of $1,8,64,128$, is representable in LLVM and is used throughout the thesis.
+        Note that other bit-widths are also representable, but are not used in the thesis.
   \item $\tv{a} \app \iexp{ptr}$ is the type of pointers to values of type $\tv{a}$.
-        Note that, for $\tv{a} \app \iexp{ptr}$ to be recognized by the LLVM code generator of Isabelle-LLVM, $\tv{a}$ must be representable in LLVM.
-        In particular, the type of machine words, $w \app \iexp{word}$, is the only representable type directly mentioned in this thesis.\\
         For $\mapsto \dbcolon \tv{a} \app \iexp{ptr} \rightarrow \tv{a} \rightarrow \iexp{assn}$, the assertion $(p \mapsto a) \sigma $ evaluates to $\iexp{True}$, iff. $p$ is a pointer to $a$ in state $\sigma$\footnote{$\mapsto$ is based on the assertion $\iexp{ll\_bpto}$, which is defined in the theory $\iexp{Isabelle\_LLVM.LLVM\_DS\_Block\_Alloc}$.}.
         Note that $p \mapsto a$ implicitly states exclusive ownership of the object $p$ points to, as no object can have multiple separate owners in the separation logic.
-  \item Similarly to the $\iexp{nres}$ monad, Isabelle-LLVM uses a state error nondeterminism monad $\tv{a} \app \iexp{llM}$ to describe LLVM programs with return type $\tv{a}$. \todo{There should be at least some intuition of what $\iexp{llM}$ does.}
-        Note that $\tv{a}$ must be a type representable in LLVM for the code generator to be able to produce code for a program $P \dbcolon \tv{a} \app \iexp{llM}$.
+        \ref{sec:ownership-in-isabelle-llvm} discusses this more thoroughly as observation introduces the main challenge for the migration of Pastèque to Isabelle-LLVM.
+  \item Similarly to the $\iexp{nres}$ monad, Isabelle-LLVM uses a state error nondeterminism monad $\tv{a} \app \iexp{llM}$ to describe sequential LLVM programs with return type $\tv{a}$.
+        Like for $\iexp{nres}$, Isabelle-LLVM defines a bind operator with do-notation, loops and conditional statements to allow for expression of typical sequential imperative programs in $\iexp{llM}$. 
+        Isabelle-LLVMs code generator can then generate actual LLVM code directly from programs defined using $\iexp{llM}$, given that all used types are representable in LLVM (alongside some other conditions which are not discussed here).
+        While I don't give a formal introduction of the $\iexp{llM}$ monad, \refalgo{algo:sum-imperative-refined} shows an example program expressed in $\iexp{llM}$.
 \end{itemize}
 
 To make assertions independent of the state of memory, a boolean value can be lifted to an assertion by $\uparrow \dbcolon \iexp{bool} \rightarrow \iexp{assn}$ where $\uparrow \app b = \lambda h. \iexp{emp} h \land b$.
-Note that $A \ast \iexp{emp} = A$ for any assertion $A$.
 
 In Isabelle-LLVM, a \textit{refinement assertion} $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ is a function that produces an assertion for given values of type $\tv{a}$ and $\tv{b}$, where type $\tv{b}$ is representable in LLVM.
-Refinement assertions specify how abstract values are represented in LLVM by concrete values.
-For example, a refinement assertion $\iexp{si\_assn} \dbcolon \iexp{int} \rightarrow 8 \app \iexp{word} \rightarrow \iexp{assn}$ defines how 8-bit machine words, being interpreted as signed 8-bit integers, refine the abstract HOL type of unbounded integers.
-It holds that $\iexp{si\_assn} \app (-128) \app \iexp{0x80} \app 0 = \iexp{True}$, while $\iexp{si\_assn} \app 128 \app w \app \sigma = \iexp{False}$ for any $w$ and $\sigma$, as $128$ is not representable with an 8-bit signed integer.
+Refinement assertions specify how abstract HOL types are represented in LLVM programs by concrete, implementable data types.
+For example, a refinement assertion $\iexp{si8\_assn} \dbcolon \iexp{int} \rightarrow 8 \app \iexp{word} \rightarrow \iexp{assn}$ defines how 8-bit machine words, being interpreted as signed 8-bit integers, refine the abstract HOL type of unbounded integers.
+It holds that $\iexp{si8\_assn} \app (-128) \app \iexp{0x80} \app 0 = \iexp{True}$, while $\iexp{si8\_assn} \app 128 \app w \app \sigma = \iexp{False}$ for any $w$ and $\sigma$, as $128$ is not representable with an 8-bit signed integer.
+Throughout the thesis, for a refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$, I refer to $\tv{b}$ as the \textit{refinement target} of the abstract type $\tv{a}$.
 
+To express correctness properties on programs defined in $\iexp{llM}$, Hoare-triples are used.
 A \textit{Hoare-triple} $\{\Psi \dbcolon \iexp{assn}\} (P \dbcolon \tv{a} \app \iexp{llM}) \{\Phi \dbcolon \tv{a} \rightarrow \iexp{assn}\}$ states that, if a \textit{precondition} $\Psi$ holds initially, then the program $P$ is executed successfully and the \textit{postcondition} $\Phi$ holds afterwards.
 For example, the Hoare-triple
 $$
-  \{\iexp{si\_assn} \app a \app ai \ast \iexp{si\_assn} \app b \app bi\}
+  \{\iexp{si8\_assn} \app a \app ai \ast \iexp{si8\_assn} \app b \app bi\}
   \app (\iexp{add} \app ai \app bi) \app
-  \{\lambda r. \iexp{si\_assn} \app (a + b) \app r\}
+  \{\lambda r. \iexp{si8\_assn} \app (a + b) \app r\}
 $$
 can be read as follows:
 If 8-bit machine words $ai, bi$ refine the integers $a, b$ then the result of $\iexp{add} \app ai \app bi$ refines the integer $a + b$.
 Note that in this particular example, the statement only holds if $a + b$ does not overflow and is therefore representable by an 8-bit machine word.
 This requirement can be added to the precondition:
 \begin{gather*}
-  \{\uparrow(a + b \le 127 \land -128 \le a + b) \ast \iexp{si\_assn} \app a \app ai \ast \iexp{si\_assn} \app b \app bi\} \\
+  \{\uparrow(a + b \le 127 \land -128 \le a + b) \ast \iexp{si8\_assn} \app a \app ai \ast \iexp{si8\_assn} \app b \app bi\} \\
   (\iexp{add} \app ai \app bi) \\
-  \{\lambda \app r. \iexp{si\_assn} \app (a + b) \app r\}
+  \{\lambda \app r. \iexp{si8\_assn} \app (a + b) \app r\}
 \end{gather*}
 This addition makes the statement provable by the $\iexp{vcg}$ tool.
 
 As a user of Isabelle-LLVM, one does not typically work with Hoare-triples directly.
-Instead, usually the $\iexp{nres}$ monad is used to define algorithms on HOL-types; the $\iexp{sepref}$ tool can then transform high-level programs defined in $\iexp{nres}$ into low-level programs defined in $\iexp{llM}$ and prove respective correctness statements, given by Hoare-triples automatically.
-\todo{Include an example in hfref notation.}
+Instead, the user can use the $\iexp{nres}$ monad to define algorithms using abstract HOL-types to then use the $\iexp{sepref}$ tool to transform the high-level programs into low-level programs expressed in the $\iexp{llM}$ monad and prove respective correctness statements automatically.
+\isabellecodeextern[linerange=77-93,label=algo:sum-imperative-bound,caption={
+  A variation of \refalgo{algo:sum-imperative}, where the length of the input list and the sum of the list are bound.
+}]{isabelle-code/LLVM_Basics.thy}
+Consider \refalgo{algo:sum-imperative-bound} which is the same program as in \refalgo{algo:sum-imperative} but with some additional conditions in the loop body, specified using $\iexp{ASSERT} \dbcolon \iexp{bool} \rightarrow \iexp{unit} \app \iexp{nres}$, where
+\begin{gather*}
+  \iexp{ASSERT} \app \varphi =
+  \begin{cases}
+    \iexp{RETURN} \app () &\text{, if $\varphi$} \\
+    \iexp{FAIL} &\text{otherwise.}
+  \end{cases}
+\end{gather*}
+Note that $\iexp{ASSERT}$ models assertions on $\iexp{nres}$ programs, analogously to $\iexp{assert}$ statements in programming languages like c or rust, and is not to be confused with the notion of assertions in separation logic, introduced in the beginning of this section.
+The first assertion in the loop body of \refalgo{algo:sum-imperative-bound} ensures that the index $\iexp{i}$ is in bounds of the given list.
+This assertion is mostly required for technical reasons, as it is directly implied by the loop guard.
+The second assertion then ensures that the accumulator does not overflow, which also implies an upper bound on the sum of the elements in the given list.
+With these assertions, the \inlinecode{sepref} tool can then synthesize a program $\iexp{sum\_impl} \dbcolon 64 \app \iexp{word} \times 64 \app \iexp{word} \app \iexp{ptr} \rightarrow 64 \app \iexp{word}$, shown in \refalgo{algo:sum-imperative-refined}.
+\isabellecodeextern[linerange=101-112,label=algo:sum-imperative-refined,caption={
+  $\iexp{llM}$-level implementation of \refalgo{algo:sum-imperative-bound}, synthesized by \inlinecode{sepref}.
+}]{isabelle-code/LLVM_Basics.thy}
+The type signature of $\iexp{sum\_impl}$ implies the concrete datatypes used: The list is implemented by an array of 64-bit (signed) integers, the sum is implemented by a 64-bit (signed) integer.
+In the tuple $64 \app \iexp{word} \times 64 \app \iexp{word} \app \iexp{ptr}$, the first element saves the length of the array, while the second element is a pointer to the actual data. 
+The concrete datatype is a choice the user must make.
+In this example, one could also choose to, e.g., implement the abstract list by a linked list of 8-bit unsigned integers.
+
+\inlinecode{sepref} translates the abstract function $\iexp{length} \dbcolon \tv{a} \app \iexp{list} \rightarrow \iexp{nat}$ and $\iexp{!} \dbcolon \tv{a} \app \iexp{list} \rightarrow \iexp{nat} \rightarrow \tv{a}$ to concrete functions $\iexp{la\_length\_impl}$ and $\iexp{la\_get\_impl}$ which return then length of, and a specific element from an array.
+For both these functions, the array implementation also specifies corresponding correctness lemmas which are required for proving the overall correctness of $\iexp{sum\_impl}$.
+
+Note that the original $\iexp{sum}$ program from \refalgo{algo:sum-imperative} could not be synthesized by \inlinecode{sepref} as in the concrete implementation $\iexp{sum\_impl}$, the accumulator could overflow, leading to a different end result compared to the abstract $\iexp{sum}$ which uses unbounded natural numbers.
+More concretely, in addition to synthesized $\iexp{llM}$ programs, \inlinecode{sepref} also automatically proves refinement theorems.
+For the $\iexp{sum\_impl}$ example, a simplified lemma using Hoare-triple notation of the corresponding refinement is given by
+\begin{gather*}
+  \{(\iexp{array\_assn} \app \iexp{sn64\_assn}) \app xs \app xsi\}\\
+  (\iexp{sum\_impl} \app xsi) \\
+  \{\lambda r. \app \iexp{sn64\_assn} \app (\iexp{sum'} \app xs) \app r\}
+\end{gather*}
+Where $\iexp{array\_assn} \app \iexp{sn64\_assn} \dbcolon \iexp{nat} \app \iexp{list} \rightarrow 64 \app \iexp{word} \times 64 \app \iexp{word} \app \iexp{ptr} \rightarrow \iexp{assn}$ is a refinement assertions specifying refinement of lists of natural numbers by arrays of 64-bit signed integers and $\iexp{sn64\_assn} \dbcolon \iexp{nat} \rightarrow 64 \app \iexp{word} \app \iexp{assn}$ specifies refinement of natural numbers by signed 64-bit integers.
+
+As a final step, the $\iexp{llM}$-level program $\iexp{sum\_impl}$ in \refalgo{algo:sum-imperative-refined} can then be exported by Isabelle-LLVMs code generator to obtain compilable LLVM code.
+The code generator can also generates header files so the exported functions can be called from c programs.
+For Pastèque in particular, I have implemented the initial parsing of input files in c to then use the parsed inputs as arguments for the verified LLVM algorithms. 
 
 \subsubsection{Ownership in Isabelle-LLVM}\label{sec:ownership-in-isabelle-llvm}
-This subsection gives a simplified overview of the ownership model that is implemented in Isabelle-LLVM.
+This subsection introduces the notion of \textit{pure} and \textit{impure} refinement assertions and how Isabelle-LLVMs backend is different to the Imperative-HOL backend with regards to the purity of lists.
 
-Isabelle-LLVM distinguishes \textit{pure} and \textit{impure} values.
-Stack allocated values are pure \todo{fact-check}.
-When used as function arguments, they are duplicated and thus retain their value once the callee returns.
-Machine words are an example of pure values: Revisiting the example Hoare-triple from \refsec{sec:isabelle-llvm}, the postcondition can be strengthened to
+Refinement Assertions are distinguished between \textit{pure} and \textit{impure}.
+A refinement assertion $A \dbcolon \iexp{assn}$ is pure if it holds that $\forall s. \app A \app s \Rightarrow s = 0$.
+Refinement assertions with stack allocated refinement targets, in particular machine words, are pure.
+The introduced refinement assertions $\iexp{si8\_assn}$ and $\iexp{sn64\_assn}$ are therefore examples of pure refinement assertions.
+Refinement assertions with heap allocated refinement targets, in particular data structures like arrays or lists, are impure.
+$\iexp{array\_assn} \app \iexp{sn64\_assn}$ is an example of an impure refinement assertion.
+
+Stack allocated values can be duplicated without requiring a specific copy implementation.
+For example, the earlier Hoare-triple from \refsec{sec:isabelle-llvm} can be strengthened to
 \begin{gather*}
-  \{\uparrow(a + b \le 127 \land -128 \le a + b) \ast \iexp{si\_assn} \app a \app ai \ast \iexp{si\_assn} \app b \app bi\} \\
+  \{\uparrow(a + b \le 127 \land -128 \le a + b) \ast \iexp{si8\_assn} \app a \app ai \ast \iexp{si8\_assn} \app b \app bi\} \\
   (\iexp{add} \app ai \app bi) \\
-  \{\lambda \app r.\, \iexp{si\_assn} \app (a + b) \app r \ast \iexp{si\_assn} \app a \app ai \ast \iexp{si\_assn} \app b \app bi\}
+  \{\lambda \app r.\, \iexp{si8\_assn} \app (a + b) \app r \ast \iexp{si8\_assn} \app a \app ai \ast \iexp{si8\_assn} \app b \app bi\}
 \end{gather*}
-The addition of $\iexp{si\_assn} \app a \app ai \ast \iexp{si\_assn} \app b \app bi$ means that, after being used as arguments for $\iexp{add}$, $ai$ and $bi$ remain valid representations of the original abstract integers $a$ and $b$.
+The addition of $\iexp{si8\_assn} \app a \app ai \ast \iexp{si8\_assn} \app b \app bi$ means that, after being used as arguments for $\iexp{add}$, $ai$ and $bi$ remain valid representations of the original abstract integers $a$ and $b$ and could be used again in further computations.
 
-For impure values, this does not hold.
-Objects that are heap allocated are always impure \todo{fact-check}.
-In particular lists, which are used frequently in Pastèque, are impure in Isabelle-LLVM.
-This is an important distinction from the old Imperative-HOL backend in which lists are pure object (as long as the contained elements are also pure) with persistence guaranteed by the compiler.
-
-To illustrate the implications of this observation, assume that for a refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$, we have a function
-$$
-  \iexp{ls\_assn} \dbcolon (\tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}) \rightarrow \ls{\tv{a}} \rightarrow \tv{b} \app \iexp{llvm\_list} \rightarrow \iexp{assn}
-$$
-that defines refinement of abstract lists of type $\ls{\tv{a}}$ by an imaginary concrete list implementation $\tv{b} \app \iexp{llvm\_list}$.
-Then, the following Hoare-triple could, in principle, be provable with the Imperative-HOL backend:
+Impure assertions behave differently with regards to preservation of values.
+As an example, consider the function $\iexp{take} \dbcolon \iexp{nat} \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$ which returns a prefix of the given length for the given list.
+Assuming a list of natural numbers $\iexp{nat} \app \iexp{list}$ is refined by an array of (signed) 64-bit machine words, i.e. $64 \app \iexp{word} \times 64 \app \iexp{word} \app \iexp{ptr}$, like in the $\iexp{sum\_impl}$ example (cf. \refalgo{algo:sum-imperative-refined}), one might want to prove a Hoare-triple
 \begin{gather*}
-  \{(\iexp{ls\_assn} \app A) \app xs \app xsi \ast \uparrow(xs \neq [ \app ])\} \\
-  (\iexp{tl\_impl} \app xsi) \\
-  \{\lambda \app r.\, (\iexp{ls\_assn} \app A) \app (\iexp{tl} \app xs) \app r \ast (\iexp{ls\_assn} \app A) \app xs \app xsi\}
+  \{(\iexp{array\_assn} \app \iexp{si64\_assn}) \app xs \app xsi \app \ast \app \iexp{si64\_assn} \app i \app ii\} \\
+  (\iexp{take\_impl} \app ii \app xsi) \\
+  \{\lambda r. (\iexp{array\_assn} \app \iexp{si64\_assn}) \app (\iexp{take} \app i \app xs) \app r \app \ast \app (\iexp{array\_assn} \app \iexp{si64\_assn}) \app xs \app xsi\}
 \end{gather*}
-The Hoare-triple can be read as follows: If the non-empty abstract list $xs$ is refined by a concrete list implementation $xsi$, then, after calling a function that returns a the tail of the list, the abstract tail $\iexp{tl} \app xs$ is refined by the result of the function.
-Also, after the function has been executed, $xsi$ still remains a concrete representation of the original list $xs$.
-This property typically holds in functional languages where lists are persistent objects, as is the case in the Standard-ML backend.
+for an implementation $\iexp{take\_impl}$ of $\iexp{take}$ such that the original array $xsi$ is kept intact after executing $\iexp{take\_impl} \app ii \app xsi$.
 
-In Isabelle-LLVM, the above Hoare-triple can never hold.
-Lists in LLVM are are a chain of nodes, each carrying a value and a pointer to the next node in the list.
-They are therefore heap-allocated, impure objects.
-The underlying separation logic requires that there can only be a single reference to a heap allocated object at any point in time.
-The Hoare-triple above violates this requirement, as both $r$ and $xsi$ would now reference the same list.
-If we weaken the the postcondition, the statement becomes provable in Isabelle-LLVM:
+In a language like c, one might implement $\iexp{take\_impl}$ in a way such that $xsi$ and $r$ both point to the same data in memory, but $r$ has length $ii$, while $xsi$ still has it's original length.
+While this is efficient and has constant runtime complexity, in Isabelle-LLVM its impossible to implement $\iexp{take\_impl}$ this way since two distinct pointers must not point to the same object in memory.
+In other words, each resource must have one unique owner.
+\footnote{In recent developments, Isabelle-LLVM was extended to support fractional separation logic \cite{isabelle-llvm-fractional} which enables shared read-only access to an object and in this example might allow for using a shared, read-only prefix of $xsi$, but at the time of starting the work on this thesis, this work was not yet published.}
+The actual implementation of the $\iexp{take}$ operation in Isabelle-LLVM therefore proves a different Hoare-triple
 \begin{gather*}
-  \{(\iexp{ls\_assn} \app A) \app xs \app xsi \ast \uparrow(xs \neq [ \app ])\} \\
-  (\iexp{tl\_impl} \app xsi) \\
-  \{\lambda \app r.\, (\iexp{ls\_assn} \app A) \app (\iexp{tl} \app xs) \app r\}
+  \{(\iexp{array\_assn} \app \iexp{si64\_assn}) \app xs \app xsi \app \ast \app \iexp{si64\_assn} \app i \app ii\} \\
+  (\iexp{take\_impl} \app ii \app xsi) \\
+  \{\lambda r. (\iexp{array\_assn} \app \iexp{si64\_assn}) \app (\iexp{take} \app i \app xs) \app r\}
 \end{gather*}
-We lose the assertion $(\iexp{ls\_assn} \app A) \app xs \app xsi$ in the postcondition, we say that the original list $xsi$ was \textit{destroyed}.
-\refsec{sec:lists-with-tail-pointers} describes the approach that I chose to address this issue for functions working on lists specifically.
+Where in the postcondition the second conjunct is lost, meaning that the original array $xsi$ is destroyed and can no longer be used.
+If $xsi$ must be kept-intact, $\iexp{take\_impl}$ would have to create a deep copy of the respective prefix, leading to linear runtime and allocation of a new array.
+
+The Imperative-HOL backend, the refinement assertion $\iexp{list\_assn}$ on lists is actually a pure assertion.
+Efficient handling of lists and creating deep copies where necessary is handled by the compiler and garbage collector.
+In LLVM, this is not the case; lists are an impure chain of lists, meaning that any algorithm which uses functions like $\iexp{take}$ necessarily destroys given input lists.
+
+As lists are frequently used in the implementation of Pastèque, this complicates the migration to Isabelle-LLVM significantly, unless every function working on lists creates a deep copy first.
+\refsec{sec:lists-with-tail-pointers} introduces some measures I took to avoid deep copies by reformulating functions using $\iexp{foldl}$ where possible.
 
 \subsection{High-Level Representation of Polynomials}\label{sec:methodology_high-level-representation-of-polynomials}
 The HOL-level algorithms of Pastèque works on polynomials, defined as

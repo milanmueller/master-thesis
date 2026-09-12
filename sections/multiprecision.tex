@@ -6,6 +6,7 @@ It then describes the additions I have made to use the library for Pastèque.
 \subsection{Native Arbitrary Precision Integers for Isabelle-LLVM}\label{sec:native-arbitrary-precision-integers-for-isabelle-llvm}
 
 The native precision integer library models natural numbers by lists of 64-bit machine words.
+Individual 64-bit machine words are referred to as \textit{limbs}.
 It defines an abstraction function $\iexp{big\_int\_}\alpha \dbcolon 64 \app \iexp{word} \rightarrow \iexp{nat}$, recursively defined as
 \begin{gather*}
 	\iexp{big\_int\_}\alpha \app xs =
@@ -165,8 +166,8 @@ Extending to conversion from integers to strings is achieved by $\iexp{chars\_of
 \begin{gather*}
 	\iexp{chars\_of\_int} \app i =
 	\begin{cases}
-		\iexp{chars\_of\_nat} \app i &\text{, if $0 \leq i$} \\
-		(\iexp{'-'}) \iexp{\#} (\iexp{chars\_of\_nat} \app i) &\text{, otherwise}
+		\iexp{chars\_of\_nat} \app (\iexp{abs} \app i) &\text{, if $0 \leq i$} \\
+		(\iexp{'-'}) \iexp{\#} (\iexp{chars\_of\_nat} \app (\iexp{abs} \app i)) &\text{, otherwise}
 	\end{cases}
 \end{gather*}
 The relation $\iexp{int\_ascii\_str\_rel} \dbcolon (\iexp{int}, \iexp{string}) \dbcolon \iexp{set}$ is then given by
@@ -182,6 +183,30 @@ Note that the definition of $\iexp{chars\_of\_nat}$ indicates the approach I cho
 The previous subsection, \refsec{sec:relating-integers-and-ascii-encoded-strings}, defines the semantics integers encoded as ascii strings.
 This subsection describes the concrete conversion implementation of the conversion between strings and arbitrary precision integers, required for parsing input files and printing coefficients in error messages.
 
-The Isabelle/HOL $\iexp{char}$ type is implemented by the type of 8-bit machine words, $8 \app \iexp{word}$, in LLVM.
-The refinement assertion $\iexp{char\_assn} \dbcolon \iexp{char} \rightarrow 8 \app \iexp{word} \rightarrow \iexp{assn}$ is built on $(\iexp{char\_of} \circ \iexp{unat}) \dbcolon 8 \app \iexp{word} \rightarrow \iexp{char}$, i.e. an 8-bit machine word is mapped to its ascii code, as a natural number, 
+Pastèque uses the high level $\iexp{string} = \iexp{char} \app \iexp{list}$ type for strings, in particular for error messages.
+Isabelle-LLVM does not define a refinement target for $\iexp{char}$, so a custom refinement assertion is required for the this Thesis.
+The high level $\iexp{char}$ type is defined by eight booleans, i.e. $\iexp{char} = \iexp{Char} \app (\iexp{digit0} \dbcolon \iexp{bool}) \app \dots \app (\iexp{digit7} \dbcolon \iexp{bool})$, so the natural refinement target is $8 \app \iexp{word}$.
+I use the existing refinement assertion $\iexp{un8\_assn} \dbcolon \iexp{nat} \rightarrow 8 \app \iexp{word} \rightarrow \iexp{assn}$, refining natural numbers $< 256$ by 8-bit machine words and compose it with the existing $\iexp{char\_of} \dbcolon \iexp{nat} \rightarrow \iexp{char}$ function to obtain $\iexp{char\_assn} \dbcolon \iexp{char} \rightarrow 8 \app \iexp{word} \rightarrow \iexp{assn}$.
+I then use the list implementation, discussed in \ref{sec:lists-with-tail-pointers}, to obtain a refinement assertion $\iexp{str\_assn}$ for strings.
 
+Implementing conversion between strings and integers amounts to refining the functions $\iexp{chars\_of\_int}$ and $\iexp{str\_sval}$.
+For $str\_sval$ this is straight forward by use of the $\iexp{foldl}$ implementation for lists in LLVM which is discussed in \ref{sec:non-destructive-list-access-using-fold}.
+Refinement of $\iexp{chars\_of\_int}$ is more involved as it requires division of multiple precision integers by 10.
+In particular, for a given unsigned multiple precision integer $n$, the implementation must compute $\lfloor \frac{n}{10} \rfloor $ and $n \text{ mod } 10$.
+
+The division is implemented by classic school book division.
+The core of the division is implemented by a function $\iexp{bi\_div\_by\_w64}$, a simplified version of which is shown in \refalgo{algo:bi-div-by-w64}.
+\isabellecodeextern[linerange=12-28,label=algo:bi-div-by-w64,caption={
+	Core algorithm for dividing multiple precision numbers by a given 64-bit integer.
+}]{isabelle-code/BigIntString_Simplified.thy}
+Note that $\iexp{big\_int} \equiv 64 \app \iexp{word} \app \iexp{list}$.
+The helper function $\iexp{divmod2by1}$ is shown in \refalgo{algo:divmod2by1}.
+\isabellecodeextern[linerange=6-9,label=algo:divmod2by1,caption={
+	Helper function dividing a 128-bit integer by a 64-bit integer.
+}]{isabelle-code/BigIntString_Simplified.thy}
+The reason that $\iexp{divmod2by1}$ is a separate function lies in the multiplication of $\iexp{hi}$ by $2^{64}$.
+The limbs in in the list are 64-bit integers which can not express $\iexp{hi} * 2^{64}$.
+To still implement $\iexp{divmod2by1}$, the inputs $\iexp{hi}$ and $\iexp{lo}$ are upcast to a 128-bit integer before the division and modulo operations are performed.
+Note that throughout the execution of $\iexp{bi\_div\_by\_w64}$ it holds that $\iexp{r} < \iexp{l}$ which implies $\iexp{cur} \app \iexp{div} \app \iexp{d} < 2^{64}$, meaning that $\iexp{cur} \app \iexp{div} \app \iexp{d}$ can be downcast to a 64-bit integer without its value being changed.
+\todo{more elaborate explanation for why this is true.}
+As $\iexp{cur} \app \iexp{mod} \app \iexp{d} < 2^64$ is always fulfilled (since $\iexp{d} < 2^64$), it can also be downcast to a 64-bit integer without issues.

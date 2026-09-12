@@ -91,6 +91,11 @@
   sensitive=true,
   morecomment=[s]{(*}{*)},
   morecomment=[l]{--},
+  % "\<comment>" is rewritten to the classic Isar "--" comment marker by
+  % scripts/prepare-isabelle-listings.sh before the file reaches listings:
+  % listings cannot recognize a genuine multi-byte Unicode character (e.g. an
+  % em dash) as a comment delimiter, and it cannot use `literate` to
+  % substitute the display text of a string that is itself a delimiter.
   morestring=[b]",
   literate=
     % {'}{{${}^\prime\!$}}1
@@ -301,6 +306,14 @@
 % label/caption are rendered below the box (in a smaller font) instead of
 % inside it, since listings' native captionpos=b places the caption inside
 % the tcolorbox frame together with the code.
+% Isabelle theory files are read from this directory instead of their
+% original location: build.sh/watch.sh run
+% scripts/prepare-isabelle-listings.sh beforehand, which copies each theory
+% file here with "\<comment>" replaced by a literal em dash. listings cannot
+% both recognize a token as a comment delimiter (needed for the gray/italic
+% comment styling) and substitute its display text via `literate`, so the
+% substitution has to happen before the file reaches listings.
+\newcommand{\isabellelistingdir}{build/isabelle-listings}
 \newcommand{\isabellecodeextern}[2][]{%
   \def\isacode@rest{}%
   \def\isacode@label{}%
@@ -312,7 +325,7 @@
   % and does not expand macros hidden inside an argument to find them.
   \edef\isacode@fullargs{%
     isabellebox,%
-    listing file={#2},%
+    listing file={\isabellelistingdir/#2},%
     listing options={style=isabellestyle,\isacode@rest}%
   }%
   \expandafter\tcbinputlisting\expandafter{\isacode@fullargs}%

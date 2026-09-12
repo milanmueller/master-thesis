@@ -27,16 +27,18 @@ echo -e "${YELLOW}Press Ctrl+C to stop${NC}"
 echo ""
 
 # Initial build
+bash "$(dirname "$0")/scripts/prepare-isabelle-listings.sh"
 tectonic --print main.tex 2>&1 | grep -v "note:"
 
 # Watch loop using find + sleep
 LAST_HASH=""
 while true; do
     # Calculate hash of all relevant files
-    CURRENT_HASH=$(find . -name "*.tex" -o -name "*.bib" | grep -v "./build/" | xargs md5sum 2>/dev/null | md5sum)
+    CURRENT_HASH=$(find . -name "*.tex" -o -name "*.bib" -o -name "*.thy" | grep -v "./build/" | xargs md5sum 2>/dev/null | md5sum)
 
     if [ "$LAST_HASH" != "$CURRENT_HASH" ] && [ -n "$LAST_HASH" ]; then
         echo -e "\n${YELLOW}Change detected, rebuilding...${NC}"
+        bash "$(dirname "$0")/scripts/prepare-isabelle-listings.sh"
         if tectonic --print main.tex 2>&1 | grep -v "note:"; then
             echo -e "${GREEN}Build successful at $(date +%H:%M:%S)${NC}"
         else

@@ -1,11 +1,8 @@
 \section{Data Structures for Pastèque}\label{sec:low-level-datatypes-in-isabelle-llvm}
 
-In this section, I introduce the fundamental datatypes, I created to represent polynomials in LLVM.
-In particular, I have extended the existing open list implementation\footnote{c.f. $\iexp{Isabelle\_LLVM.LLVM\_DS\_Open\_List}$} to be able to contain impure objects.
-In addition, I have implemented basic partial maps using an array as the outer container that can also hold impure objects.
-I have also implemented a basic hash set and hash map for strings, using lists for the buckets.
-
-The implementations are designed to be modular and reusable, but they make some assumptions about the contained elements which are discussed in \refsec{sec:interface-hierarchy-for-refinement-assertions}.
+Pastèque uses nested lists for storing polynomials, a hashset of strings to keep track of used variables, a partial map of polynomials to store polynomials known to be in the ideal and a hashtable mapping strings to integers as an optimization.
+I could not find a ready to use implementation for any of these structures in Isabelle-LLVMs collection of existing data structures.
+I therefore implement some extensions to the existing data structures which are discussed in this section. 
 
 \subsection{Interface Hierarchy for Refinement Assertions}\label{sec:interface-hierarchy-for-refinement-assertions}
 
@@ -31,11 +28,14 @@ I use Isabelle's \inlinecode{locale} feature to define requirements for refineme
 
 With these definitions, deep free, deep copy or a lexicographic order on lists, can be implemented generically, using $\iexp{afree}$, $\iexp{acopy}$, $\iexp{aeq}$ and $\iexp{alt}$ for element-wise freeing, copying or comparisons.
 In particular, if some datatype $\tv{a}$ supports freeing and copying (i.e. it instantiates $\iexp{freeable\_assn}$ and $\iexp{copyable\_assn}$), then a list of elements of type $\tv{a}$ can itself also supports freeing and copying.
-This allows nested data structures to be usable with only little setup.
+This allows for convenient nesting of data structures without having to reimplement functions at several levels of nesting.
 
 \subsection{Linked Lists with Tail Pointers}\label{sec:lists-with-tail-pointers}
 
-\subsubsection{A Refinement Assertion for Lists}
+This section introduces extensions to Isabelle-LLVMs open list implementation\footnote{cf. theory $\iexp{Isabelle\_LLVM.LLVM\_DS\_Open\_List}$} I have made to obtain a nestable linked list implementation for use in the Pastèque migration to LLVM.
+I also discuss some optimizations I have made to avoid having to deep copy lists when using them as arguments of functions that only read from, but do not modify the given lists.
+
+\subsubsection{A Refinement Assertion for Lists}\label{sec:refinement-assertion-for-lists}
 
 To represent lists in LLVM, I reuse existing definitions from Isabelle-LLVM \footnote{In particular from the theory $\iexp{Isabelle\_LLVM.LLVM\_DS\_Open\_List}$} with some modifications.
 Lists are implemented as a chain of nodes, where a node carries a value and a pointer to the next node:
@@ -87,13 +87,15 @@ which means that $p \dbcolon \tv{b} \app \iexp{node} \app \iexp{ptr}$ refines $a
 
 \subsubsection{Non-destructive List Access using \iexp{foldl}}\label{sec:non-destructive-list-access-using-fold}
 
-\refsec{sec:ownership-in-isabelle-llvm} describes a particular challenge when working with lists in LLVM that was not present with the old Imperative-HOL backend:
-A function that destructures a list, which is commonly the case in typical recursive walks over lists, necessarily destroys it.
+\refsec{sec:ownership-in-isabelle-llvm} describes a particular challenge when working with lists in LLVM that was not present with the old Imperative-HOL backend.
+Lists, as defined in \ref{sec:refinement-assertion-for-lists}, are impure in Isabelle-LLVM meaning that fundamental list operations, like reading the head of a list, destroy the original list.
 
 As an example, consider the following recursive function for summing up the elements of a list:
 \isabellecodeextern[linerange=45-47,label=algo:llvm-sum,caption={
   Recursive summation over a list, destroying the list in the process.
 }]{isabelle-code/Lists.thy}
+
+\todo{show refined sum program in llM monad}
 
 \inlinecode{sum} destroys the given list.
 If it did not, there would simultaneously exist two pointers into the list, one owned by the caller of \inlinecode{sum}, one owned by \inlinecode{sum}, which is not forbidden in the separation calculus.
@@ -131,9 +133,9 @@ With this lemma, it is possible to define
 
 It is then straight forward to prove $\iexp{sum'} \equiv \iexp{sum}$ and also a Hoare-triple
 \begin{gather*}
-  \{(\iexp{ls\_assn} \app \iexp{si\_assn}) \app xs \app xsi \app \ast \uparrow((\iexp{sum'} \app (+) \app 0 \app xs) \le 127 \land -128 \le (\iexp{sum'} \app (+) \app 0 \app xs))\} \\
+  \{(\iexp{ls\_assn} \app \iexp{si8\_assn}) \app xs \app xsi \app \ast \uparrow((\iexp{sum'} \app (+) \app 0 \app xs) \le 127 \land -128 \le (\iexp{sum'} \app (+) \app 0 \app xs))\} \\
   (\iexp{ll\_foldl} \app \iexp{add} \app \iexp{0x0} \app xsi) \\
-  \{\lambda r. \iexp{si\_assn} \app (\iexp{sum'} \app (+) \app 0 \app xs) \app r \app \ast (\iexp{ls\_assn} \app \iexp{si\_assn}) \app xs \app xsi\}
+  \{\lambda r. \iexp{si8\_assn} \app (\iexp{sum'} \app (+) \app 0 \app xs) \app r \app \ast (\iexp{ls\_assn} \app \iexp{si8\_assn}) \app xs \app xsi\}
 \end{gather*}
 Where $\iexp{add}$ is a refinement of the HOL addition $+$, which can easily be refined non-destructively.
 
@@ -160,7 +162,7 @@ Where $\iexp{add}$ is a refinement of the HOL addition $+$, which can easily be 
 \subsubsection{A Generic Merge Sort Implementation for Lists}\label{sec:generic-merge-sort-for-lists}
 
 As a preprocessing step, Pastèque sorts variables of a term and the terms of a polynomial by an lexicographic order.
-The existing merge sort implementation, used in Pastèque splits up the lists, using $\iexp{drop}$ and $\iexp{take}$ functions, which are not implemented for $\iexp{ls\_assn}$.
+The existing merge sort implementation, used in Pastèque splits up the lists using $\iexp{drop}$ and $\iexp{take}$ functions, which are not implemented for $\iexp{ls\_assn}$.
 I therefore implement a generic merge sort algorithm that is designed to work well with $\iexp{ls\_assn}$.
 
 For this subsection, I assume that a refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ instantiates $\iexp{linord\_assn}$.
@@ -168,9 +170,40 @@ In particular, I assume a function $(<) \dbcolon \tv{a} \rightarrow \tv{a} \righ
 On $(<)$, I assume transitivity and totality.
 
 As a first step, the list is split into singleton lists by a function $\iexp{explode} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list} \app \iexp{list}$ with $\iexp{explode} = \iexp{map} \app (\lambda x. \app [x])$.
-$\iexp{explode}$ is refined by a while-based implementation in $\iexp{nres}$.
+$\iexp{explode}$ is straight forward to refine by a while-based implementation in $\iexp{nres}$.
 
-\subsection{Partial Maps}
+Then, a classic merge step then merges two sorted lists into one, as shown in \refalgo{algo:merge}.
+\isabellecodeextern[linerange=10-20,label=algo:merge,caption={
+  Implementation of the merge step of the merge sort algorithm.
+}]{isabelle-code/SortingSimplified.thy}
+Using the \inlinecode{refine-vcg} verification condition generator, I then show that
+\begin{gather*}
+  \iexp{sorted} \app xs \land \iexp{sorted} \app ys \Rightarrow \\
+  \iexp{merge} \app xs \app ys \le \iexp{SPEC} \app (\lambda r. \app \iexp{sorted} \app r \land \iexp{mset} \app r = \iexp{mset} \app xs + \iexp{mset} \app ys)
+\end{gather*}
+Where $\iexp{sorted} \dbcolon \tv{a} \app \iexp{list} \rightarrow \iexp{bool}$ evaluates to $\iexp{True}$ iff. the given list is sorted and $\iexp{mset} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{multiset}$ is the multiset of all elements of the given list.
+
+Note that splitting up the lists $\iexp{xs}$ and $\iexp{ys}$ into their head and tail destroys the original lists.
+Concretely, the split is implemented by the $\iexp{os\_pop}$ function of the original open list implementation\footnote{cf. theory $\iexp{Isabelle\_LLVM.IICF\_Open\_List}$.} from Isabelle-LLVM for which it holds that
+\begin{gather*}
+  \{(\iexp{ls\_assn} \app A) \app xs \app xsi\} \app
+  (\iexp{os\_pop} \app xsi) \app
+  \{\lambda (hi,ti). \app A \app (\iexp{hd} \app xs) \app hi \app \ast \app (\iexp{ls\_assn} \app A) \app (\iexp{tl} \app xs) \app ti\}
+\end{gather*}
+which implies that the refinement of $\iexp{merge}$ necessarily also destroys the given input lists.
+
+Starting with the original singleton lists, resulting from $\iexp{explode}$, pairs of lists are merged until a single sorted list is left in a function $\iexp{msort} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$.
+For $\iexp{msort}$, I then prove correctness by a lemma 
+\begin{gather*}
+  \iexp{msort} \app xs \le \iexp{SPEC} \app (\lambda r. \app \iexp{sorted} \app r \land \iexp{mset} \app r = \iexp{mset} \app xs).
+\end{gather*}
+Note that in the merge step in \refalgo{algo:merge}, the lesser of $\iexp{x}$ and $\iexp{y}$ is appended to the result list $\iexp{r}$ by $\iexp{r} \app \iexp{@} \app \iexp{[x]}$ or $\iexp{r} \app \iexp {@} \app \iexp{[y]}$ respectively.
+Using the list implementation presented in \ref{sec:refinement-assertion-for-lists}, appending to a list is linear in its length since the append operation must traverse the entire list to get to its last element.
+To avoid the linear append operation, I use a separate list implementation which also stores a pointer to the last element directly, allowing for a constant time append operation.
+
+\subsubsection{Lists with Tail Pointers}\label{lists-with-tail-pointers}
+
+\subsection{Partial Maps}\label{sec:partial-maps}
 
 One input of the PAC format is a list of polynomials in the ideal, each of which is assigned a number, which I will refer to as the polynomials index. 
 On HOL-level, this list of polynomials is modeled by a partial map of type $\iexp{nat} \rightharpoonup \iexp{polynomial}$ (cf. \refsec{sec:methodology_high-level-representation-of-polynomials} for the definition of polynomials).
