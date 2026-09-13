@@ -95,22 +95,31 @@ As an example, consider the following recursive function for summing up the elem
   Recursive summation over a list, destroying the list in the process.
 }]{isabelle-code/Lists.thy}
 
-\todo{show refined sum program in llM monad}
+A refined version of $\iexp{sum}$ on $\iexp{llM}$-level is shown in \refalgo{algo:llvm-sum-refined}.
+\isabellecodeextern[linerange=99-118,label=algo:llvm-sum-refined,caption={
+  Refined $\iexp{llM}$-level implementation of the sum function from \refalgo{algo:llvm-sum}.
+}]{isabelle-code/Lists.thy}
+In \refalgo{algo:llvm-sum-refined}, $64 \app \iexp{word} \app \iexp{cl\_list} = 64 \app \iexp{word} \app \iexp{ptr}$ is the type of lists on $\iexp{llM}$-level.
+$\iexp{os\_is\_empty} \dbcolon \tv{b} \app \iexp{cl\_list} \rightarrow \iexp{bool} \app \iexp{llM}$ is emptiness check for lists, $\iexp{os\_pop} \dbcolon \tv{b} \app \iexp{cl\_list} \rightarrow (\tv{b} \times \tv{b} \app \iexp{cl\_list}) \app \iexp{llM}$ destructures a given list into its head and tail\footnote{Both $\iexp{os\_is\_empty}$ and $\iexp{os\_pop}$ are defined in theory $\iexp{Isabelle\_LLVM.LLVM\_DS\_Open\_List}$.} and $\iexp{ll\_add} \dbcolon 64 \app \iexp{word} \rightarrow 64 \app \iexp{word} \rightarrow \iexp{64} \app \iexp{word}$ adds two 64-bit integers.
+$\iexp{unat64.cl\_free}$ at the end of the function frees the list $xsi$ which, at this point, is empty as it is the result of reaching the base case with $\iexp{os\_is\_empty} \app xsi = \iexp{True}$.
+Note that for simplicity, I ignore the possibility of an overflow in the addition which constricts the refinement to non-overflowing cases, adding a precondition to the actual refinement lemma.
 
-\inlinecode{sum} destroys the given list.
-If it did not, there would simultaneously exist two pointers into the list, one owned by the caller of \inlinecode{sum}, one owned by \inlinecode{sum}, which is not forbidden in the separation calculus.
-Note that, in principle, \inlinecode{sum} does not modify the given list, as the contained elements (machine words, refining natural numbers) are pure in LLVM and can be cloned without destroying the original element.
-Pastèque employs multiple recursive functions working on lists, in particular for performing arithmetic operation on polynomials.
-When performing the arithmetic operations, the original polynomials must stay intact as they might be used again in further operations.
+For $\iexp{os\_pop}$ in particular it holds that
+\begin{gather*}
+  \{(\iexp{ls\_assn} \app A) \app xs \app xsi\} \app
+  (\iexp{os\_pop} \app xsi) \app
+  \{\lambda (hi,ti). \app A \app (\iexp{hd} \app xs) \app hi \app \ast \app (\iexp{ls\_assn} \app A) \app (\iexp{tl} \app xs) \app ti\}
+\end{gather*}
+meaning that the original $xsi$ is destroyed after executing $\iexp{os\_pop} \app xsi$.
+Transversely, $\iexp{sum\_impl}$ destroys the given list $\iexp{xsi}$.
+If it did not, there would simultaneously exist two pointers into the list, one owned by the caller of $\iexp{sum\_impl}$, one owned by $\iexp{sum\_impl}$, which is forbidden in the separation calculus.
 
-A straight forward solution is to simply create a deep copy of a list and then call the function on the list copy.
+If, from the callers perspective, the original list is required to be kept intact, a straight forward solution is to simply create a deep copy of a list and then call $\iexp{sum\_impl}$ on the list copy.
 Assuming the contained elements support copying (c.f. \refsec{sec:interface-hierarchy-for-refinement-assertions}), a deep-copy operation $\iexp{ls\_copy} \dbcolon \tv{a} \app \iexp{ptr} \rightarrow \tv{a} \app \iexp{ptr} \app M$ can easily be implemented by a recursive walk on the list, copying each element into a new list \footnote{c.f. function $\iexp{cl\_copy}$ in theory $\iexp{IICF\_Copying\_List}$}.
-Note that if $A$ instantiates $\iexp{copyable\_assn}$, by use of $\iexp{ls\_copy}$, $\iexp{ls\_assn} \app A$ can in turn also instantiate $\iexp{copyable\_assn}$ meaning that nested lists can also be copied without further setup or code duplication.
+However, conceptually, $\iexp{sum\_impl}$ only reads from the given list and does not modify it, as the contained elements (64-bit machine words refining natural numbers) are pure and can trivially be cloned for use in the addition $\iexp{ll\_add}$ without necessarily destroying the original list element.
+Creating a deep copy is wasteful in this case.
 
-If the callee does not need to take ownership of a given list (i.e. it only reads from the list), creating a deep copy is wasteful.
-The presented \inlinecode{sum} function is an example of such a case: The original list is only read from, as the the contained machine words are pure and can be read from the list without having to move ownership out of the list.
-But, presented as is, \inlinecode{sum} uses the destructuring operations on lists which lead to destruction of the original list.
-To address this issue and provide an option to implement read-only operations on lists, I implement a refinement target for the HOL $\iexp{foldl}$ function.
+To address this issue and provide an option to implement read-only operations on lists, I implement a refinement target for the HOL $\iexp{foldl} \dbcolon (\tv{a} \rightarrow \tv{b} \rightarrow \tv{a}) \rightarrow \tv{a} \rightarrow \tv{b} \app \iexp{list} \rightarrow \tv{a}$ function.
 \isabellecodeextern[linerange=51-56,label=algo:llvm-fold,caption={
   $\iexp{llM}$ level $\iexp{foldl}$ implementation.
 }]{isabelle-code/Lists.thy}
@@ -131,13 +140,93 @@ With this lemma, it is possible to define
   Alternative, equivalent reformulation of \iexp{sum}, using \iexp{foldl}.
 }]{isabelle-code/Lists.thy}
 
-It is then straight forward to prove $\iexp{sum'} \equiv \iexp{sum}$ and also a Hoare-triple
+It is then straight forward to prove $\iexp{sum'} \equiv \iexp{sum}$ and also prove a refinement lemma
 \begin{gather*}
-  \{(\iexp{ls\_assn} \app \iexp{si8\_assn}) \app xs \app xsi \app \ast \uparrow((\iexp{sum'} \app (+) \app 0 \app xs) \le 127 \land -128 \le (\iexp{sum'} \app (+) \app 0 \app xs))\} \\
-  (\iexp{ll\_foldl} \app \iexp{add} \app \iexp{0x0} \app xsi) \\
-  \{\lambda r. \iexp{si8\_assn} \app (\iexp{sum'} \app (+) \app 0 \app xs) \app r \app \ast (\iexp{ls\_assn} \app \iexp{si8\_assn}) \app xs \app xsi\}
+  \{(\iexp{ls\_assn} \app \iexp{un64\_assn}) \app xs \app xsi \app \ast \uparrow((\iexp{sum'} \app (+) \app 0 \app xs) \le 2^{64}-1)\} \\
+  (\iexp{ll\_foldl} \app \iexp{ll\_add} \app \iexp{0x0} \app xsi) \\
+  \{\lambda r. \iexp{un64\_assn} \app (\iexp{sum'} \app (+) \app 0 \app xs) \app r \app \ast (\iexp{ls\_assn} \app \iexp{un64\_assn}) \app xs \app xsi\}
 \end{gather*}
-Where $\iexp{add}$ is a refinement of the HOL addition $+$, which can easily be refined non-destructively.
+Note that in this version, the original list $xsi$ is kept intact and not destroyed, with no initial deep copy of $xsi$ being required.
+
+\subsubsection{Interleaving Fold over two Lists}\label{sec:interleaving-fold}
+
+The $\iexp{ll\_foldl}$ implementation can be used to avoid deep copying lists when traversing a single list, as discussed in \ref{sec:non-destructive-list-access-using-fold}.
+Multiple functions in Pastèque however traverse through two lists simultaneously.
+As an example, consider the addition function for two polynomials, shown in \refalgo{algo:poly-add}.
+\isabellecodeextern[linerange=11-29,label=algo:poly-add,caption={
+  Addition Function for two given polynomials.
+}]{isabelle/IsaFoL-Pasteque-LLVM/PAC_Checker_LLVM/PAC_Polynomials_Operations.thy}
+In \refalgo{algo:poly-add}, $\iexp{llist\_polynomial} = (\iexp{string} \app \iexp{list} \times \iexp{nat}) \app \iexp{list}$ is the type of polynomials on HOL-level (cf. \refsec{sec:methodology_high-level-representation-of-polynomials}), and  $\iexp{term\_order\_rel} \dbcolon (\iexp{string} \app \iexp{list} \times \iexp{string} \app \iexp{list}) \app \iexp{set}$ defines a lexicographic order on lists of strings.
+Note that if two given input polynomials are sorted with regards to $\iexp{term\_order\_rel}$, then the result of $\iexp{add\_poly\_l'}$ will also be sorted with regards to $\iexp{term\_order\_rel}$.
+
+$\iexp{add\_poly\_l'}$ has a smiliar issue as $\iexp{sum}$ from \refsec{sec:non-destructive-list-access-using-fold}:
+Refining $\iexp{add\_poly\_l'}$ as presented to $\iexp{llM}$-level would lead to destructuring list by use of $\iexp{os\_pop}$, meaning that $\iexp{add\_poly\_l'}$ would destroy the given lists even though conceptually it only reads from the lists and does not modify them.
+As the polynomials in the addition will potentially be used in following additions (or multiplications), using a straight forward refinement of $\iexp{add\_poly\_l'}$ requires cloning the two input polynomials.
+Also, $\iexp{cl\_fold}$ does not help in this case as it can only traverse a single list.
+
+To obtain a way to non-destructively traverse two lists, I define an \textit{interleaving fold} function as shown in \refalgo{algo:interleaving-fold}, where $\iexp{direction} = \iexp{LEFT} \mid \iexp{RIGHT} \mid \iexp{BOTH} \mid \iexp{STOP}$.
+\isabellecodeextern[linerange=130-144,label=algo:interleaving-fold,caption={
+  Interleaving fold operation to enable read-only traversal through two lists.
+}]{isabelle-code/Lists.thy}
+$\iexp{ifoldl}$ constructs an accumulated value of type $\tv{a}$ by traversing two lists of types $\tv{b} \app \iexp{list}$ and $\tv{c} \app \iexp{list}$. 
+In each step, the second argument of $\iexp{ifoldl}$, a function $\iexp{dec} \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{direction}$, is used to decide in which of the two lists the traversal should continue:
+If $\iexp{dec} \app b \app c = \iexp{LEFT}$, for the current elements $b \dbcolon \tv{b}$ and $c \dbcolon \tv{c}$, then $\iexp{ifoldl}$ advances in the first list, while in the second list, it stays at the current element $c$.
+Naturally, $\iexp{dec} \app b \app c = \iexp{RIGHT}$ is the inverse case.
+For $\iexp{dec} \app b \app c = \iexp{BOTH}$, $\iexp{ifoldl}$ advances in both lists, while $\iexp{dec} \app b \app c = \iexp{STOP}$ allows for an early exit.
+The first argument $f \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \tv{c} \rightarrow \iexp{direction} \rightarrow \tv{a}$ is a generalization of the inner $f \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \tv{a}$ in the regular $\iexp{foldl}$, allowing to update the accumulator of type $\tv{a}$, based on the current list elements of types $\tv{b}$ and $\tv{c}$ and can also consider the chosen direction, resulting from $\iexp{dec} \app b \app c$.
+As its likely that $\iexp{ifoldl}$ finishes traversal of one list, while the other list is not yet traversed completely, the arguments $f1 \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \tv{a}$ and $f2 \dbcolon \tv{a} \rightarrow \tv{c} \rightarrow \tv{a}$ allow for finishing the traversal of the unfinished list using the regular $\iexp{foldl}$ starting with the current accumulator.
+
+With $\iexp{ifoldl}$ its possible to reimplement $\iexp{add\_poly\_l'}$ in a non-destrutive way.
+To do so, I define a decision function $\iexp{add\_dec} \dbcolon \iexp{monomial} \rightarrow \iexp{monomial} \rightarrow \iexp{direction}$, where $\iexp{monomial}$ is an abbreviation for $(\iexp{string} \app \iexp{list} \times \iexp{nat})$, as shown in \refalgo{algo:add-dec}
+\isabellecodeextern[linerange=150-154,label=algo:add-dec,caption={
+  Decision function for which list to advance in for use in the $\iexp{ifoldl}$ based addition of polynomials.
+}]{isabelle-code/Lists.thy}
+Note how this models the original three cases in \refalgo{algo:poly-add}.
+The inner function for the accumulator update is given by $\iexp{add\_update}$ shown in \refalgo{algo:add-update}.
+\isabellecodeextern[linerange=160-167,label=algo:add-update,caption={
+  Function for updating the accumulator in the $\iexp{ifoldl}$ based addition of polynomials.
+}]{isabelle-code/Lists.thy}
+Once the interleaving traversal has reached the end of one of the list, the other list must be appended to the accumulator.
+This corresponds to the base cases in \refalgo{algo:poly-add} with inputs $(p, [\app])$ and $([\app], q)$ respectively.
+Appending the remaining list is achieved by $\iexp{add\_copy\_remainder}$ shown in \refalgo{algo:add-copy-remainder}
+\isabellecodeextern[linerange=170-172,label=algo:add-copy-remainder,caption={
+  Function for appending the remaining list to the accumulator in $\iexp{ifoldl}$ based addition of polynomials.
+}]{isabelle-code/Lists.thy}
+Note that the explicit $\iexp{COPY}$ in $\iexp{add\_copy\_remainder}$ is genuinely required to append the remaining list without destroying the original.
+
+I then prove that
+\begin{align*}
+  \iexp{add\_poly\_l'} (p,q) = \iexp{ifoldl} &\iexp{add\_update} \app \iexp{add\_dec} \iexp{add\_copy\_remainder} \\
+                                             &\app \iexp{add\_copy\_remainder} \iexp{[\app]} \app p \app q
+\end{align*}
+To obtain an $\iexp{ifoldl}$ based alternative addition implementation.
+
+For the actual refinement down to $\iexp{llM}$-level, I prove a lemma for a refinement target $\iexp{ll\_ifoldl}$ analogously to $\iexp{ll\_foldl}$ in \ref{sec:non-destructive-list-access-using-fold}:
+\begin{align*}
+  &\{A \app a \app ai \app \ast B \app b \app bi \app \ast C \app c \app ci \app \ast \iexp{dir\_assn} \app d \app di\} \\
+  &\hcont{\{A \app a \app ai \app \ast} (fi \app ai \app bi \app ci \app di) \\
+  &\hcont{\{A \app a \app ai \app \ast} \{\lambda r. A \app (f \app a \app b \app c \app d) \app r \app \ast B \app b \app bi \app \ast C \app c \app ci\} \Rightarrow \\[0.5em]
+  &\{B \app b \app bi \app \ast C \app c \app ci\} \app (deci \app bi \app ci) \\
+  &\hcont{\{B \app b \app bi \app \ast} \{\lambda r. \iexp{dir\_assn} \app (dec \app b \app c) \app r \app \ast B \app b \app bi \app \ast C \app c \app ci\} \Rightarrow \\[0.5em]
+  &\{A \app a \app ai \app \ast B \app b \app bi\} \app (f_1i \app ai \app bi) \app
+    \{\lambda r. A \app (f_1 \app a \app b) \app r \app \ast B \app b \app bi\} \Rightarrow \\[0.5em]
+  &\{A \app a \app ai \app \ast C \app c \app ci\} \app (f_2i \app ai \app ci) \app
+    \{\lambda r. A \app (f_2 \app a \app c) \app r \app \ast C \app c \app ci\} \Rightarrow \\[0.5em]
+  &\{A \app acc \app acci \app \ast (\iexp{ls\_assn} \app B) \app bs \app bsi \app \ast (\iexp{ls\_assn} \app C) \app cs \app csi\} \\
+  &\hcont{\{A \app acc \app acci \app \ast} (\iexp{ll\_ifoldl} \app fi \app deci \app f_1i \app f_2i \app acci \app bsi \app csi) \\
+  &\hcont{\{A \app acc \app acci \app \ast} \{\lambda r. A \app (\iexp{ifoldl} \app f \app dec \app f_1 \app f_2 \app acc \app bs \app cs) \app r \\
+  &\hcont{\{A \app acc \app acci \app \ast \{\lambda r.} \ast (\iexp{ls\_assn} \app B) \app bs \app bsi \app \ast (\iexp{ls\_assn} \app C) \app cs \app csi\}
+\end{align*}
+where $\iexp{dir\_assn} \dbcolon \iexp{direction} \rightarrow 8 \app \iexp{word} \rightarrow \iexp{assn}$ is a refinement assertion for the $\iexp{direction}$ type, encoding each of the four constructors $\iexp{LEFT}, \iexp{RIGHT}, \iexp{BOTH}, \iexp{STOP}$ by a number $\iexp{0}-\iexp{3}$.
+The lemma can be read as follows: Assuming the following preconditions are fulfilled:
+\begin{enumerate}
+  \item $f \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \tv{c} \rightarrow \iexp{direction} \rightarrow \tv{a}$ is refined by $fi \dbcolon \tv{ai} \rightarrow \tv{bi} \rightarrow \tv{ci} \rightarrow 8 \app \iexp{word} \rightarrow \tv{ai}$, such that the second argument $bi \dbcolon \tv{bi}$ and third argument $ci \dbcolon \tv{ci}$ are kept intact, which models a read only access to the input lists.
+  \item The decision function $dec \dbcolon \tv{b} \rightarrow \tv{c} \rightarrow \iexp{direction}$ is refined by $\iexp{deci} \dbcolon \tv{bi} \rightarrow \tv{ci} \rightarrow 8 \app \iexp{word}$ with the arguments being kept intact.
+  \item Functions $f_1$ and $f_2$ are refined by $f_1i$ and $f_2i$ such that the respective list elements are kept intact.
+\end{enumerate}
+Then, $\iexp{ll\_ifoldl} \app fi \app deci \app f_1i \app f_2i \app acci \app bsi \app csi$ refines $\iexp{ifoldl} \app f \app dec \app f_1 \app f_2 \app acc \app bs \app cs$, with $acci, bsi, csi$ being the concrete accumulator and input lists for the abstract accumulator and input lists $acc, bs, cs$, such that the lists $bsi$ and $csi$ are kept intact.
+
+This ultimately allows for implementing a read only polynomial addition such that the two input polynomials must not be cloned before the addition is performed.
 
 % THIS PART IS FOR AN INTERLEAVING FOLD IF WE EVER GET THAT.
 % As an example, consider the following implementation of the merge step in a classic merge sort algorithm:
@@ -183,15 +272,6 @@ Using the \inlinecode{refine-vcg} verification condition generator, I then show 
 \end{gather*}
 Where $\iexp{sorted} \dbcolon \tv{a} \app \iexp{list} \rightarrow \iexp{bool}$ evaluates to $\iexp{True}$ iff. the given list is sorted and $\iexp{mset} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{multiset}$ is the multiset of all elements of the given list.
 
-Note that splitting up the lists $\iexp{xs}$ and $\iexp{ys}$ into their head and tail destroys the original lists.
-Concretely, the split is implemented by the $\iexp{os\_pop}$ function of the original open list implementation\footnote{cf. theory $\iexp{Isabelle\_LLVM.IICF\_Open\_List}$.} from Isabelle-LLVM for which it holds that
-\begin{gather*}
-  \{(\iexp{ls\_assn} \app A) \app xs \app xsi\} \app
-  (\iexp{os\_pop} \app xsi) \app
-  \{\lambda (hi,ti). \app A \app (\iexp{hd} \app xs) \app hi \app \ast \app (\iexp{ls\_assn} \app A) \app (\iexp{tl} \app xs) \app ti\}
-\end{gather*}
-which implies that the refinement of $\iexp{merge}$ necessarily also destroys the given input lists.
-
 Starting with the original singleton lists, resulting from $\iexp{explode}$, pairs of lists are merged until a single sorted list is left in a function $\iexp{msort} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$.
 For $\iexp{msort}$, I then prove correctness by a lemma 
 \begin{gather*}
@@ -202,6 +282,31 @@ Using the list implementation presented in \ref{sec:refinement-assertion-for-lis
 To avoid the linear append operation, I use a separate list implementation which also stores a pointer to the last element directly, allowing for a constant time append operation.
 
 \subsubsection{Lists with Tail Pointers}\label{lists-with-tail-pointers}
+
+For the regular linked list, cf. \ref{sec:refinement-assertion-for-lists}, the refinement target is a pointer $\tv{b} \app \iexp{node} \app \iexp{ptr}$, where $\tv{b}$ is representable in LLVM.
+The pointer points at the head of the list.
+To store a pointer to the last element of a list, the refinement target extends to $\iexp{b} \app \iexp{node} \app \iexp{ptr} \times \iexp{b} \app \iexp{node} \app \iexp{ptr}$.
+The first element still points at the head of the list, while the second element points at the last node.
+
+A refinement assertion that also stores a pointer to the end of the list is given by
+\begin{align*}
+  \iexp{lst\_assn} \app &A \app xs \app (p,q) = \\
+  &\begin{cases}
+    \uparrow(p=\iexp{null}) &\text{, if $xs=[\app]$}\\[1ex]
+    \begin{aligned}
+    &\exists c\app xsi. \app \iexp{lseg} \app xsi \app p \app q \app \ast \app \iexp{list\_aux} \app A \app (\iexp{butlast} \app xs) \app xsi\\
+    &\ast \app q \mapsto (\iexp{Node} \app c \app \iexp{null}) \app \ast \app A \app (\iexp{last} \app xs) \app c \app \ast \app \uparrow(p\neq\iexp{null})
+    \end{aligned}
+    &\text{, otherwise}
+  \end{cases}
+\end{align*}
+where $\iexp{butlast} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$ returns a list without its last element and $\iexp{last} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a}$ returns the last element from a list.
+Note that the first line of the second case is essentially $\iexp{ls\_assn} \app A \app (\iexp{butlast}) \app p$ with the addition that $q$ is the end of this list segment, while the second line ensures that $q$ points to the last list element $\iexp{Node} \app c \app \iexp{null}$ and that $A \app (\iexp{last} \app xs) \app c$.
+Also $p$ is required to be $\neq \iexp{null}$ for non-empty lists, which is necessary to add since in the first line, $\iexp{butlast} \app xs$ might be the empty list for a singleton $xs=[c]$.
+
+The construction of $\iexp{lst\_assn} \dbcolon (\tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}) \rightarrow \tv{a} \app \iexp{list} \rightarrow (\tv{b} \app \iexp{node} \app \iexp{ptr} \times \tv{b} \app \iexp{node} \app \iexp{ptr}) \rightarrow \iexp{assn}$ allows for a constant time append and concatenation operations.
+Conversion from a list with tail pointer to a list without it is also constant time, since it simply amounts to dropping the tail pointer.
+Conversion from list without tail pointer to list with tail pointer however is linear in the list's length.
 
 \subsection{Partial Maps}\label{sec:partial-maps}
 

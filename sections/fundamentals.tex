@@ -330,7 +330,7 @@ $[([\iexp{"x"}], 2), ([\iexp{"x"}, \iexp{"y"}], 3), ([\iexp{"y"}], 1)]$ in Past�
 Note that polynomials are sorted lexicographically with regards to the terms of the monomials which are also sorted internally.
 This is an invariant of Pastèque that holds throughout it's execution.
 
-Unfolding the type of a $\iexp{polynomial}$ gives us $\ls{(\ls{\ls{\iexp{char}}} \times \iexp{int})}$.
+Unfolding the type of a $\iexp{polynomial}$ gives $\ls{(\ls{\ls{\iexp{char}}} \times \iexp{int})}$ which in the Pastèque implementation is abbreviated by $\iexp{llist\_polynomial}$.
 Refining a program that works on polynomials as defined here, therefore implies being able to represent nested lists, and supporting typical list operations like prepending and element, destructuring a list.
 The given abstract datatype reveals the two main requirements for porting Pastèque from Imperative-HOL to LLVM:
 
@@ -345,16 +345,12 @@ The given abstract datatype reveals the two main requirements for porting Pastè
   To use it for Pastèque, we have to extend these operations to support signed numbers, i.e. integers.
   Furthermore, we need to implement conversion between numbers and strings, which is required for printing error messages and parsing input files.
   \refsec{sec:multiple-precision-integers} discusses the work on arbitrary-precision integers.
-  \item To my knowledge, the existing list implementation Isabelle-LLVM requires contained elements to be pure.
-  The existing list implementation must therefore be extended to be able to hold impure elements.
+  \item The existing list implementation Isabelle-LLVM requires contained elements to be pure.
+  Polynomials consist of nested, composed impure data structures.
+  For instance $\iexp{string} \app \iexp{list} = \iexp{char} \app \iexp{list} \app \iexp{list}$ and while $\iexp{char}$ is pure, $\iexp{char} \app \iexp{list}$ is not.
+  Therefore the list implementation must be extended to be able to hold impure elements.
 
-  In addition to nestable lists, Pastèque also uses two other data structures, for which I could not find an appropriate existing refinement target in Isabelle-LLVM.
-
-  Firstly, Pastèque stores $\iexp{polynomial}$s in a map where each polynomial is assigned an index, so a refinement target for associative maps must be implemented.
-
-  Secondly, Pastèque uses a hashset to track assigned variables\todo{is that actually the purpose of the hashset?}, which also requires a custom hashset implementation for strings.
-
-  \refsec{sec:low-level-datatypes-in-isabelle-llvm} discusses the implementation of the new required datatypes.
-
-
+  In addition to nestable lists, Pastèque also uses partial maps to store a table of polynomials, a hashset of strings and a hashtable mapping strings to numbers.
+  For all of these data structures, I have extended existing data structures from Isabelle-LLVM to fit the use case of Pastèque.
+  \refsec{sec:low-level-datatypes-in-isabelle-llvm} discusses the implementation of these data structures.
 \end{enumerate}

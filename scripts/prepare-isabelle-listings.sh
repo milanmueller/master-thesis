@@ -14,6 +14,8 @@ OUT_DIR="$REPO_ROOT/build/isabelle-listings"
 
 FILES=(
   "isabelle/IsaFoL-Pasteque-LLVM/PAC_Checker_LLVM/IICF_PartialMap.thy"
+  "isabelle/IsaFoL-Pasteque-LLVM/PAC_Checker_LLVM/PAC_Polynomials_Operations.thy"
+  "isabelle/IsaFoL-Pasteque-LLVM/PAC_Checker_LLVM/Interleaving_Fold.thy"
 )
 
 while IFS= read -r -d '' thy; do

@@ -209,4 +209,4 @@ The limbs in in the list are 64-bit integers which can not express $\iexp{hi} * 
 To still implement $\iexp{divmod2by1}$, the inputs $\iexp{hi}$ and $\iexp{lo}$ are upcast to a 128-bit integer before the division and modulo operations are performed.
 Note that throughout the execution of $\iexp{bi\_div\_by\_w64}$ it holds that $\iexp{r} < \iexp{l}$ which implies $\iexp{cur} \app \iexp{div} \app \iexp{d} < 2^{64}$, meaning that $\iexp{cur} \app \iexp{div} \app \iexp{d}$ can be downcast to a 64-bit integer without its value being changed.
 \todo{more elaborate explanation for why this is true.}
-As $\iexp{cur} \app \iexp{mod} \app \iexp{d} < 2^64$ is always fulfilled (since $\iexp{d} < 2^64$), it can also be downcast to a 64-bit integer without issues.
+As $\iexp{cur} \app \iexp{mod} \app \iexp{d} < 2^{64}$ is always fulfilled (since $\iexp{d} < 2^{64}$), it can also be downcast to a 64-bit integer without issues.
