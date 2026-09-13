@@ -167,9 +167,10 @@ Extending to conversion from integers to strings is achieved by $\iexp{chars\_of
 	\iexp{chars\_of\_int} \app i =
 	\begin{cases}
 		\iexp{chars\_of\_nat} \app (\iexp{abs} \app i) &\text{, if $0 \leq i$} \\
-		(\iexp{'-'}) \iexp{\#} (\iexp{chars\_of\_nat} \app (\iexp{abs} \app i)) &\text{, otherwise}
+		(\iexp{'-'}) \iexp{\#} (\iexp{chars\_of\_nat} \app (\iexp{abs} \app i)) &\text{, otherwise.}
 	\end{cases}
 \end{gather*}
+The function $\iexp{abs} \dbcolon \iexp{int} \rightarrow \iexp{nat}$ returns the absolute value of a given integer.
 The relation $\iexp{int\_ascii\_str\_rel} \dbcolon (\iexp{int}, \iexp{string}) \dbcolon \iexp{set}$ is then given by
 \begin{gather*}
 	(i,cs) \in \iexp{int\_ascii\_str\_rel} \Leftrightarrow cs = \iexp{chars\_of\_int} \app i

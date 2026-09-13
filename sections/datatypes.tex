@@ -48,7 +48,7 @@ A node with $\iexp{node}.\iexp{next} = \iexp{null}$ denotes the end of a list.
 
 In the following, assume that $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ is a refinement assertion.
 Note that, $\tv{a}$ is a high-level type that is not directly representable in LLVM, while $\tv{b}$ is representable in LLVM.
-To refine lists of type $\ls{\tv{a}}$ a refinement assertion of type $\ls{\tv{a}} \rightarrow \tv{b} \app \iexp{node} \app \iexp{ptr} \rightarrow \iexp{assn}$ is required.
+To refine lists of type $\tv{a} \app \iexp{list}$ a refinement assertion of type $\tv{a} \app \iexp{list} \rightarrow \tv{b} \app \iexp{node} \app \iexp{ptr} \rightarrow \iexp{assn}$ is required.
 In order to obtain such a refinement assertion, some preliminary definitions are required.
 
 Firstly, a notion of element-wise refinement is given by an assertion $\iexp{list\_aux} \dbcolon (\tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}) \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{b} \app \iexp{list} \rightarrow \iexp{assn}$
@@ -58,10 +58,10 @@ Firstly, a notion of element-wise refinement is given by an assertion $\iexp{lis
                                                   &\ast (\forall i.\ 0 \le i < \iexp{length} \app xs \Rightarrow A \app (xs[i]) \app (xsi[i]))
 \end{align*}
 $xs[i]$ denotes the $i$-th element of list $xs$.
-$\iexp{list\_aux}$ can be seen as the characteristic function of a relation between lists $xs \dbcolon \ls{\tv{a}}$ of abstract elements and lists $xsi \dbcolon \ls{\tv{b}}$ of concrete elements where for each position, the refinement assertion $A$ holds for the respective abstract and concrete element.
-Note that $\ls{\tv{b}}$ is not representable in LLVM and will not be recognized by the code generator.
+$\iexp{list\_aux}$ can be seen as the characteristic function of a relation between lists $xs \dbcolon \tv{a} \app \iexp{list}$ of abstract elements and lists $xsi \dbcolon \tv{b} \app \iexp{list}$ of concrete elements where for each position, the refinement assertion $A$ holds for the respective abstract and concrete element.
+Note that $\tv{b} \app \iexp{list}$ is not representable in LLVM and will not be recognized by the code generator.
 
-Secondly, a function $\iexp{lseg} \dbcolon \ls{\tv{b}} \rightarrow \tv{b} \app \iexp{node} \app \iexp{ptr} \rightarrow \tv{b} \app \iexp{node} \app \iexp{ptr} \rightarrow \iexp{bool}$ relates lists of type $\tv{b}$ to segments of lists in LLVM, where the first $\tv{b} \app \iexp{node} \app \iexp{ptr}$ is a pointer to the start of the segment and the second $\tv{b} \app \iexp{node} \app \iexp{ptr}$ is a pointer to the end of the segment.
+Secondly, a function $\iexp{lseg} \dbcolon \tv{b} \app \iexp{list} \rightarrow \tv{b} \app \iexp{node} \app \iexp{ptr} \rightarrow \tv{b} \app \iexp{node} \app \iexp{ptr} \rightarrow \iexp{bool}$ relates lists of type $\tv{b}$ to segments of lists in LLVM, where the first $\tv{b} \app \iexp{node} \app \iexp{ptr}$ is a pointer to the start of the segment and the second $\tv{b} \app \iexp{node} \app \iexp{ptr}$ is a pointer to the end of the segment.
 $\iexp{lseg}$ is recursively defined as
 \footnote{The actual $\iexp{lseg}$ is defined in $\iexp{Isabelle\_LLVM.LLVM\_DS\_List\_Seg}$.}
 \begin{align*}
@@ -83,7 +83,7 @@ Using $\iexp{list\_aux}$ and $\iexp{lseg}$, a refinement assertion for lists, pa
 \begin{align*}
   \iexp{ls\_assn} \app A \iexp{xs} \iexp{p} = \exists \iexp{xsi}.\ \iexp{lseg} \app \iexp{xsi} \app p \app \iexp{null} \ast \iexp{list\_aux} \app A \app \iexp{xs} \app \iexp{xsi}
 \end{align*}
-which means that $p \dbcolon \tv{b} \app \iexp{node} \app \iexp{ptr}$ refines $a \dbcolon \ls{\tv{a}}$ if there exists a list $\iexp{xsi} \dbcolon \ls{\tv{b}}$ such that $\iexp{lseg} \app b \app p \app \iexp{null}$, i.e., $p$ is the start pointer of a list segment related to $\iexp{xsi}$, terminated by the $\iexp{null}$ pointer, and $\iexp{xsi}$ and $\iexp{xs}$ are related element-wise as specified by $\iexp{ls\_aux}$.
+which means that $p \dbcolon \tv{b} \app \iexp{node} \app \iexp{ptr}$ refines $a \dbcolon \tv{a} \app \iexp{list}$ if there exists a list $\iexp{xsi} \dbcolon \tv{b} \app \iexp{list}$ such that $\iexp{lseg} \app b \app p \app \iexp{null}$, i.e., $p$ is the start pointer of a list segment related to $\iexp{xsi}$, terminated by the $\iexp{null}$ pointer, and $\iexp{xsi}$ and $\iexp{xs}$ are related element-wise as specified by $\iexp{ls\_aux}$.
 
 \subsubsection{Non-destructive List Access using \iexp{foldl}}\label{sec:non-destructive-list-access-using-fold}
 
@@ -110,7 +110,8 @@ For $\iexp{os\_pop}$ in particular it holds that
   (\iexp{os\_pop} \app xsi) \app
   \{\lambda (hi,ti). \app A \app (\iexp{hd} \app xs) \app hi \app \ast \app (\iexp{ls\_assn} \app A) \app (\iexp{tl} \app xs) \app ti\}
 \end{gather*}
-meaning that the original $xsi$ is destroyed after executing $\iexp{os\_pop} \app xsi$.
+where the functions $\iexp{hd} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a}$ and $\iexp{tl} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$ return the head (first element of the list) and tail (the list without the first element) of a list respectively.
+The Hoare-triple implies that the original $xsi$ is destroyed after executing $\iexp{os\_pop} \app xsi$.
 Transversely, $\iexp{sum\_impl}$ destroys the given list $\iexp{xsi}$.
 If it did not, there would simultaneously exist two pointers into the list, one owned by the caller of $\iexp{sum\_impl}$, one owned by $\iexp{sum\_impl}$, which is forbidden in the separation calculus.
 
@@ -228,30 +229,11 @@ Then, $\iexp{ll\_ifoldl} \app fi \app deci \app f_1i \app f_2i \app acci \app bs
 
 This ultimately allows for implementing a read only polynomial addition such that the two input polynomials must not be cloned before the addition is performed.
 
-% THIS PART IS FOR AN INTERLEAVING FOLD IF WE EVER GET THAT.
-% As an example, consider the following implementation of the merge step in a classic merge sort algorithm:
-% $$
-%   \iexp{merge} \dbcolon \ls{\iexp{nat}} \rightarrow \ls{\iexp{nat}} \rightarrow \ls{\iexp{nat}}
-% $$
-% where
-% \begin{alignat*}{6}
-%   &\iexp{merge} &\app &[]                         &\app &q            &\app &= [] \\
-%   &\iexp{merge} &\app &p                          &\app &[]           &\app &= p \\
-%   &\iexp{merge} &\app &(p \mathbin{\#} ps) &\app &(q \mathbin{\#} qs) &\app &= \begin{cases} p \mathbin{\#} \iexp{merge} \app ps \app (q \mathbin{\#} qs) & \text{if } p \le q \\ q \mathbin{\#} \iexp{merge} \app (p \mathbin{\#} ps) \app qs & \text{otherwise} \end{cases}
-% \end{alignat*}
-% For the merge function, it is possible to prove the Hoare-triple
-% \begin{gather*}
-%  \{\iexp{ls\_assn} \app xs \app xsi \ast \iexp{ls\_assn} \app ys \app ysi \ast (\iexp{sorted} \app xs \land \iexp{sorted} \app ys)\} \\
-% (\iexp{merge} \app xsi \app ysi) \\
-% \{\lambda r. \exists zs. \iexp{mset} \app zs = \iexp{mset} \app xs \cup \iexp{mset} \app ys \land \iexp{sorted} \app zs \land \iexp{ls\_assn} zs r\}
-% \end{gather*}
-% Where $\iexp{sorted} \dbcolon \tv{a} \app \iexp{list} \rightarrow \iexp{bool}$ evaluates to $\iexp{True}$ if the given list is sorted and $\iexp{mset} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{mset}$ is the multiset of all elements of a given list.
-% Note that the original lists $xs$ and $ys$ are destroyed after the execution of $\iexp{merge}$, proving a hoare triple where $xs$ and $ys$ are kept intactk
-
 \subsubsection{A Generic Merge Sort Implementation for Lists}\label{sec:generic-merge-sort-for-lists}
 
 As a preprocessing step, Pastèque sorts variables of a term and the terms of a polynomial by an lexicographic order.
-The existing merge sort implementation, used in Pastèque splits up the lists using $\iexp{drop}$ and $\iexp{take}$ functions, which are not implemented for $\iexp{ls\_assn}$.
+The existing merge sort implementation, used in Pastèque splits up the lists using $\iexp{drop} \dbcolon \iexp{nat} \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$ and $\iexp{take} \dbcolon \iexp{nat} \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$ functions, which return a prefix and a suffix of given list with the given length respectively.
+$\iexp{take}$ and $\iexp{drop}$ are not implemented for $\iexp{ls\_assn}$.
 I therefore implement a generic merge sort algorithm that is designed to work well with $\iexp{ls\_assn}$.
 
 For this subsection, I assume that a refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ instantiates $\iexp{linord\_assn}$.

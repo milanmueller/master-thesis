@@ -2,15 +2,20 @@
 
 \subsection{The Practical Algebraic Calculus}
 
+\textcolor{red}{
+  Die Subsection hier werde ich nochmal komplett neu schreiben - lohnt sich nicht den Teil hier zu lesen.
+  Ab \ref{sec:isabelle-hol} kommt der (halbwegs) fertige Teil.
+}
+
 This section introduces the practical algebraic calculus (PAC).
-For a thorough introduction on PAC, in particular the underlying concepts and their use in verification of digital circuits, we refer to to the work by Kaufmann et al. \cite{pac-2018} \cite{pac-2024} \cite{kaufmann-phd-thesis}.
+For a thorough introduction on PAC, in particular the underlying concepts and their use in verification of digital circuits, we refer to the work by Kaufmann et al. \cite{pac-2018} \cite{pac-2024} \cite{kaufmann-phd-thesis}.
 Here, we only introduce the foundations that are used in PAC checking and are thus relevant to our work on Pastèque:
 \begin{itemize}[noitemsep, topsep=0pt, parsep=0pt]
   \item We consider multivariate polynomials $\mathbb{K}[X]$ with variables $X$ and coefficients in field $\mathbb{K}$.
-  \item For a set $P \subseteq \mathbb{K}[X]$, a \textit{model} is a point $x$ such that every $p \in P$ is 0 at $x$. i.e. $\forall p \in P. p(x) = 0$.
-  \item A nonemtpy subset $I \subseteq \mathbb{K}[X]$ is called \textit{ideal} if it is closed under multiplication and addition, i.e.
+  \item For a set $P \subseteq \mathbb{K}[X]$, a \textit{model} is a point $x$ such that every $p \in P$ is 0 at $x$, i.e. $\forall p \in P.\, p(x) = 0$.
+  \item A nonempty subset $I \subseteq \mathbb{K}[X]$ is called \textit{ideal} if it is closed under multiplication and addition, i.e.
 $I$ is an ideal iff. for all $i_1,i_2\in I$ and $p \in \mathbb{K}[X]$ we have $i_1 + i_2 \in I$ and $p \cdot i_1 \in I$.
-  \item A set $B = \{ b_1, \dots, b_n \} \subseteq \mathbb{K}[X]$ is a basis of an ideal $I$, if $I = \{q_1 \cdot b_1 + \dots + q_n \cdot b_n \mid q_1, \dots, q_n \in \mathbb{K}[X]\}$, we denote this by $I = \langle B \rangle$.
+  \item A set $B = \{ b_1, \dots, b_n \} \subseteq \mathbb{K}[X]$ is a basis of an ideal $I$ if $I = \{q_1 \cdot b_1 + \dots + q_n \cdot b_n \mid q_1, \dots, q_n \in \mathbb{K}[X]\}$; we denote this by $I = \langle B \rangle$.
 \end{itemize}
 A proof step in the 
 
@@ -23,22 +28,23 @@ A PAC checker is now given as input:
 \subsection{Isabelle/HOL}\label{sec:isabelle-hol}
 
 The proof assistant \textit{Isabelle} \cite{isabelle} enables the writing of machine-checked formal mathematical proofs.
-Following the LCF approach \cite{computational-logic-origins}, Isabelle employs a small kernel of logical inference rules for verifying the correctness of user-defined proofs, such that correctness of the kernel's inference engine implies correctness of the proofs.
+Following the LCF approach \cite{computational-logic-origins}, Isabelle employs a small kernel of logical inference rules for verifying the correctness of user-defined proofs, such that soundness of the kernel's inference engine implies correctness of the proofs.
 
-To interactively construct proofs, the user can utilize and combine a variety of proof methods, ranging from fundamental deductive concepts, like case analysis and induction, to more complex automated methods.
-An example of the latter is the \texttt{smt} method which offloads reasoning work to an external SMT-solver and then reconstructs its returned proof artifact using other proof methods on the Isabelle side to obtain a valid proof that Isabelle's kernel will accept.
-Potential errors in a proof method do not lead to acceptance of an unsound proof since the kernel rejects inference steps if they are not valid.
+To interactively construct proofs, the user can combine a variety of proof methods, ranging from fundamental deductive concepts, like case analysis and induction, to more complex automated methods.
+An example of the latter is the \inlinecode{smt} method: A theorem is given to an external SMT solver, which emits a proof certificate.
+The \inlinecode{smt} method then attempts to construct a proof from the certificate on the Isabelle side, using only existing Isabelle proof methods, yielding a valid proof that Isabelle's kernel accepts.
+Crucially, errors in a proof method do not lead to acceptance of an unsound proof since the kernel rejects inference steps if they are not valid.
 
-The core Isabelle system, more precisely referred to as \textit{Isabelle/Pure}, is a generic theorem proving framework, meaning it can serve as a basis for implementation of different logical theories with distinct axioms.
+The core Isabelle system, referred to as \textit{Isabelle/Pure}, is a generic theorem proving framework, meaning it can serve as a basis for implementation of different logical theories with distinct axioms.
 The most widespread instance of Isabelle is \textit{Isabelle/HOL}, which is an axiomatization of simply typed higher-order logic on top of Isabelle/Pure.
-Isabelle/HOL is also used in this thesis.
+Throughout this thesis, I use Isabelle/HOL.
 
 % Isabelle has been used for formalizations from various domains, including fundamentals of mathematics, e.g. Gödel's Incompleteness Theorems \cite{Incompleteness-AFP} or the Prime Number Theorem \cite{Prime-Number-Theorem-Avigad} \cite{Prime_Number_Theorem-AFP}, but also the verification of computer systems, for instance in the seL4 OS microkernel \cite{seL4}.
 
 Throughout this thesis, I assume familiarity with simply typed higher-order logic and use notation closely tied to actual Isabelle syntax.
 \begin{itemize}
   \item Leading apostrophes indicate type variables, e.g. $\tv{a}$.
-  \item $\dbcolon$ is used to annotate the type of a value, e.g. $a \dbcolon \tv{a}$ means that value $a$ is of type $\tv{a}$.
+  \item I use $\dbcolon$ to annotate the type of a value, e.g. $a \dbcolon \tv{a}$ means that value $a$ is of type $\tv{a}$.
   \item An algebraic datatype $\iexp{ta}$ with type parameters
         $\tv{a_1}, \dots, \tv{a_k}$ and $n$ constructors is denoted by
         $$
@@ -53,62 +59,66 @@ Throughout this thesis, I assume familiarity with simply typed higher-order logi
         $(\tv{a_1}, \dots, \tv{a_k}) \app \iexp{ta}$ itself, allowing recursive
         datatypes.
   \item Functions are first-class objects and are typically presented in curried form.
-        A function $f \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \tv{c}$ for a given $a \dbcolon \tv{a}$ returns a function of type $\tv{b} \rightarrow \tv{c}$.
+        A function $f \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \tv{c}$, for a given $a \dbcolon \tv{a}$, returns a function of type $\tv{b} \rightarrow \tv{c}$.
   \item For a function $f \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \tv{c}$, $f\app a\app b$ denotes function application for arguments $a \dbcolon \tv{a}, b \dbcolon \tv{b}$.
-  \item $\lambda$ denotes anonymous functions, e.g. $\lambda \app a \app b. f \app a \app b$ is an anonymous function that applies the named function $f$ to arguments $a$,$b$.
+  \item $\lambda$ denotes anonymous functions, e.g. $\lambda \app a \app b. f \app a \app b$ is an anonymous function that applies the named function $f$ to arguments $a$ and $b$.
   \item For types $\tv{a}$ and $\tv{b}$, $\tv{a} \times \tv{b}$ denotes the product type of tuples $(a \dbcolon \tv{a}, b \dbcolon \tv{b})$.
-  \item For a type $\tv{a}$, $\ls{\tv{a}}$ denotes the type of lists with elements of type $\tv{a}$.
+  \item For a type $\tv{a}$, $\tv{a} \app \iexp{list}$ denotes the type of lists with elements of type $\tv{a}$.
         A concrete list is denoted by $[x,y,z]$.\\
-        The infix operator $\iexp{\#} \dbcolon \tv{a} \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$ is used for prepending element $x \dbcolon \tv{a}$ to a list $xs \dbcolon \tv{a} \app \iexp{list}$, denoted by $x \iexp{\#} xs$.\\
-        The infix operator $\iexp{@} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$ concatenates two lists, denoted by $xs \iexp{@} ys$ for two lists $xs \dbcolon \tv{a} \app \iexp{list}$ and $ys \dbcolon \tv{a} \app \iexp{list}$.
-  \item For a type $\tv{a}$, $\set{\tv{a}}$ denotes the type of sets with elements of type $\tv{a}$.
-        A concrete set is denoted by $\{x,y,z\}$.
+        The infix operator $\iexp{\#} \dbcolon \tv{a} \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$ prepends an element $x \dbcolon \tv{a}$ to a list $xs \dbcolon \tv{a} \app \iexp{list}$, denoted by $x \iexp{\#} xs$.\\
+        The infix operator $\iexp{@} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$ concatenates two lists, denoted by $xs \iexp{@} ys$ for two lists $xs \dbcolon \tv{a} \app \iexp{list}$ and $ys \dbcolon \tv{a} \app \iexp{list}$.\\
+        Isabelle/HOL defines the standard higher-order functions $\iexp{map} \dbcolon (\tv{a} \rightarrow \tv{b}) \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{b} \app \iexp{list}$ and $\iexp{foldl} \dbcolon (\tv{a} \rightarrow \tv{b} \rightarrow \tv{a}) \rightarrow \tv{a} \rightarrow \tv{b} \app \iexp{list} \rightarrow \tv{a}$.
+        A right-fold also exists, but I do not use it in the thesis.
+  \item For a type $\tv{a}$, $\tv{a} \app \iexp{set}$ denotes the type of sets with elements of type $\tv{a}$.
+        $\{x,y,z\}$ denotes a concrete set.\\
+        The function $\iexp{set} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{set}$ denotes the set of all elements contained in the given list.
   \item For a type $\tv{a}$, $\tv{a} \app \iexp{multiset}$ denotes the type of multisets with elements of type $\tv{a}$.
-        A concrete multiset is denoted by $\{\#x,x,y\#\}$.
+        $\{\#x,x,y\#\}$ denotes a concrete multiset.
+        The function $\iexp{mset} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{multiset}$ denotes the multiset of all elements contained in the given list.
   \item For a type $\tv{a}$, $\tv{a} \app \iexp{option}$ denotes Isabelle's optional type
         $$
-          (\tv{a}) \app \iexp{option} = \iexp{None} \mid \iexp{Some} (\tv{a})
+          \tv{a} \app \iexp{option} = \iexp{None} \mid \iexp{Some} \app \tv{a}
         $$
-  \item I use the following built-in Isabelle types:
+  \item I furthermore use the following built-in Isabelle types:
   \begin{itemize}
-    \item Type $\iexp{bool}$ of booleans,
+    \item Type $\iexp{bool}$ of booleans, with values $\iexp{True}$ and $\iexp{False}$,
     \item Type $\iexp{nat}$ of natural numbers (unbounded),
     \item Type $\iexp{int}$ of integers (unbounded),
     \item Type $w \app \iexp{word}$ of machine words with bit-width $w$,
-    \item Unit type $\iexp{unit}$ with the only value $\iexp{()}$.
-    \item Type $\iexp{char}$ of characters, where a character is defined by eight booleans, modeling a byte.
+    \item Unit type $\iexp{unit}$ with the only value $\iexp{()}$,
+    \item Type $\iexp{char}$ of characters, where a character is defined by eight booleans, i.e. $\iexp{char} = \iexp{Char} \app (\iexp{digit0} \dbcolon \iexp{bool}) \app \dots \app (\iexp{digit7} \dbcolon \iexp{bool})$,
     \item Type $\iexp{string} = \iexp{char} \app \iexp{list}$.
   \end{itemize}
 \end{itemize}
 
 \subsection{Isabelle Refinement Framework}\label{sec:isabelle-refinement-framework}
 The Isabelle Refinement Framework by Lammich \cite{isabelle-refinement-framework} enables a refinement approach to defining imperative programs and proving correctness properties of such programs. \todo{In motivation, write a section on what the idea of refinement is, and which problem it solves.}
-This subsection introduces a simplified view on the underlying \texttt{nres} monad and sketches its usage for defining and verifying imperative programs in Isabelle-HOL.
-Most of the algorithms I implemented for this thesis are expressed in the \texttt{nres} monad, the exception being fundamental operations on custom datatypes that \refsec{sec:low-level-datatypes-in-isabelle-llvm} introduces.
+This subsection introduces a simplified view of the underlying $\iexp{nres}$ monad and sketches its usage for defining and verifying imperative programs in Isabelle/HOL.
+Most of the algorithms I implemented for this thesis are expressed in the $\iexp{nres}$ monad, the exception being fundamental operations on custom datatypes that \refsec{sec:low-level-datatypes-in-isabelle-llvm} introduces.
 
-Nondeterministic computations are represented using the \texttt{nres} monad.
-\texttt{nres} over some type $\tv{a}$, representing computations with results of type $\tv{a}$, is defined as
+Nondeterministic computations are represented using the $\iexp{nres}$ monad.
+$\iexp{nres}$ over some type $\tv{a}$, representing computations with results of type $\tv{a}$, is defined as\footnote{The presented $\iexp{nres}$ type is slightly simplified; the original version is defined in the theory $\iexp{Refine\_Monadic.Refine\_Basic}$.}
 $$
-  \tv{a} \app \iexp{nres} = \iexp{FAIL} \mid \iexp{RES} \app (\set{\tv{a}})
+  \tv{a} \app \iexp{nres} = \iexp{FAIL} \mid \iexp{RES} \app (\tv{a} \app \iexp{set})
 $$
-Intuitively, for $\iexp{RES \app S}$, the set $\iexp{S}$ represents all possible results of a computation, while $\iexp{FAIL}$ can be seen as a representation of failed computations, such as an out-of-bounds read from an array.
+Intuitively, for $\iexp{RES} \app S$, the set $S$ represents all possible results of a computation, while $\iexp{FAIL}$ can be seen as a representation of failed computations, such as an out-of-bounds read from an array.
 
-For lifting a value $\iexp{a}$ of type $\tv{a}$ into $\tv{a} \app \iexp{nres}$, the Refinement Framework defines
+For lifting a value $a$ of type $\tv{a}$ into $\tv{a} \app \iexp{nres}$, the Refinement Framework defines
 $$
-  \iexp{RETURN} \dbcolon \tv{a} \rightarrow \tv{a} \app \iexp{nres}, \text{ where } \iexp{RETURN} \app \iexp{a} = \iexp{RES} \app \{\iexp{a}\}
+  \iexp{RETURN} \dbcolon \tv{a} \rightarrow \tv{a} \app \iexp{nres}, \text{ where } \iexp{RETURN} \app a = \iexp{RES} \app \{a\}
 $$
 As an example, $\iexp{RETURN}$ is used to describe a program $\iexp{sum}$ that computes the sum of two natural numbers as follows:
 $$
-  \iexp{sum} \dbcolon \iexp{nat} \rightarrow \iexp{nat} \rightarrow \iexp{nat} \app \iexp{nres}, \text{ where } \iexp{sum} \app \iexp{a} \app \iexp{b} = \iexp{RETURN} \app (\iexp{a} \iexp{+} \iexp{b})
+  \iexp{sum} \dbcolon \iexp{nat} \rightarrow \iexp{nat} \rightarrow \iexp{nat} \app \iexp{nres}, \text{ where } \iexp{sum} \app a \app b = \iexp{RETURN} \app (a \iexp{+} b)
 $$
 The Refinement Framework also defines $\iexp{SPEC}$, parameterized over a characteristic function $\Phi$ to describe results:
 $$
-  \iexp{SPEC} \dbcolon (\tv{a} \rightarrow \iexp{bool}) \rightarrow \tv{a} \app \iexp{nres}, \text{ where } \iexp{SPEC} \app \Phi = \iexp{RES} \app \{ \iexp{a} \dbcolon \tv{a} \mid \Phi \app \iexp{a} \}
+  \iexp{SPEC} \dbcolon (\tv{a} \rightarrow \iexp{bool}) \rightarrow \tv{a} \app \iexp{nres}, \text{ where } \iexp{SPEC} \app \Phi = \iexp{RES} \app \{ a \dbcolon \tv{a} \mid \Phi \app a \}
 $$
 $\iexp{SPEC}$ is typically used to give specifications for programs.
 For example, I define $\iexp{add\_spec}$ as a specification for a program that computes the sum of two natural numbers as follows:
 $$
-  \iexp{add\_spec} \dbcolon \iexp{nat} \rightarrow \iexp{nat} \rightarrow \iexp{nat} \app \iexp{nres}, \text{ where } \iexp{add\_spec} \app \iexp{a} \app \iexp{b} = \iexp{SPEC} \app (\lambda \app \iexp{r}.\, \iexp{r} = \iexp{a} \iexp{+} \iexp{b})
+  \iexp{add\_spec} \dbcolon \iexp{nat} \rightarrow \iexp{nat} \rightarrow \iexp{nat} \app \iexp{nres}, \text{ where } \iexp{add\_spec} \app a \app b = \iexp{SPEC} \app (\lambda \app r.\, r = a \iexp{+} b)
 $$
 On $\iexp{nres}$, the Refinement Framework defines an order $\le$, given by
 $$
@@ -118,25 +128,29 @@ $$
   \iexp{RES} \app X &\le \iexp{RES} \app Y &&\Longleftrightarrow X \subseteq Y
 \end{aligned}
 $$
-Intuitively, $\iexp{P} \le \iexp{P'}$ means that every possible result of program $\iexp{P}$ is also a possible result of $\iexp{P'}$.
-A program $\iexp{P} \dbcolon \tv{a} \app \iexp{nres}$ is said to \textit{refine} program $\iexp{P'} \dbcolon \tv{a} \app \iexp{nres}$ if $\iexp{P} \le \iexp{P'}$.
-In particular, if $\iexp{P'}$ is known to be correct, with respect to some definition of correctness, then $\iexp{P} \le \iexp{P'}$ implies that $\iexp{P}$ is also correct with respect to that definition of correctness.
-For instance, $\iexp{P} \app a \app b \le \iexp{add\_spec} \app a \app b$ states that $\iexp{P}$ computes the sum of two natural numbers $a,b$.
+Intuitively, $P \le P'$ means that every possible result of program $P$ is also a possible result of $P'$.
+A program $P \dbcolon \tv{a} \app \iexp{nres}$ is said to \textit{refine} program $P' \dbcolon \tv{a} \app \iexp{nres}$ if $P \le P'$.
+In particular, if $P'$ is known to be correct, with respect to some definition of correctness, then $P \le P'$ implies that $P$ is also correct with respect to that definition of correctness.
+For instance, $P \app a \app b \le \iexp{add\_spec} \app a \app b$ states that $P$ computes the sum of two natural numbers $a,b$.
 
-Note that $(\tv{a} \app \iexp{nres}, \le)$ is a complete lattice with top element $\iexp{FAIL}$. In particular, a refining program may only fail if the refined program also fails.
+Note that $(\tv{a} \app \iexp{nres}, \le)$ is a complete lattice with top element $\iexp{FAIL}$ and bottom element $\iexp{RES} \app \{\}$.
+In particular, a refining program may only fail if the refined program also fails.
 
 A $\iexp{bind} \dbcolon \tv{a} \app \iexp{nres} \rightarrow (\tv{a} \rightarrow \tv{b} \app \iexp{nres}) \rightarrow \tv{b} \app \iexp{nres}$ operator on $\iexp{nres}$, coupled with do-notation syntax, enables convenient denotation of sequential programs.
-In addition while loops and Isabelle's builtin $\iexp{if}$ expressions can be used to define programs in a typical imperative style.
-\isabellecodeextern[linerange=61-74,label=algo:sum-imperative,caption={
-  Imperative-style example Program for computing the sum of a list of natural numbers.
+In addition, while loops and Isabelle's built-in $\iexp{if}$ expressions can be used to define programs in a typical imperative style.
+\isabellecodeextern[linerange=59-74,label=algo:sum-imperative,caption={
+  Imperative-style example program for computing the sum of a list of natural numbers.
 }]{isabelle-code/LLVM_Basics.thy}
 \refalgo{algo:sum-imperative} shows an example program for computing the sum of a list of natural numbers, using a while loop.
-In the while notation, the first lambda function specifies the break condition; if $\iexp{i} < \iexp{length} \app \iexp{xs}$ evaluates to $\iexp{False}$, the loop is exited.
-The second lambda function then specifies the loop body, in which the accumulator is updated.
+The function $\iexp{length} \dbcolon \tv{a} \app \iexp{list} \rightarrow \iexp{nat}$ returns the length of the given list.
+The function $\iexp{!} \dbcolon \tv{a} \app \iexp{list} \rightarrow \iexp{nat} \rightarrow \tv{a}$ returns the element at a given position in the given list.
+$\iexp{!}$ is used in infix notation, e.g. $xs \app \iexp{!} \app 3$ returns the fourth element of list $xs$, as indices start at $0$.
+In the presented $\iexp{WHILET}$ notation, the first lambda function specifies the loop condition; if $i < \iexp{length} \app xs$ evaluates to $\iexp{False}$, the loop is exited.
+The second lambda function then specifies the loop body, in which the accumulator and index are updated.
 
-Correctness statements like $\iexp{P} \app a \app b \le \iexp{add\_spec} \app a \app b$ must be proven in Isabelle by the user.
+Correctness statements like $P \app a \app b \le \iexp{add\_spec} \app a \app b$ must be proven in Isabelle by the user.
 The Refinement Framework offers tools to automate significant portions of such proofs.
-In particular, the $\iexp{refine\_vcg}$ verification condition generator can be used to transform goals expressed in the $\iexp{nres}$ monad to standard Isabelle-HOL goals, on which Isabelle's proof automation (in particular $\iexp{sledgehammer}$) can then often be used effectively.
+In particular, the $\iexp{refine\_vcg}$ verification condition generator can be used to transform goals expressed in the $\iexp{nres}$ monad to standard Isabelle/HOL goals, on which Isabelle's proof automation (in particular $\iexp{sledgehammer}$) can then often be used effectively.
 
 \subsection{Sepref}\label{sec:sepref}
 
@@ -321,21 +335,21 @@ As lists are frequently used in the implementation of Pastèque, this complicate
 The HOL-level algorithms of Pastèque works on polynomials, defined as
 \begin{align*}
   \iexp{variable}   &= \iexp{string} \\
-  \iexp{term}       &= \ls{\iexp{variable}} \\
+  \iexp{term}       &= \iexp{variable} \app \iexp{list} \\
   \iexp{monomial}   &= \iexp{term} \times \iexp{int} \\
-  \iexp{polynomial} &= \ls{\iexp{monomial}}
+  \iexp{polynomial} &= \iexp{monomial} \app \iexp{list}
 \end{align*}
 For instance, a polynomial $3xy + 2x + y$ is represented by
 $[([\iexp{"x"}], 2), ([\iexp{"x"}, \iexp{"y"}], 3), ([\iexp{"y"}], 1)]$ in Pastèque.
 Note that polynomials are sorted lexicographically with regards to the terms of the monomials which are also sorted internally.
 This is an invariant of Pastèque that holds throughout it's execution.
 
-Unfolding the type of a $\iexp{polynomial}$ gives $\ls{(\ls{\ls{\iexp{char}}} \times \iexp{int})}$ which in the Pastèque implementation is abbreviated by $\iexp{llist\_polynomial}$.
+Unfolding the type of a $\iexp{polynomial}$ gives $(\iexp{char} \app \iexp{list} \app \iexp{list} \times \iexp{int}) \app \iexp{list}$ which in the Pastèque implementation is abbreviated by $\iexp{llist\_polynomial}$.
 Refining a program that works on polynomials as defined here, therefore implies being able to represent nested lists, and supporting typical list operations like prepending and element, destructuring a list.
 The given abstract datatype reveals the two main requirements for porting Pastèque from Imperative-HOL to LLVM:
 
 \begin{enumerate}
-  \item The Isabelle-HOL $\iexp{int}$ type is unbounded and can hold arbitrarily large numbers.
+  \item The Isabelle/HOL $\iexp{int}$ type is unbounded and can hold arbitrarily large numbers.
   The Imperative-HOL backend, which produces SML code that is compiled by MLton \todo{citation}, supports this natively.
   LLVM only supports bounded numbers, represented as machine words of a fixed width.
   Eberl et al. have used bindings to GMP \cite{gmp} to implement a verified algorithm for computing Bernoulli numbers \cite{eberl-bernoulli-numbers}.
