@@ -1,131 +1,23 @@
 \section{Motivation}\label{sec:motivation}
 
-\textcolor{red}{
-  Die Section hier werde ich nochmal komplett neu schreiben - lohnt sich nicht den Teil hier zu lesen.
-  Ab \ref{sec:isabelle-hol} kommt der (halbwegs) fertige Teil.
-}
+Tools in automated reasoning can autonomously find solutions to complex combinatorial problems.
+SAT solvers for instance are able to determine unsatisfiability of large CNF formulas and SMT solvers extend the SAT approach to satisfiability with respect to specific first-order-logic theories.
+Being complex programs, such solvers are prone to have bugs leading to incorrect answers or crashes.
+This is not merely a theoretical argument as fuzz testing solvers from SAT competition 2007 showed errors in multiple competing solvers \cite{sat-fuzzing-2007} and fuzz testing SMT solvers has shown similar inconsistencies \cite{smt-fuzzing} \cite{smt-fuzzing-2020}.
+Especially when SAT or SMT solvers are used as part of larger verification effort, for instance when SMT solvers are used as an oracle by a deductive verifier, an unsound answer by the solver silently invalidates the entire verification process. 
+To increase trust in a SAT solvers result, proof formats like DRAT \cite{DRAT} have emerged as a means to enable validation of the solvers deduction independently by a third party proof checker \cite{Lammich2020}.
 
-\subsection{The Practical Algebraic Calculus}
+This thesis follows a line of work by Kaufmann et al. \cite{kaufmann-phd-thesis, amulet2, pac-2024} which applies a similar approach to the verification of digital circuits, in particular multipliers for which SAT based verification is considered to be infeasible due to size of the resulting search space \cite{Kaufmann-column-wise-verification}.
+In said approach, the gate-level semantics of a given circuit is modeled by a Gröbener basis, and verification of the circuit is reduced to an ideal membership test of the polynomial implied by the specification. 
+The AMulet tool \cite{amulet2}, for given circuit and specification, applies this translation, carries out the membership tests and can also generate a proof certificate in either the Nullstellensatz format \cite{nullstellensatz} or in the practical algebraic calculus (PAC) format \cite{pac-2024}, the latter being the focus of this thesis.
+Checking a proof certificate in PAC format can be done either by use of the efficient Pacheck checker \cite{pac-2024}, implemented in C++, or by use of the slower but formally verified Pastèque checker, implemented by Fleury \cite{pac-2024} using the theorem prover Isabelle \cite{isabelle} with the Sepref framework by Lammich \cite{sepref}.
 
-Logical circuits are the fundamental building blocks of all computers, their correctness is crucial for the safety and reliability of computer systems.
-The Intel Pentium FDIV bug \todo{ref} is a classic historical example ... 
+Sepref allows its users to define imperative programs in Isabelle and enables verification of such programs using separation logic in conjunction with a refinement approach, allowing for step-wise concretization of initially abstract, idealized algorithms, while also automating large portions of corresponding correctness proofs.
+The verified programs can be exported to Standard ML code which is compiled using MLton \cite{mlton, weeks-mlton-2006} yielding an executable program. 
+Contrary to the mentioned SAT and SMT approaches, proof automation in Sepref is not trusted to be correct.
+Instead, each proof step is checked by Isabelle's small core reduction engine (kernel) which would reject unsound proofs.
+Compared to efficient languages like C++ with manual memory management however, programs written in Standard ML tend to be slower.
+The newer Isabelle-LLVM framework \cite{isabelle-llvm}, also by Lammich, employs the same step-wise refinement approach but targets a shallow embedding of LLVM instead of Standard ML, allowing for more efficient code with manual memory management while giving similar, if not stronger correctness guarantees due to the wide adoption and extensive testing of the LLVM compiler tools compared to the Standard ML and MLton backend which are trusted to be correct in Sepref.
 
-Since there are only finitely many possible input configurations for a logical circuit, correctness can in principle be proven by simply evaluating all possible inputs.
-In practice however, this is often infeasible due to the exponential size of the search space.
-For instance, a multiplier circuit for 64-bit integers has $2^{128}$ possible input combinations.
-Assuming it takes one nanosecond to validate correctness of one input configuration, validating all possible input configurations would take more than $10^{22}$ years.
-
-The practical algebraic calculus \cite{pac-2018} proposes a proof system to reason about the semantics of digital circuits using polynomial calculus.
-As an example, consider \Cref{fig:2bit-multiplier} which shows a 2-bit multiplier.
-For simplicity, we assume half adders with the usual semantic.\\
-
-\begin{figure}[htbp]
-  \centering
-  \begin{tikzpicture}[
-    circuit logic US,
-    every circuit symbol/.style={fill=white},
-    and gate/.append style={scale=1.2},
-    box/.style={draw, rounded corners=1pt, minimum width=1.1cm, minimum height=0.85cm, font=\scriptsize, fill=white},
-    wire/.style={-},
-    pp/.style={font=\footnotesize},
-    outlbl/.style={font=\scriptsize\bfseries},
-    x=1.4cm, y=1cm,
-  ]
-
-  % ---- signals flow LEFT -> RIGHT; y = bit weight (p0 top, p3 bottom) ----
-
-  % =========================================================
-  % Partial-product AND gates (4)  (output points east)
-  % =========================================================
-  \node[and gate] (g00) at (0,4)   {};
-  \node[and gate] (g10) at (0,3) {};
-  \node[and gate] (g01) at (0,2) {};
-  \node[and gate] (g11) at (0,1) {};
-
-  \node[pp, left=3pt of g00, yshift=5pt] {$a_0$};
-  \node[pp, left=3pt of g00, yshift=-5pt] {$b_0$};
-  \node[pp, left=3pt of g10, yshift=5pt] {$a_1$};
-  \node[pp, left=3pt of g10, yshift=-5pt] {$b_0$};
-  \node[pp, left=3pt of g01, yshift=5pt] {$a_0$};
-  \node[pp, left=3pt of g01, yshift=-5pt] {$b_1$};
-  \node[pp, left=3pt of g11, yshift=5pt] {$a_1$};
-  \node[pp, left=3pt of g11, yshift=-5pt] {$b_1$};
-
-  \node[pp, right=1pt of g10, yshift=6pt, xshift=-0.4pt] {$ab_1$};
-  \node[pp, right=1pt of g01, yshift=6pt, xshift=-0.4pt] {$ab_2$};
-  \node[pp, right=1pt of g11, yshift=6pt, xshift=-0.4pt] {$ab_3$};
-
-  % short input stubs (to the west) so the gates read as 2-input gates
-  \foreach \g in {g00,g10,g01,g11}{
-    \draw[wire] (\g.input 1) -- ++(-0.16,0);
-    \draw[wire] (\g.input 2) -- ++(-0.16,0);
-  }
-
-  % =========================================================
-  % HA1 @ weight 1 (half adder), FA @ weight 2 (full adder)
-  % =========================================================
-  \node[box] (ha1) at (2,2.5) {HA};
-  \node[box] (ha2) at (3,1.2) {HA};
-
-  \node[pp, below of=ha1, xshift=8pt, yshift=10pt] {$c_0$};
-
-  % =========================================================
-  % wiring: PP -> adders
-  % =========================================================
-  % a1b0, a0b1 -> HA1 (two west inputs; bends staggered near the gates
-  % so the pair reads as two separate wires, not one bus bar)
-  \draw[wire] (g10.output) -- ++(0.6,0) |- ([yshift=6pt]ha1.west);
-  \draw[wire] (g01.output) -- ++(0.6,0) |- ([yshift=-6pt]ha1.west);
-
-  % a1b1 -> FA west (top input)
-  \draw[wire] (g11.output) -| ([yshift=-6pt]ha2.west);
-
-  % carry HA1 -> FA  (drops down, enters FA from the north)
-  \draw[wire] (ha1.south) -- ++(0,-0.7) -| ([yshift=6pt]ha2.west);
-
-  % =========================================================
-  % outputs p0..p3 (to the east)
-  % =========================================================
-  \draw[wire] (g00.output) -- (4,4)   node[outlbl, right] {$p_0$};
-  \draw[wire] (ha1.east)   -- (4,2.5) node[outlbl, right] {$p_1$};
-  \draw[wire] (ha2.east)   -- (4,1.2) node[outlbl, right] {$p_2$};
-  \draw[wire] (ha2.south)  |- (4,0)   node[outlbl, right] {$p_3$};
-
-  \end{tikzpicture}
-  \caption{Simple two-bit multiplier using half adders}% TODO: write caption
-  \label{fig:2bit-multiplier}
-\end{figure}
-
-\subsection{Program Verification with Isabelle-LLVM}
-
-One of the main challenges that every non-trivial software project is very likely to face eventually, is the existence of unforeseen errors.
-Examples of such errors include out-of-bounds errors, use-after-free errors, or semantic errors in overlooked edge-cases, leading to crashes or otherwise unintended program behavior. \\
-In critical systems, e.g. authentication engines or medical applications, such errors might lead to severe issues like exposure of sensitive data to bad actors\todo{Some example data breach}, or even pose danger to human lives\todo{The malfunctioning radiation device}.\\
-To detect such errors preemptively, professional software development typically involves extensive testing of the developed product, ranging from simple unit tests to more sophisticated and automated approaches like fuzzing\todo{Reference}. \\
-While testing is a powerful strategy for detecting errors, even simple programs might have state spaces too large to obtain full coverage of all possible inputs in testing.
-This natural limitation of testing based quality assurance motivates the use of formal methods for verifying correctness of computer programs.
-
-% Tools for formal verification of programs might attempt to automatically prove correctness of an existing program, with regards to a given specification, by generating an abstract model of the program's source code, with formally defined semantics, and then applying various strategies to obtain correctness proofs for the abstract model, typically utilizing automatic decision procedures like SMT solvers, which in turn utilize SAT solvers for deciding satisfiability.\todo{Examples, References, more concrete}
-% One notable issue with this approach is the fact that decision procedures themselves might produces false results, which motivates the use of proof certificates, emitted by the decision procedure, with which third-party proof checkers can validate the produced results.\todo{Reference}
-% Conversely, there is an incentive to formally verify such proof checkers as they face the same potential correctness issues as any other software.
-
-Formal verification of non-trivial, efficient programs is typically a hard task as programs will likely use complex data structures, like hashmaps, nested container structures, or tree-based structures, and a proper correctness proof must consider the exact semantics of such data structures, which significantly increases their complexity. 
-In addition, many algorithms most efficient implementations rely on mutation of data in memory, typically seen in imperative languages like C/C++, which further complicates the construction of accurate formals models of such programs, compared to pure functional approaches, where immutability of data is an intrinsic invariant. 
-The PAC checker Pastèque\cite{pasteque}, developed by Fleury, is formally verified by use of the interactive theorem prover Isabelle/HOL \cite{isabelle} with the Sepref framework \cite{sepref}, developed by Lammich.
-Sepref addresses both of the aforementioned challenges in formal verification;
-Firstly, separation logic is used to effectively reasoning about memory mutation.
-Secondly, Sepref's refinement approach allows for splitting up correctness proofs into multiple steps of refinement, starting with abstract, idealized algorithms with are easier to reason on, and then concretizing the algorithms implementation in separate proof steps.
-Sepref automates significant proportions of these steps.
-The final, concrete programs can be exported to Standard-ML code. 
-\refsec{sec:isabelle-refinement-framework} and \refsec{sec:sepref} present the fundamental concepts of working with Sepref.
-
-The Isabelle-LLVM framework \cite{isabelle-llvm}, also by Lammich, can be seen as the Successor of Sepref. 
-Instead of Standard-ML code, Isabelle-LLVM can be used to generate LLVM code, allowing for even more efficient verified programs.
-\refsec{sec:isabelle-llvm} introduces the fundamental concepts for working Isabelle-LLVMs LLVM backend the separation logic defined on it. 
-
-Migrating Pastèque from the Standard-ML backend to LLVM is the objective of this thesis. 
-While the the main high-level algorithms remain unchanged, the concrete low-level implementation requires some preliminary work, which is the main workload in this thesis;
-Pastèque relies on multiple precision integer arithmetic which is natively supported in the Standard-ML backend.
-LLVM has no built-in support for multiple precision integers, I therefore use a native multiple precision integer implementation for Isabelle-LLVM by Spinei \todo{citation} with some extensions to support signed numbers, and translation from and to ascii-encoded strings, which is required for parsing and for printing error messages.
-In addition, Pastèque relies on nestable lists, a hashmap and a hashset implementation for strings which are not directly available in Isabelle-LLVMs collection of data structures.
-I therefore implement an opinionated nestable linked list, which copies elements where necessary (cf. \ref{sec:lists-with-tail-pointers}), and I implement generic (but tailored to Pastèque specifically) partial maps, hashmaps and hashsets. 
+The formally verified SAT solver IsaSAT by Fleury \cite{isasat-sml} was initially implemented with Sepref and then migrated to Isabelle-LLVM which lead performance increase by factor 2 in tests \cite{isabelle-llvm}.
+This observation motivates the migration of the PAC checker Pastèque to Isabelle-LLVM which is the objective of this thesis.

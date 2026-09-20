@@ -165,4 +165,315 @@
 	             Symbolic Computation (SC2'18)",
 	publisher = "CEUR-WS",
 }
+@article{fdiv,
+	author = {Price, D.},
+	journal = {IEEE Micro},
+	title = {Pentium FDIV flaw-lessons learned},
+	year = {1995},
+	volume = {15},
+	number = {2},
+	pages = {86-88},
+	keywords = {System testing;Hazards;Logic testing;Industrial relations;Public
+	            relations;Web sites;Manufacturing industries;Digital
+	            arithmetic;Physics;Error correction},
+	doi = {10.1109/40.372360},
+}
+@inproceedings{ariane-5,
+	author = {Le Lann, G{\'e}rard},
+	title = {An analysis of the Ariane 5 flight 501 failure - a system
+	         engineering perspective},
+	year = {1997},
+	isbn = {0818678895},
+	publisher = {IEEE Computer Society},
+	address = {USA},
+	abstract = {The report issued by the Inquiry Board in charge of inspecting
+	            the Ariane 5 flight 501 failure concludes that causes of the
+	            failure are rooted into poor S/W Engineering practice. From the
+	            failure scenario described in the Inquiry Board report, it is
+	            possible to infer what, in our view, are the real causes of the
+	            501 failure. We develop arguments to demonstrate that the real
+	            causes of the 501 failure are neither S/W specification errors
+	            nor S/W design errors. Real causes of the failure are faults in
+	            the capture of the overall Ariane 5 application/ environment
+	            requirements, and faults in the design and the dimensioning of
+	            the Ariane 5 on-board computing system. These faults result from
+	            not following a rigorous System Engineering approach, such as
+	            applying a proof-based System Engineering method. What is
+	            proof-based System Engineering for Computing Systems is also
+	            presented.},
+	booktitle = {Proceedings of the 1997 International Conference on Engineering
+	             of Computer-Based Systems},
+	pages = {339–346},
+	numpages = {8},
+	location = {Monterey, California},
+	series = {ECBS'97},
+}
+@article{fdiv-cost,
+	author = {John Markoff},
+	title = {Burned Once, Intel Prepares New Chip Fortified by Constant Tests},
+	journal = {The New York Times},
+	year = {2008},
+	month = nov,
+	day = {17},
+	url = {https://www.nytimes.com/2008/11/17/technology/companies/17chip.html},
+}
+@article{ariane-5-cost,
+	author = {Dowson, Mark},
+	title = {The Ariane 5 software failure},
+	year = {1997},
+	issue_date = {March 1997},
+	publisher = {Association for Computing Machinery},
+	address = {New York, NY, USA},
+	volume = {22},
+	number = {2},
+	issn = {0163-5948},
+	url = {https://doi.org/10.1145/251880.251992},
+	doi = {10.1145/251880.251992},
+	journal = {SIGSOFT Softw. Eng. Notes},
+	month = mar,
+	pages = {84},
+	numpages = {1},
+}
+@online{foster2018ic_asic_resource_trends,
+	author = {Harry Foster},
+	title = {Part 8 -- IC/ASIC Resource Trends},
+	year = {2018},
+	month = nov,
+	url = {
+	       https://blogs.sw.siemens.com/verificationhorizons/2019/01/29/part-8-the-2018-wilson-research-group-functional-verification-study/
+	       },
+	urldate = {2026-09-19},
+}
+@misc{full-verification,
+	title = {Verifying x86 Instruction Implementations},
+	author = {Shilpi Goel and Anna Slobodova and Rob Sumners and Sol Swords},
+	year = {2019},
+	eprint = {1912.10285},
+	archivePrefix = {arXiv},
+	primaryClass = {cs.LO},
+	url = {https://arxiv.org/abs/1912.10285},
+}
+@misc{formal-methods-in-industry,
+	title = {Formal Methods: From Academia to Industrial Practice. A Travel
+	         Guide},
+	author = {Marieke Huisman and Dilian Gurov and Alexander Malkis},
+	year = {2024},
+	eprint = {2002.07279},
+	archivePrefix = {arXiv},
+	primaryClass = {cs.SE},
+	url = {https://arxiv.org/abs/2002.07279},
+}
+@inproceedings{sat-fuzzing-2007,
+	author = "Brummayer, Robert and Lonsing, Florian and Biere, Armin",
+	editor = "Strichman, Ofer and Szeider, Stefan",
+	title = "Automated Testing and Debugging of SAT and QBF Solvers",
+	booktitle = "Theory and Applications of Satisfiability Testing -- SAT 2010",
+	year = "2010",
+	publisher = "Springer Berlin Heidelberg",
+	address = "Berlin, Heidelberg",
+	pages = "44--57",
+	abstract = "Robustness and correctness are essential criteria for SAT and
+	            QBF solvers. We develop automated testing and debugging
+	            techniques designed and optimized for SAT and QBF solver
+	            development. Our fuzz testing techniques are able to find
+	            critical solver defects that lead to crashes, invalid satisfying
+	            assignments and incorrect satisfiability results. Moreover, we
+	            show that sequential and concurrent delta debugging techniques
+	            are highly effective in minimizing failure-inducing inputs.",
+	isbn = "978-3-642-14186-7",
+}
+@inproceedings{smt-fuzzing,
+	author = {Brummayer, Robert and Biere, Armin},
+	title = {Fuzzing and delta-debugging SMT solvers},
+	year = {2009},
+	isbn = {9781605584843},
+	publisher = {Association for Computing Machinery},
+	address = {New York, NY, USA},
+	url = {https://doi.org/10.1145/1670412.1670413},
+	doi = {10.1145/1670412.1670413},
+	abstract = {SMT solvers are widely used as core engines in many
+	            applications. Therefore, robustness and correctness are essential
+	            criteria. Current testing techniques used by developers of SMT
+	            solvers do not satisfy the high demand for correct and robust
+	            solvers, as our testing experiments show. To improve this
+	            situation, we propose to complement traditional testing
+	            techniques with grammar-based blackbox fuzz testing, combined
+	            with delta-debugging. We demonstrate the effectiveness of our
+	            approach and report on critical bugs and incorrect results which
+	            we found in current state-of-the-art SMT solvers for bit-vectors
+	            and arrays.},
+	booktitle = {Proceedings of the 7th International Workshop on Satisfiability
+	             Modulo Theories},
+	pages = {1–5},
+	numpages = {5},
+	location = {Montreal, Canada},
+	series = {SMT '09},
+}
+@article{smt-fuzzing-2020,
+	author = {Winterer, Dominik and Zhang, Chengyu and Su, Zhendong},
+	title = {On the unusual effectiveness of type-aware operator mutations for
+	         testing SMT solvers},
+	year = {2020},
+	issue_date = {November 2020},
+	publisher = {Association for Computing Machinery},
+	address = {New York, NY, USA},
+	volume = {4},
+	number = {OOPSLA},
+	url = {https://doi.org/10.1145/3428261},
+	doi = {10.1145/3428261},
+	abstract = {We propose type-aware operator mutation, a simple, but unusually
+	            effective approach for testing SMT solvers. The key idea is to
+	            mutate operators of conforming types within the seed formulas to
+	            generate well-typed mutant formulas. These mutant formulas are
+	            then used as the test cases for SMT solvers. We realized
+	            type-aware operator mutation within the OpFuzz tool and used it
+	            to stress-test Z3 and CVC4, two state-of-the-art SMT solvers.
+	            Type-aware operator mutations are unusually effective: During one
+	            year of extensive testing with OpFuzz, we reported 1092 bugs on
+	            Z3’s and CVC4’s respective GitHub issue trackers, out of which
+	            819 unique bugs were confirmed and 685 of the confirmed bugs were
+	            fixed by the developers. The detected bugs are highly diverse —
+	            we found bugs of many different types (soundness bugs, invalid
+	            model bugs, crashes, etc.), logics and solver configurations. We
+	            have further conducted an in-depth study of the bugs found by
+	            OpFuzz. The study results show that the bugs found by OpFuzz are
+	            of high quality. Many of them affect core components of the SMT
+	            solvers’ codebases, and some required major changes for the
+	            developers to fix. Among the 819 confirmed bugs found by OpFuzz,
+	            184 were soundness bugs, the most critical bugs in SMT solvers,
+	            and 489 were in the default modes of the solvers. Notably, OpFuzz
+	            found 27 critical soundness bugs in CVC4, which has proved to be
+	            a very stable SMT solver.},
+	journal = {Proc. ACM Program. Lang.},
+	month = nov,
+	articleno = {193},
+	numpages = {25},
+	keywords = {Fuzz testing, SMT solvers, Type-aware operator mutation},
+}
+@inproceedings{DRAT,
+	author = "Wetzler, Nathan and Heule, Marijn J. H. and Hunt, Warren A.",
+	editor = "Sinz, Carsten and Egly, Uwe",
+	title = "DRAT-trim: Efficient Checking and Trimming Using Expressive Clausal
+	         Proofs",
+	booktitle = "Theory and Applications of Satisfiability Testing -- SAT 2014",
+	year = "2014",
+	publisher = "Springer International Publishing",
+	address = "Cham",
+	pages = "422--429",
+	abstract = "The DRAT-trim tool is a satisfiability proof checker based on
+	            the new DRAT proof format. Unlike its predecessor, DRUP-trim, all
+	            presently known SAT solving and preprocessing techniques can be
+	            validated using DRAT-trim. Checking time of a proof is comparable
+	            to the running time of the proof-producing solver. Memory usage
+	            is also similar to solving memory consumption, which overcomes a
+	            major hurdle of resolution-based proof checkers. The DRAT-trim
+	            tool can emit trimmed formulas, optimized proofs, and new
+	            TraceCheck{\thinspace}+{\thinspace} dependency graphs. We
+	            describe the output that is produced, what optimizations have
+	            been made to check RAT clauses, and potential applications of the
+	            tool.",
+	isbn = "978-3-319-09284-3",
+}
+@article{Lammich2020,
+	author = {Lammich, Peter},
+	title = {Efficient Verified (UN)SAT Certificate Checking},
+	journal = {Journal of Automated Reasoning},
+	year = {2020},
+	month = {Mar},
+	day = {01},
+	volume = {64},
+	number = {3},
+	pages = {513-532},
+	abstract = {SAT solvers decide the satisfiability of Boolean formulas in
+	            conjunctive normal form. They are commonly used for software and
+	            hardware verification. Modern SAT solvers are highly complex and
+	            optimized programs. As a single bug in the solver may invalidate
+	            the verification of many systems, SAT solvers output certificates
+	            for their answer, which are then checked independently. However,
+	            even certificate checking requires highly optimized non-trivial
+	            programs. This paper presents the first SAT solver certificate
+	            checker that is formally verified down to the integer sequence
+	            representing the formula. Our tool supports the full DRAT
+	            standard, and is even faster than the unverified state-of-the-art
+	            tool drat-trim, on a realistic set of benchmarks drawn from the
+	            2016 and 2017 SAT competitions. An optional multi-threaded mode
+	            further reduces the runtime, in particular for big certificates.},
+	issn = {1573-0670},
+	doi = {10.1007/s10817-019-09525-z},
+	url = {https://doi.org/10.1007/s10817-019-09525-z},
+}
+@inbook{amulet2,
+	author = {Kaufmann, Daniela and Biere, Armin},
+	year = {2021},
+	month = {03},
+	pages = {357-364},
+	title = {AMulet 2.0 for Verifying Multiplier Circuits},
+	isbn = {978-3-030-72012-4},
+	doi = {10.1007/978-3-030-72013-1_19},
+}
+@inproceedings{nullstellensatz,
+	author = "Kaufmann, Daniela and Biere, Armin",
+	editor = "Boulier, Fran{\c{c}}ois and England, Matthew and Sadykov, Timur M.
+	          and Vorozhtsov, Evgenii V.",
+	title = "Nullstellensatz-Proofs for Multiplier Verification",
+	booktitle = "Computer Algebra in Scientific Computing",
+	year = "2020",
+	publisher = "Springer International Publishing",
+	address = "Cham",
+	pages = "368--389",
+	abstract = "Automated reasoning techniques based on computer algebra are an
+	            essential ingredient in formal verification of gate-level
+	            multiplier circuits. Generating and independently checking proof
+	            certificates helps to validate the verification results. Two
+	            algebraic proof systems, Nullstellensatz and polynomial calculus,
+	            are well-known in proof complexity. The practical application of
+	            the polynomial calculus has been studied recently. However,
+	            producing and checking Nullstellensatz certificates for
+	            multiplier verification has not been considered so far. In this
+	            paper we show how Nullstellensatz proofs can be generated as a
+	            by-product of multiplier verification and present our
+	            Nullstellensatz proof checker Nuss-Checker. Additionally, we
+	            prove quadratic upper bounds on the proof size for simple array
+	            multipliers.",
+	isbn = "978-3-030-60026-6",
+}
+@article{Kaufmann-column-wise-verification,
+	author = {Kaufmann, Daniela and Biere, Armin and Kauers, Manuel},
+	title = {Incremental column-wise verification of arithmetic circuits using
+	         computer algebra},
+	journal = {Formal Methods in System Design},
+	year = {2020},
+	month = {Dec},
+	day = {01},
+	volume = {56},
+	number = {1},
+	pages = {22-54},
+	abstract = {Verifying arithmetic circuits and most prominently multiplier
+	            circuits is an important problem which in practice still requires
+	            substantial manual effort. The currently most effective approach
+	            uses polynomial reasoning over pseudo boolean polynomials. In
+	            this approach a word-level specification is reduced by a Gr{\"o}
+	            bner basis which is implied by the gate-level representation of
+	            the circuit. This reduction returns zero if and only if the
+	            circuit is correct. We give a rigorous formalization of this
+	            approach including soundness and completeness arguments.
+	            Furthermore we present a novel incremental column-wise technique
+	            to verify gate-level multipliers. This approach is further
+	            improved by extracting full- and half-adder constraints in the
+	            circuit which allows to rewrite and reduce the Gr{\"o}bner basis.
+	            We also present a new technical theorem which allows to rewrite
+	            local parts of the Gr{\"o}bner basis. Optimizing the Gr{\"o}bner
+	            basis reduces computation time substantially. In addition we
+	            extend these algebraic techniques to verify the equivalence of
+	            bit-level multipliers without using a word-level specification.
+	            Our experiments show that regular multipliers can be verified
+	            efficiently by using off-the-shelf computer algebra tools, while
+	            more complex and optimized multipliers require more sophisticated
+	            techniques. We discuss in detail our complete verification
+	            approach including all optimizations.},
+	issn = {1572-8102},
+	doi = {10.1007/s10703-018-00329-2},
+	url = {https://doi.org/10.1007/s10703-018-00329-2},
+}
+
 
