@@ -448,6 +448,11 @@ I define an invariant on hashsets, given by
   \iexp{hs\_invar} \app &(xss,l) := \app xss \neq \iexp{[\app]} \land l = \iexp{length} \app (\iexp{concat} \app xss) \\
     &\land (\forall i < \iexp{length} \app xss. \app \forall x \in \iexp{set} \app (xss \app \iexp{!} \app i). \app \iexp{bucket\_of} \app x \app (\iexp{length} \app xss) = i)
 \end{align*}
-where $\iexp{bucket\_of} x \app n := \iexp{ahash} \app x) \app \text{mod} \app n$ and $\iexp{concat} \dbcolon \tv{a} \app \iexp{list} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$ flattens a given nested list.
-I then define an abstraction from $\iexp{hs\_abs}$ to $
+where $\iexp{bucket\_of} x \app n := \iexp{ahash} \app x \app \text{mod} \app n$ and $\iexp{concat} \dbcolon \tv{a} \app \iexp{list} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$ flattens a given nested list.
+I then define an abstraction from $\tv{a} \app \iexp{hs\_abs}$ to $\tv{a} \app \iexp{set}$ defined by $\iexp{lshs\_}\alpha := \lambda(xs,l). \app \{a. \app \exists b\in\iexp{set} \app xs. \app a \in \iexp{set} \app b\}$.
+I obtain a refinement relation $\iexp{lshs\_rel} \dbcolon (\tv{a} \app \iexp{hs\_abs} \times \tv{a} \app \iexp{set}) \app \iexp{set}$ where
+\begin{gather*}
+  (h,s) \in \iexp{lshs\_rel} \Leftrightarrow s = \iexp{lshs\_}\alpha \app h \land \iexp{lshs\_invar} \app h.
+\end{gather*}
+Similarly to the initial refinement for partial maps \ref{sec:partial-map-by-list-of-optionals}, I define the core operations $\iexp{lshs\_insert} \dbcolon \tv{a} \rightarrow \tv{a} \app \iexp{hs\_abs} \rightarrow \tv{a} \app \iexp{hs\_abs}$ and $\iexp{lshs\_member} \dbcolon \tv{a} \rightarrow \tv{a} \app \iexp{hs\_abs} \rightarrow \iexp{bool}$
 
