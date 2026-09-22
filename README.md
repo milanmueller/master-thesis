@@ -10,11 +10,11 @@ The directory [`./isabelle`](./isabelle) contains all Isabelle theories and othe
 
 # Milestones
 - [ ] Implementation in Isabelle:
-  - [ ] Support for integers - previous implementation only supports natural numbers so far
+  - [x] Support for integers - previous implementation only supports natural numbers so far
   - [ ] Base exchange between arbitrary bases - first we start with a naive, fast version
-  - [ ] Conversion to string, i.e. printing (using conversion to base 10)
-- [ ] Port Pastèque to Isabelle-LLVM
-  - [ ] Rewrite parser in c, to eliminate SML dependence
+  - [x] Conversion to string, i.e. printing (using conversion to base 10)
+- [x] Port Pastèque to Isabelle-LLVM
+  - [x] Rewrite parser in c, to eliminate SML dependence
   - [ ] (optional) Add support for integer sharing
 - [ ] Experiment/Evaluation - compare the performance of
   - [ ] Pastèque using the SML backend

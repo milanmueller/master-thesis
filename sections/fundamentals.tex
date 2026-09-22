@@ -425,7 +425,7 @@ This allows for a more efficient representation of polynomials given by $\iexp{s
 For the remainder of the thesis, I will refer to the $\iexp{string}$ based polynomials as $\iexp{llist\_polynomial}  :\equiv \iexp{polynomial}$ which is the nomenclature in the actual Pastèque source code.
 With the shared variable maps, the state of Pastèque extends to $(\mathscr{V}, \iexp{A}, \iexp{s}, \iexp{NV}, \iexp{VN})$.
 For the migration to Isabelle-LLVM, a refinement target for this state, which is representable in LLVM, is required.
-Leading to the two main challenges for this thesis:
+Leading to the two main tasks for this thesis:
 \begin{enumerate}
   \item The Isabelle/HOL $\iexp{int}$ type is unbounded and can hold arbitrarily large numbers.
   The Imperative-HOL backend, which produces SML code that is compiled by MLton, supports this natively.
