@@ -437,22 +437,46 @@ Throughout execution, Pastèque keeps a set $\mathscr{V} \dbcolon \iexp{string} 
 An extension step $\iexp{Ext} \app n \app v \app p$ is only accepted if $v \not\in \mathscr{V}$.
 I refine $\mathscr{V}$ by a custom hashset implementation following a two-step refinement process similar to the partial map approach.
 
+\subsubsection{High-level set refinement by nested lists}\label{sec:high-level-hashsets}
+
 For this subsection I assume $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ to be a refinement assertions that instantiates $\iexp{eq\_assn}$ and $\iexp{hashable\_assn}$.
 In Pastèque I only use Hashsets to store strings, but the implementation is generic and can store any type that supports equality check and proves a hash function.
 For the hash function on strings, I implement a FNV-1a hash with values taken from \cite{noll_fnv}, extending characters to 64-bit integers.
 
 As a first step, I refine the abstract $\tv{a} \app \iexp{set}$ type by the (still abstract) type $\tv{a} \app \iexp{hs\_abs} :\equiv \tv{a} \app \iexp{list} \app \iexp{list} \times \iexp{nat}$.
 The inner lists represents the buckets and the natural number represents the number of elements in the hashset which is used to detect when resizing and rehashing should be carried out.
-I define an invariant on hashsets, given by
+I define an invariant on the abstract hashsets, given by
 \begin{align*}
-  \iexp{hs\_invar} \app &(xss,l) := \app xss \neq \iexp{[\app]} \land l = \iexp{length} \app (\iexp{concat} \app xss) \\
+  \iexp{hs\_invar} \app &(xss,l) := \app xss \neq \iexp{[\app]} \land \\
     &\land (\forall i < \iexp{length} \app xss. \app \forall x \in \iexp{set} \app (xss \app \iexp{!} \app i). \app \iexp{bucket\_of} \app x \app (\iexp{length} \app xss) = i)
 \end{align*}
-where $\iexp{bucket\_of} x \app n := \iexp{ahash} \app x \app \text{mod} \app n$ and $\iexp{concat} \dbcolon \tv{a} \app \iexp{list} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$ flattens a given nested list.
-I then define an abstraction from $\tv{a} \app \iexp{hs\_abs}$ to $\tv{a} \app \iexp{set}$ defined by $\iexp{lshs\_}\alpha := \lambda(xs,l). \app \{a. \app \exists b\in\iexp{set} \app xs. \app a \in \iexp{set} \app b\}$.
-I obtain a refinement relation $\iexp{lshs\_rel} \dbcolon (\tv{a} \app \iexp{hs\_abs} \times \tv{a} \app \iexp{set}) \app \iexp{set}$ where
+where $\iexp{bucket\_of} x \app n := \iexp{ahash} \app x \app \text{mod} \app n$.
+Note that the invariant does not make any statement about $l$, which is a deliberate choice; in principle, the invariant could enforce $l = \iexp{length} \app (concat \app xss)$ (where $\iexp{concat} \dbcolon \tv{a} \app \iexp{list} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$ flattens a given nested list) as $l$ is used to track the number of contained elements.
+However, adding that requirement to the invariant effectively introduces an upper bound on the contained elements since I refine $l$ by a (signed) 64-bit integer in \refsec{sec:low-level-hashset-implementation} which can only store numbers up to $2^{63}-1$.
+Instead, I choose to only use $l$ in the actual implementation to improve efficiency and not make the refinement relation between set and $\tv{a} \app \iexp{hs\_abs}$ depend on $l$.
+Consequently, I do not prove anything about the load of the hashmap, so for instance $[[1,2,3,4]]$ is a valid refinement of the set $\{1,2,3,4\}$ even though $[[1],[2],[3],[4]]$ would a more appropriate representation as is allows for constant time access, compared to the linear time access of $[[1,2,3,4]]$.
+
+I define an abstraction from $\tv{a} \app \iexp{hs\_abs}$ to $\tv{a} \app \iexp{set}$ defined by $\iexp{lshs\_}\alpha := \lambda(xs,l). \app \{a. \app \exists b\in\iexp{set} \app xs. \app a \in \iexp{set} \app b\}$, and I obtain a refinement relation $\iexp{lshs\_rel} \dbcolon (\tv{a} \app \iexp{hs\_abs} \times \tv{a} \app \iexp{set}) \app \iexp{set}$ where
 \begin{gather*}
   (h,s) \in \iexp{lshs\_rel} \Leftrightarrow s = \iexp{lshs\_}\alpha \app h \land \iexp{lshs\_invar} \app h.
 \end{gather*}
-Similarly to the initial refinement for partial maps \ref{sec:partial-map-by-list-of-optionals}, I define the core operations $\iexp{lshs\_insert} \dbcolon \tv{a} \rightarrow \tv{a} \app \iexp{hs\_abs} \rightarrow \tv{a} \app \iexp{hs\_abs}$ and $\iexp{lshs\_member} \dbcolon \tv{a} \rightarrow \tv{a} \app \iexp{hs\_abs} \rightarrow \iexp{bool}$
+Similarly to the initial refinement for partial maps \ref{sec:partial-map-by-list-of-optionals}, I define the core operations $\iexp{lshs\_insert} \dbcolon \tv{a} \rightarrow \tv{a} \app \iexp{hs\_abs} \rightarrow \tv{a} \app \iexp{hs\_abs}$ and $\iexp{lshs\_member} \dbcolon \tv{a} \rightarrow \tv{a} \app \iexp{hs\_abs} \rightarrow \iexp{bool}$ with corresponding correctness lemmas
+\begin{align*}
+  (h,s) \in \iexp{hs\_rel} &\Rightarrow (\iexp{lshs\_insert} \app a \app h, s \cup \{a\}) \in \iexp{hs\_rel} \text{, and}\\
+  (h,s) \in \iexp{hs\_rel} &\Rightarrow (\iexp{lshs\_member} \app a \app h \Leftrightarrow a \in s)\text{.}
+\end{align*}
+Naturally, the $\iexp{lshs\_insert}$ operation also increments the counter of contained elements.
+I then define a resizing operation
+\begin{gather*}
+  \iexp{lshs\_resize} := \lambda n \app (xs, l). \app \iexp{fold} \app \iexp{lshs\_insert} \app (\iexp{concat} \app xs) \app (\iexp{replicate} \app n \app \iexp{[\app]},n)
+\end{gather*}
+for which I show
+\begin{gather*}
+  (h,s) \in \iexp{hs\_rel} \land 0 < n \Rightarrow (\iexp{lshs\_resize} \app n \app h, s) \in \iexp{hs\_rel},
+\end{gather*}
+meaning that after resizing, a hashset still contains the same elements as before.
 
+\subsubsection{Low-level Hashset implementation}\label{sec:low-level-hashset-implementation}
+To implement hashset on $\iexp{llM}$ level, I use linked lists to represent the buckets, i.e., the inner lists of $\tv{a} \app \iexp{hs\_abs}$ and I use an array \footnote{concretely, I use $\iexp{nao\_assn}$ from theory $\iexp{Isabelle\_LLVM.Array\_of\_Array\_List}$} to represent the outer list.
+Using an array for the outer list allows for $\mathcal{O}(1)$ access to buckets and thus is the natural choice for hashmaps.
+The number of elements $l$ in the hashset is refined by a 64-bit signed integer which, as stated in \refsec{sec:high-level-hashsets}, means that $l$ can only store the number of contained elements up to $2^{63}-1$ elements.
