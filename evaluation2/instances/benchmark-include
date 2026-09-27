@@ -4,8 +4,14 @@
 # .input/.proof/.target suffix; it may contain directories. All three files
 # must exist. Blank lines are skipped and '#' starts a comment.
 
-example
-
-# The JKU set ships AIG circuits, not PAC proofs; the triples have to be
-# generated from them first.
-# KaufmannFleuryBiereKauers-JKU/benchmarks/btor/btor128
+# example
+128_128_U_SP_AR_RC_GenMul
+256_256_U_SP_AR_RC_GenMul
+# 512_512_U_SP_AR_RC_GenMul
+bp-ct-bk-32
+bp-wt-cl-32
+btor128
+btor256
+# btor512
+sp-ar-cl-32
+sp-dt-lf-32

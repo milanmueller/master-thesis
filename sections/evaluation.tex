@@ -6,7 +6,7 @@ As the main benchmark, I use the experimental data presented on the original web
 The dataset consists of different multiplier circuits with different bit-widths, ranging from 32-bit multipliers to 512-bit multipliers.
 I use the current version of the AMulet tool by Kaufmann \cite{amulet2} that decides the given multipliers to be correct and also generates proof certificates in the PAC format.
 The resulting certificates are then checked by Pastèque with both the LLVM and SML backend and by Pacheck.
-I measure wall-clock time and peak RSS for all checkers using GNU time \cite{gnutime}.
+I measure wall-clock time and peak resident set size (RSS) for all checkers using GNU time \cite{gnutime}.
 Benchmarks are run on a machine with a AMD Ryzen 5 7500F CPU and 32 GB of RAM.
 Each benchmark is run five times, the shown measurements are the respective mean values over all five runs.
 
@@ -15,23 +15,23 @@ Table \ref{tab:checker-comparison} shows the resulting average measurements.
 Between the LLVM backend and the Standard ML backend, the variant with either lower wall clock execution time and memory usage is written in bold, Pacheck is the most efficient for every benchmark.
 
 \begin{figure}[htbp]
-  \centering
-  \includegraphics[width=\textwidth]{evaluation2/results/plot.pdf}
-  \caption{ Wall clock time (solid lines, left axis) and peak resident set size (dashed lines, right axis) of the three PAC proof checkers.
-            Color identifies the checker, line style identifies the measure.
-            }
-  \label{fig:checker-comparison}
+	\centering
+	\includegraphics[width=\textwidth]{evaluation2/results/plot.pdf}
+	\caption{ Wall clock time (solid lines, left axis) and peak resident set size (dashed lines, right axis) of the three PAC proof checkers, both scales logarithmic.
+		Color identifies the checker, line style identifies the measure.
+	}
+	\label{fig:checker-comparison}
 \end{figure}
 Figure \ref{fig:checker-comparison} shows the same average values for wall clock time and peak RSS in a line chart, where the x-axis contains all benchmarks, ordered by wall clock time for Pastèque with the LLVM backend.
-The averages values show that, for smaller instances the LLVM-backend is faster and consumes less memory (both by about a factor 2) while for the large 512-bit instances, the Standard ML is faster and consumes less memory, also by a factor of about 2 is faster and consumes less memory, also by a factor of about 2.
+The averages values show that, for smaller instances the LLVM-backend is faster and consumes less memory (both by about a factor 2) while for the large 512-bit instances, the Standard ML is faster and consumes less memory.
 Pacheck, as expected, is the fastest checker and consumes the least memory for every benchmark.
 
 To further analyze the performance of Pastèque with the LLVM backend, in comparison with the SML backend, especially for the large 512-bit benchmarks, I further break down the execution times of the individual phases of both checkers.
 Pastèque with the SML backend already breaks down execution times for
 \begin{itemize}
-    \item parsing input files,
-    \item initialization, i.e., sorting and normalizing all input polynomials,
-    \item and checking the proof steps.
+	\item parsing input files,
+	\item initialization, i.e., sorting and normalizing all input polynomials,
+	\item and checking the proof steps.
 \end{itemize}
-The time spent on garbage collection is also measured to obtain runtime without garbage collection.
+The time spent on garbage collection is also measured separately to obtain runtime without garbage collection.
 For the LLVM variant, I recreate the outer LLVM main function in c to obtain the same measurement with breakdown into the separate phases.

@@ -123,7 +123,7 @@ done < "$include"
 # Check every stem up front: a typo should not surface an hour into a sweep.
 missing=()
 for b in "${benchmarks[@]}"; do
-  for ext in input proof target; do
+  for ext in polys proof spec; do
     [ -f "$INSTANCES/$b.$ext" ] || missing+=("$b.$ext")
   done
 done

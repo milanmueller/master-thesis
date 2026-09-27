@@ -42,14 +42,12 @@ lemma add_correct':
 definition \<open>
   ls_assn :: ('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'b llvm_list \<Rightarrow> bool
 \<close>
-
 lemma split_list:
   \<open>llvm_htriple
 ((ls_assn A) xs xsi ** (xs\<noteq>[]))
 (\<lambda>xs. tl xs)
 (\<lambda>r. A (tl xs) r ** (ls_assn A) xs xsi)
 \<close>
-
 lemma split_list:
   \<open>llvm_htriple
 ((ls_assn A) xs xsi)
@@ -63,7 +61,9 @@ definition
     let acc = 0;
     let i = 0;
     (acc,i) \<leftarrow> WHILET
+      \<comment> \<open>Loop condition: Only enter loop body if \<open>i\<close> is in bounds\<close>
       (\<lambda>(acc,i). i < length xs)
+      \<comment> \<open>Loop body:\<close>
       (\<lambda>(acc,i). do {
         let acc = acc + xs ! i;
         let i = i + 1;
@@ -100,7 +100,7 @@ sepref_def sum_impl' is \<open>sum'\<close>
 definition sum_impl where \<open>
 sum_impl \<equiv> \<lambda>xsi. doM {
   (acci, ii) \<leftarrow> llc_while \<comment> \<open>While loop for \<open>llM\<close> programs\<close>
-    \<comment> \<open>Break Condition: Only continue with loop, if index < length\<close>
+    \<comment> \<open>Loop Condition: Only continue with loop, if index < length\<close>
     (\<lambda>(acci, ii). doM {l \<leftarrow> la_length_impl xsi; ll_icmp_slt ii l})
     \<comment> \<open>Loop Body: Add to accumulator, increment index\<close>
     (\<lambda>(acci, ii). doM {

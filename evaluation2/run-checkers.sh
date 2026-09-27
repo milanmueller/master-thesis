@@ -61,9 +61,9 @@ for c in "${checkers[@]}"; do
   [ -x "$BIN/$c" ] || die "$BIN/$c missing. Build it with: ./collect-checkers.sh $c"
 done
 
-input="$INSTANCES/$bench.input"
+input="$INSTANCES/$bench.polys"
 proof="$INSTANCES/$bench.proof"
-target="$INSTANCES/$bench.target"
+target="$INSTANCES/$bench.spec"
 for f in "$input" "$proof" "$target"; do
   [ -f "$f" ] || die "instance file missing: $f"
 done

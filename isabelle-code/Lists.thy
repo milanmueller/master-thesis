@@ -12,7 +12,7 @@ fun
     else
       q # merge (p#ps) qs
   )\<close>
-
+term foldl
 lemma sorted:
   assumes \<open>sorted p\<close> and \<open>sorted q\<close>
   shows \<open>sorted (merge p q)\<close>

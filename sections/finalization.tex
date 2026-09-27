@@ -1,0 +1,16 @@
+\section{Finalization of the LLVM-migration}\label{sec:finalization-of-llvm-migration}
+With the conversion between strings and multiple precision integers, discussed in \refsec{sec:multiple-precision-integers}, and the fundamental datatypes, discussed in \ref{sec:low-level-datatypes-in-isabelle-llvm}, some more setup is required to finalize the migration of Pastèque to Isabelle-LLVM.
+This remaining work is discussed in this section.
+
+\subsection{A new Parser for Pastèque}\label{sec:pasteque-parser-c}
+The original Pastèque implementation employs an unverified parser written Standard ML which constructs the inputs for the verified checker from the given input files.
+Concretely, the checker takes the following inputs (on HOL-level):
+\begin{enumerate}
+	\item A target polynomial,
+	\item a list of input polynomials of type $\iexp{llist\_polynomial} \app \iexp{list}$,
+	\item a list of proof steps of type $\iexp{pac\_step} \app \iexp{list}$.
+\end{enumerate}
+For the Isabelle-LLVM migration, I write a custom parser c that constructs these inputs.
+To enable writing of such a parser, I export fundamental functions to construct (lists of) polynomials and proof steps directly from c.
+Isabelle-LLVMs code generator also generates c-header files to allow calling the respective functions directly from c.
+The c-parser first runs a lexer to obtain an array of tokens, based on the original pac syntax as defined in \cite{pac-2024}.

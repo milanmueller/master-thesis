@@ -2,9 +2,10 @@
 """Plot an averages CSV: wall clock time and peak RSS of every checker over the
 benchmarks, ordered by how long pasteque-llvm took.
 
-    ./render-plot.py [CSV] [-o OUT] [--log] [--panels]
+    ./render-plot.py [CSV] [-o OUT] [--linear] [--panels]
 
-Reads the output of ./average-results.py and writes results/plot.pdf.
+Reads the output of ./average-results.py and writes results/plot.pdf. Both
+value axes are logarithmic unless --linear is given.
 
 Encoding: colour identifies the checker and never moves between them, line
 style identifies the measure (solid wall clock on the left axis, dashed peak
@@ -47,10 +48,11 @@ REQUIRED = ["bench", "checker", "wall_s_mean", "max_rss_kb_mean", "verdict"]
 # rather than as points, so a timeout cannot read as a fast run.
 NOT_MEASURED = {"TIMEOUT", "ERROR"}
 
-SURFACE = "#fcfcfb"
+SURFACE = "#ffffff"
 INK = "#0b0b0b"
 INK_MUTED = "#52514e"
 GRID = "#dcdcd8"
+FONT = 12  # pt, for every label, tick and legend entry
 
 
 def style_axes(ax):
@@ -61,7 +63,7 @@ def style_axes(ax):
     for side in ("left", "right", "bottom"):
         if ax.spines[side].get_visible():
             ax.spines[side].set_color(GRID)
-    ax.tick_params(colors=INK_MUTED, labelsize=9)
+    ax.tick_params(colors=INK_MUTED, labelsize=FONT)
     ax.xaxis.label.set_color(INK)
     ax.yaxis.label.set_color(INK)
 
@@ -104,7 +106,9 @@ def main() -> int:
         help="output figure; extension picks the format (default: results/plot.pdf)",
     )
     parser.add_argument(
-        "--log", action="store_true", help="log scale on both value axes"
+        "--linear",
+        action="store_true",
+        help="linear scale on both value axes instead of the default log scale",
     )
     parser.add_argument(
         "--panels",
@@ -112,6 +116,7 @@ def main() -> int:
         help="two stacked panels sharing the x-axis instead of two y-scales",
     )
     args = parser.parse_args()
+    args.log = not args.linear
 
     if not args.csv.is_file():
         sys.exit(f"error: no such CSV: {args.csv}")
@@ -166,24 +171,25 @@ def main() -> int:
             )
 
     x = range(len(bench_order))
-    width = max(7.0, 1.1 * len(bench_order) + 3.0)
+    width = max(5.25, 0.825 * len(bench_order) + 2.25)
+    height = width  # square: tall enough that the rotated tick labels stay shorter than the plot area
 
     if args.panels:
         fig, (ax_w, ax_r) = plt.subplots(
-            2, 1, figsize=(width, 6.4), sharex=True, height_ratios=[1, 1]
+            2, 1, figsize=(width, height), sharex=True, height_ratios=[1, 1]
         )
         fig.patch.set_facecolor(SURFACE)
         axes = [(ax_w, "wall_s_mean", 1.0, "-", "o"), (ax_r, "max_rss_kb_mean", 1024.0, "--", "s")]
-        ax_w.set_ylabel("wall clock time [s]", fontsize=10)
-        ax_r.set_ylabel("peak RSS [MiB]", fontsize=10)
+        ax_w.set_ylabel("wall clock time [s]", fontsize=FONT)
+        ax_r.set_ylabel("peak RSS [MiB]", fontsize=FONT)
         bottom, legend_ax = ax_r, ax_w
     else:
-        fig, ax_w = plt.subplots(figsize=(width, 5.2))
+        fig, ax_w = plt.subplots(figsize=(width, height))
         fig.patch.set_facecolor(SURFACE)
         ax_r = ax_w.twinx()
         axes = [(ax_w, "wall_s_mean", 1.0, "-", "o"), (ax_r, "max_rss_kb_mean", 1024.0, "--", "s")]
-        ax_w.set_ylabel("wall clock time [s]  (solid)", fontsize=10)
-        ax_r.set_ylabel("peak RSS [MiB]  (dashed)", fontsize=10)
+        ax_w.set_ylabel("wall clock time [s]  (solid)", fontsize=FONT)
+        ax_r.set_ylabel("peak RSS [MiB]  (dashed)", fontsize=FONT)
         bottom, legend_ax = ax_w, ax_w
 
     for ax, column, divisor, linestyle, marker in axes:
@@ -213,12 +219,7 @@ def main() -> int:
 
     bottom.set_xticks(list(x))
     bottom.set_xticklabels(
-        [str(b) for b in bench_order], rotation=30, ha="right", fontsize=9
-    )
-    bottom.set_xlabel(
-        f"benchmark, ordered by {dict((c, n) for c, n, _ in CHECKERS)[ORDER_BY]} "
-        "wall clock time",
-        fontsize=10,
+        [str(b) for b in bench_order], rotation=60, ha="right", fontsize=FONT
     )
 
     # Two small legends rather than six combined entries: one says which colour
@@ -233,29 +234,41 @@ def main() -> int:
         plt.Line2D([], [], color=INK_MUTED, linewidth=2.0, linestyle="--",
                    marker="s", markersize=6.0, label="peak RSS"),
     ]
-    def titled(legend):
-        legend.get_title().set_fontsize(9)
-        legend.get_title().set_color(INK_MUTED)
+    # Both legends sit above the axes as one row each, since on a log scale
+    # the lines reach every corner of the plot area and an in-plot legend
+    # would cover data. The measure row goes on top so that the checker row,
+    # the one a reader consults more often, stays nearest the plot.
+    def above(handles, offset_pt, ncol):
+        # Offset in points from the top of the axes, so that later layout
+        # passes resizing the axes do not move the rows relative to each other.
+        transform = matplotlib.transforms.offset_copy(
+            legend_ax.transAxes, fig, x=0.0, y=offset_pt, units="points"
+        )
+        legend = legend_ax.legend(
+            handles=handles, loc="lower left", bbox_to_anchor=(0.0, 1.0),
+            bbox_transform=transform, ncol=ncol, frameon=False, fontsize=FONT,
+            labelcolor=INK, handlelength=2.5, columnspacing=1.5,
+            borderaxespad=0.0,
+        )
+        legend_ax.add_artist(legend)
+        legends.append(legend)
         return legend
 
-    first = titled(legend_ax.legend(
-        handles=checker_handles, loc="upper left", frameon=False,
-        fontsize=9, labelcolor=INK, title="Checker", alignment="left",
-    ))
+    legends = []
+    checker_legend = above(checker_handles, 4.0, len(checker_handles))
     # In the panel layout each panel's y-axis already names its measure, so a
-    # second legend would only add ink -- and collide with the first, since the
-    # panel is half the height the single-axis layout has.
+    # second legend would only add ink.
     if not args.panels:
-        legend_ax.add_artist(first)
-        titled(legend_ax.legend(
-            handles=measure_handles, loc="upper left", bbox_to_anchor=(0.0, 0.76),
-            frameon=False, fontsize=9, labelcolor=INK, title="Measure",
-            alignment="left",
-        ))
+        fig.canvas.draw()
+        row_pt = checker_legend.get_window_extent().height / fig.dpi * 72.0
+        above(measure_handles, 4.0 + row_pt + 2.0, len(measure_handles))
 
     fig.tight_layout()
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(args.out, dpi=200, facecolor=SURFACE)
+    fig.savefig(
+        args.out, dpi=200, facecolor=SURFACE, bbox_inches="tight",
+        bbox_extra_artists=legends,
+    )
     plt.close(fig)
 
     print(f"{len(bench_order)} benchmark(s) x {len(present)} checker(s) -> {args.out}")
