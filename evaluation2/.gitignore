@@ -1,0 +1,6 @@
+build/
+checkers/
+instances/*
+!instances/benchmark-include
+results/
+*.csv

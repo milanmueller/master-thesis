@@ -1,0 +1,11 @@
+# Benchmarks run by ./run-benchmarks.sh, one stem per line.
+#
+# A stem is the path of an instance below ./instances without the
+# .input/.proof/.target suffix; it may contain directories. All three files
+# must exist. Blank lines are skipped and '#' starts a comment.
+
+example
+
+# The JKU set ships AIG circuits, not PAC proofs; the triples have to be
+# generated from them first.
+# KaufmannFleuryBiereKauers-JKU/benchmarks/btor/btor128
