@@ -477,6 +477,14 @@ for which I show
 meaning that after resizing, a hashset still contains the same elements as before.
 
 \subsubsection{Low-level Hashset implementation}\label{sec:low-level-hashset-implementation}
-To implement hashset on $\iexp{llM}$ level, I use linked lists to represent the buckets, i.e., the inner lists of $\tv{a} \app \iexp{hs\_abs}$ and I use an array \footnote{concretely, I use $\iexp{nao\_assn}$ from theory $\iexp{Isabelle\_LLVM.Array\_of\_Array\_List}$} to represent the outer list.
-Using an array for the outer list allows for $\mathcal{O}(1)$ access to buckets and thus is the natural choice for hashmaps.
+To implement hashset on $\iexp{llM}$ level, I use linked lists to represent the buckets, i.e., the inner lists of $\tv{a} \app \iexp{hs\_abs}$, and I use an array \footnote{concretely, I use $\iexp{nao\_assn}$ from theory $\iexp{Isabelle\_LLVM.Array\_of\_Array\_List}$} to represent the outer list.
+Using an array for the outer list allows for $\mathcal{O}(1)$ access to buckets and is thus the natural choice for hashmaps.
 The number of elements $l$ in the hashset is refined by a 64-bit signed integer which, as stated in \refsec{sec:high-level-hashsets}, means that $l$ can only store the number of contained elements up to $2^{63}-1$ elements.
+
+The refinement relation for $\iexp{hs\_abs}$ is then defined by
+\begin{align*}
+  \iexp{hs\_assn} := \lambda (xss,l) \app (ni,ai,li). \app &\iexp{sn64\_assn} \app (\iexp{min} \app l \app (2^{63}-1)) \app li \\
+    &\ast \app \iexp{sn64\_assn} \app (\iexp{length} \app xss) \app ni \\
+    &\ast \app \iexp{nao\_assn} \app (\iexp{ls\_assn} \app A) \app (\lambda x. \app \iexp{None}) \app xss \app ai
+\end{align*}
+where $\iexp{nao\_assn} \dbcolon (\tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}) \rightarrow (\iexp{nat} \rightarrow \tv{b} \app \iexp{option}) \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{b} \app \iexp{ptr} \rightarrow \iexp{assn}$ from Isabelle-LLVM, for a given refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ that specifies refinement of the inner elements, specifies refinement of 
