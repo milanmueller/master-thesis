@@ -35,9 +35,11 @@ LLVM_SRC="${LLVM_SRC:-$REPO_ROOT/isabelle/IsaFoL-Pasteque-LLVM/PAC_Checker_LLVM/
 BUILD="$EVAL_DIR/build"
 OUT="$EVAL_DIR/checkers"
 
-# Everything `make pasteque` in the LLVM code directory needs: the driver, the
+# Everything `make pasteque` in the LLVM code directory needs: the two drivers
+# (parser.c, main.c), Isabelle-LLVM's support library, the
 # hand-written/generated headers and the two Isabelle-LLVM exports.
-LLVM_FILES=(Makefile parser.c parser.h pasteque.h term.h pasteque.ll term.ll)
+LLVM_FILES=(Makefile parser.c main.c lib_isabelle_llvm.c parser.h pasteque.h
+            term.h pasteque.ll term.ll)
 
 ALL_CHECKERS=(pacheck pasteque-sml pasteque-llvm)
 
@@ -175,13 +177,14 @@ build_pasteque_llvm() {
   local dir="$BUILD/pasteque-llvm"
   rm -rf "$dir"; mkdir -p "$dir"
   for f in "${LLVM_FILES[@]}"; do cp "$LLVM_SRC/$f" "$dir/"; done
-  # The exported IR needs no external library: parser.c defines the only two
-  # symbols it declares (isabelle_llvm_calloc / isabelle_llvm_free). The
-  # Makefile first rewrites term.ll and pasteque.ll to *_int.ll (hiding the
-  # clashing auxiliary definitions) and then compiles parser.c together with
-  # both in one clang invocation so that LTO optimises the trusted parser
-  # together with the verified checker.
-  ( cd "$dir" && make CC="$CLANG" pasteque )
+  # The exported IR needs no external library: lib_isabelle_llvm.c defines the
+  # runtime hooks it declares (isabelle_llvm_calloc / isabelle_llvm_free /
+  # isabelle_llvm_abort). The Makefile first rewrites term.ll and pasteque.ll
+  # to *_int.ll (hiding the clashing auxiliary definitions) and then compiles
+  # parser.c, main.c and the support library together with both in one clang
+  # invocation so that LTO optimises the trusted parser together with the
+  # verified checker.
+  ( cd "$dir" && make CLANG="$CLANG" pasteque )
   cp "$dir/pasteque" "$OUT/pasteque-llvm"
 }
 
