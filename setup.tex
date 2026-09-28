@@ -347,6 +347,61 @@
 }
 \makeatother
 
+% Pseudocode listings: same framing and caption placement as the Isabelle
+% listings above, but with C-style line comments and without Isabelle keywords.
+\lstdefinelanguage{Pseudocode}{%
+  sensitive=true,
+  morecomment=[l]{//},
+  literate=
+    {<-}{{$\leftarrow$}}1
+    {->}{{$\rightarrow$}}1,
+}
+
+\lstdefinestyle{pseudocodestyle}{%
+  language=Pseudocode,
+  basicstyle={\ttfamily},
+  columns=[c]fullflexible,
+  commentstyle=\color{gray}\itshape,
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false,
+  aboveskip=0pt,
+  belowskip=0pt,
+  keepspaces=true,
+}
+
+% \pseudocodeextern[label=...,caption={...}]{<file below \pseudocodedir>}
+% Pseudocode is kept in external files rather than inline in the .tex sources
+% because indentation inside the listing is significant, and the LaTeX
+% formatters used on this project (texlab in Zed, tex-fmt in Helix) re-indent
+% the body of an environment they do not know to be verbatim. texlab's list of
+% verbatim environments is hardcoded and cannot be extended, so no inline
+% environment is safe from reformatting.
+\makeatletter
+\newcommand{\pseudocodedir}{assets/pseudocode}
+\newcommand{\pseudocodeextern}[2][]{%
+  \def\isacode@rest{}%
+  \def\isacode@label{}%
+  \def\isacode@caption{}%
+  \pgfkeys{/isacode,#1}%
+  \edef\isacode@fullargs{%
+    isabellebox,%
+    listing file={\pseudocodedir/#2},%
+    listing options={style=pseudocodestyle,\isacode@rest}%
+  }%
+  \expandafter\tcbinputlisting\expandafter{\isacode@fullargs}%
+  \ifx\isacode@caption\@empty
+    \ifx\isacode@label\@empty\else\label{\isacode@label}\fi
+  \else
+    \vspace{0.5em}%
+    {\footnotesize
+      \captionof{lstlisting}{\isacode@caption}%
+      \ifx\isacode@label\@empty\else\label{\isacode@label}\fi
+    }%
+  \fi
+}
+\makeatother
+
 \usepackage[section]{placeins}  % To keep all figures inside there section
 \usepackage[stylemods=longextra, symbols, automake]{glossaries-extra}
 \usepackage{pdfpages} % to include PDFs

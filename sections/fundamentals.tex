@@ -438,7 +438,7 @@ For the migration to Isabelle-LLVM, a refinement target for this state, which is
   The Imperative-HOL backend, which produces Standard ML code that is compiled by MLton, supports this natively.
   LLVM only supports bounded numbers, represented as machine words of a fixed width.
   Eberl et al. have used bindings to GMP \cite{gmp} in Isabelle-LLVM to implement a verified algorithm for computing Bernoulli numbers \cite{eberl-bernoulli-numbers}.
-  Instead of GMP, I use a native library for arbitrary precision numbers, created by Spinei \todo{How can we cite Mihai?}.
+  Instead of GMP, I use a native library for arbitrary precision numbers, created by Spinei \cite{spinei_isabelle_big_integer}.
   This library implements addition, subtraction and multiplication for unsigned numbers and can thus refine these operations on natural numbers.
   To use it for Pastèque, I extend the implementation to support signed numbers to refine integers used in Pastèque.
   Furthermore, I implement conversion between numbers and strings which is required for printing error messages and parsing input files.

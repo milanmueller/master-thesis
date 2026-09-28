@@ -1,1 +1,7 @@
 \section*{Zusammenfassung}
+
+Beweiszertifikate können das Vertrauen in automatisierte Deduktionswerkzeuge erhöhen, indem sie eine Begründung ihrer Schlussfolgerungen liefern welche von einem unabhängigen Prüfprogramm validiert werden kann.
+Der Practical Algebraic Calculus (PAC) definiert solche Beweiszertifikate für die Verifikation digitaler Schaltungen, insbesondere von Multiplizierern, auf Grundlage algebraischer Methoden.
+Ich migriere den formal verifizierten PAC Prüfer Pastèque von seinem ursprünglichen Standard-ML-Backend auf ein neueres LLVM-Backend und verwendete dafür das Isabelle-LLVM-Framework das die Implementierung und formale Verifikation imperativer Programme mit manueller Speicherverwaltung mit dem Theorembeweiser Isabelle ermöglicht.
+Im Zuge dieser Migration erweiterte ich eine native Bibliothek für Mehrfachpräzisionsarithmetik in Isabelle-LLVM für die Verwendung in Pastèque und implementierte grundlegende Datentypen für Isabelle-LLVM, darunter Hashmaps und schachtelbare verkettete Listen.
+Ich evaluierte die Performanz der LLVM-Migration im Vergleich zur ursprünglichen Standard-ML-Implementierung und zum in C++ geschriebenen PAC-Prüfer Pacheck. Dabei zeigt sich eine Leistungsverbesserung bei kleineren Instanzen und ein Leistungsrückgang bei großen 512-Bit-Multiplizierern, im Vergleich zum Standard-ML-Backend

@@ -21,3 +21,12 @@ The newer Isabelle-LLVM framework \cite{isabelle-llvm}, also by Lammich, employs
 
 The formally verified SAT solver IsaSAT by Fleury \cite{isasat-sml} was initially implemented with Sepref and then migrated to Isabelle-LLVM which led to a performance increase by a factor of two in tests \cite{isabelle-llvm}.
 This observation motivates the migration of the PAC checker Pastèque to Isabelle-LLVM which is the objective of this thesis.
+
+All code written for this thesis is publicly available at Github\footnote{
+	The code is available in the following repositories:
+	\begin{enumerate}
+		\item \href{https://github.com/milanmueller/master-thesis}{https://github.com/milanmueller/master-thesis} contains the thesis source code,
+		\item \href{https://github.com/milanmueller/IsabelleBigInteger/tree/main}{https://github.com/milanmueller/IsabelleBigInteger/tree/main} contains my contributions to the multiple precision integer implementation, forked from the original repository by Spinei and Lammich \cite{spinei_isabelle_big_integer},
+		\item \href{https://github.com/milanmueller/IsaFoL/tree/llvm-migrate}{https://github.com/milanmueller/IsaFoL/tree/llvm-migrate} contains the LLVM migration of Pastèque.
+	\end{enumerate}
+}

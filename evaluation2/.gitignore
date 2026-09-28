@@ -3,4 +3,6 @@ checkers/
 instances/*
 !instances/benchmark-include
 results/
+!results/plot.pdf
+!results/table.tex
 *.csv

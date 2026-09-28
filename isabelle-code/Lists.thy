@@ -48,11 +48,11 @@ sum :: \<open>nat list \<Rightarrow> nat\<close> where
 
 term foldl
 definition
-ll_foldl :: \<open>('a \<Rightarrow> 'b \<Rightarrow> 'a llM) \<Rightarrow> 'a \<Rightarrow> 'b node ptr \<Rightarrow> 'a llM\<close> where
-  \<open>ll_foldl f a p \<equiv> if p = null then Mreturn a else do {
+ll_fold :: \<open>('a \<Rightarrow> 'b \<Rightarrow> 'a llM) \<Rightarrow> 'a \<Rightarrow> 'b node ptr \<Rightarrow> 'a llM\<close> where
+  \<open>ll_fold f a p \<equiv> if p = null then Mreturn a else do {
       n \<leftarrow> ll_load p;
       a \<leftarrow> f a (node.val n);
-      ll_foldl f (node.next n) a
+      ll_fold f a (node.next n)
   }\<close>
 
 definition

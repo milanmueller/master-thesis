@@ -1,0 +1,7 @@
+fused_add A i r = do {
+  p  <- lookup A i    // Move p out of A; A now maps i to None
+  r' <- add r p       // Read-only operation, does not change p
+  p  <- update A i p  // Move p back into A;
+                      // A is now in its initial state
+  return r'
+}

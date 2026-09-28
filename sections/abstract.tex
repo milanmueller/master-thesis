@@ -1,1 +1,7 @@
 \section*{Abstract}
+
+Proof certificates can increase trust in an automated reasoning tool by providing justification of its deductions that can be validated by a third-party checker.
+The practical algebraic calculus (PAC) defines such proof certificates for verification of digital circuits, in particular multipliers, based on algebraic reasoning.
+I migrate the formally verified PAC checker Pastèque from its original Standard ML backend to a newer LLVM code, using the Isabelle-LLVM framework for implementing and formally verifying imperative programs with manual memory management in the theorem prover Isabelle.
+To enable this migration, I extend a native multiple precision arithmetic library for Isabelle-LLVM for use in Pastèque and implement fundamental low-level datatypes, including hashmaps and nestable linked lists, for Isabelle-LLVM.
+I evaluate the performance of the LLVM migration, comparing it to the original Standard ML implementation and the Pacheck PAC checker written in C++, observing a performance improvement for smaller instances and a performance decline for large 512-bit multipliers, compared to the Standard ML backend.
