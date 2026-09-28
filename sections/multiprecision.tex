@@ -44,9 +44,9 @@ This is the only position in the library, and in the LLVM port of Pastèque, whe
 
 \subsection{Signed Arbitrary Precision Integers}\label{sec:signed-arbitrary-precision-integers}
 
-Spineis library refines natural numbers by lists of 64-bit machine words.
-Pastèque uses (signed) multiple precision integers for polynomials coefficients, meaning a unbounded refinement target for Isabelles $\iexp{int}$ type is required.
-I therefore extend the library by representing signed integers by tuples of type $(64 \app \iexp{word} \app \iexp{list}, \iexp{bool})$, where the list represents the numbers absolute value and the boolean represents the sign.
+Spinei's library refines natural numbers by lists of 64-bit machine words.
+Pastèque uses (signed) multiple precision integers for polynomial coefficients, meaning an unbounded refinement target for Isabelle's $\iexp{int}$ type is required.
+I therefore extend the library by representing signed integers by tuples of type $(64 \app \iexp{word} \app \iexp{list}, \iexp{bool})$, where the list represents the number's absolute value and the boolean represents the sign.
 Analogous to the library, I define an abstraction function $\iexp{signed\_big\_int\_}\alpha \dbcolon (64 \app \iexp{word} \app \iexp{list}, \iexp{bool}) \rightarrow int$ as
 \begin{gather*}
 \iexp{signed\_big\_int\_}\alpha (ws,\sigma) =
@@ -68,7 +68,7 @@ I then define a relation $\iexp{signed\_big\_int\_rel} \dbcolon ((64 \app \iexp{
 \end{gather*}
 analogously to $\iexp{big\_int\_rel}$.
 
-Implementing arithmetic functions for addition and multiplication, which are the only operations needed for Pastèque, is straight forward by case analysis on the signs of two given input numbers.
+Implementing arithmetic functions for addition and multiplication, which are the only operations needed for Pastèque, is straightforward by case analysis on the signs of two given input numbers.
 Addition of two inputs $(ws_1,\sigma_1), (ws_2,\sigma_2)$ is achieved by
 \begin{align*}
 	&\iexp{signed\_big\_int\_add} \app (ws_1,\sigma_1) \app (ws_2,\sigma_2) \\
@@ -79,14 +79,14 @@ Addition of two inputs $(ws_1,\sigma_1), (ws_2,\sigma_2)$ is achieved by
 		(\iexp{big\_int\_sub} \app ws_2 \app ws_1,\sigma_2) &\text{, otherwise}
 	\end{cases}
 \end{align*}
-where $\iexp{big\_int\_sub}$ is the subtraction implementation from the library. 
+where $\iexp{big\_int\_sub}$ is the subtraction implementation from the library.
 Multiplication is implemented by
 \begin{gather*}
 	\iexp{signed\_big\_int\_mult} \app (ws_1,\sigma_1) \app (ws_2,\sigma_2) = (\iexp{big\_int\_mult} \app ws_1 \app ws_2, \sigma_1 \iexp{XOR} \sigma_2)
 \end{gather*}
 where $\iexp{big\_int\_mult}$ is the multiplication implementation from the library.
 
-I then prove correctness analogously to the unsigned case; in case of addition for example, I prove 
+I then prove correctness analogously to the unsigned case; in case of addition for example, I prove
 \begin{gather*}
 	((ws_1,\sigma_1),i_1) \in \iexp{big\_int\_rel} \land ((ws_2,\sigma_2),i_2) \in \iexp{signed\_big\_int\_rel} \\
 	\Rightarrow (\iexp{signed\_big\_int\_add} \app (ws_1,\sigma_1) \app (ws_2,\sigma_2), i_1 + i_2) \in \iexp{signed\_big\_int\_rel}
@@ -95,30 +95,30 @@ For multiplication I prove an analogous lemma.
 
 \subsection{Relating Integers and ASCII Encoded Strings}\label{sec:relating-integers-and-ascii-encoded-strings}
 
-For parsing input files, and for printing error messages, Pastèque requires conversion between arbitrary precision integers and ascii encoded strings. 
-I implement end-to-end verified conversion functions, using school book division for printing multiple precision integers.
-For the correctness proof, I define a relation between Isabelle/HOLs $\iexp{string}$ and $\iexp{int}$ times to define semantics of integers as ascii encoded strings.
+For parsing input files, and for printing error messages, Pastèque requires conversion between arbitrary precision integers and ASCII encoded strings.
+I implement end-to-end verified conversion functions, using schoolbook division for printing multiple precision integers.
+For the correctness proof, I define a relation between Isabelle/HOL's $\iexp{string}$ and $\iexp{int}$ types to define semantics of integers as ASCII encoded strings.
 
-The digits $"0"-"9"$ have ascii codes $48-57$, I define conversion from Isabelle/HOLs $\iexp{char}$ type to $\iexp{nat}$ by a function
+The digits $"0"-"9"$ have ASCII codes $48-57$; I define conversion from Isabelle/HOL's $\iexp{char}$ type to $\iexp{nat}$ by a function
 \begin{gather*}
 	\iexp{char\_uval} \app c = (\iexp{of\_char} \app c) - 48
 \end{gather*}
-where $\iexp{of\_char} \dbcolon \iexp{char} \rightarrow \iexp{nat}$ converts a character to its ascii code.
+where $\iexp{of\_char} \dbcolon \iexp{char} \rightarrow \iexp{nat}$ converts a character to its ASCII code.
 I also define an invariant $\iexp{is\_ascii\_char} \dbcolon \iexp{char} \rightarrow \iexp{bool}$ by
 \begin{gather*}
 	\iexp{is\_ascii\_char} \app c = 48 \leq (\iexp{of\_char} \app c) \land (\iexp{of\_char} \app c) \leq 57
 \end{gather*}
-A relation between ascii digits and natural numbers is then given by relation $\iexp{ascii\_char\_nat\_rel} \dbcolon (\iexp{char} \times \iexp{nat}) \app \iexp{set}$ where
+A relation between ASCII digits and natural numbers is then given by relation $\iexp{ascii\_char\_nat\_rel} \dbcolon (\iexp{char} \times \iexp{nat}) \app \iexp{set}$ where
 \begin{gather*}
 	(c,n) \in \iexp{ascii\_char\_nat\_rel} \Leftrightarrow n = \iexp{char\_uval} \app c \land \iexp{is\_ascii\_char} \app c
 \end{gather*}
 
-The relation between ascii characters and natural numbers is extended to a relation between ascii strings and natural numbers through a conversion function $\iexp{str\_uval} \dbcolon \iexp{string} \rightarrow \iexp{nat}$
+The relation between ASCII characters and natural numbers is extended to a relation between ASCII strings and natural numbers through a conversion function $\iexp{str\_uval} \dbcolon \iexp{string} \rightarrow \iexp{nat}$
 with
 \begin{gather*}
-	\iexp{str\_uval} = \iexp{foldl} \app (\lambda acc \app c. \app 10 \cdot acc + \iexp{char\_uval} \app c) \app 0 
+	\iexp{str\_uval} = \iexp{foldl} \app (\lambda acc \app c. \app 10 \cdot acc + \iexp{char\_uval} \app c) \app 0
 \end{gather*}
-An invariant for ascii string representing natural numbers is given by $\iexp{is\_ascii\_unum\_str} \dbcolon \iexp{string} \rightarrow \iexp{nat}$ where
+An invariant for ASCII string representing natural numbers is given by $\iexp{is\_ascii\_unum\_str} \dbcolon \iexp{string} \rightarrow \iexp{nat}$ where
 \begin{gather*}
 	\iexp{is\_ascii\_unum\_str} \app cs = (cs \neq [ \app ] \land \forall c \in \iexp{set} \app cs. \app \iexp{is\_ascii\_char} \app c)
 \end{gather*}
@@ -127,7 +127,7 @@ The relation $\iexp{ascii\_str\_nat\_rel} \dbcolon (\iexp{string},\iexp{nat}) \a
 	(cs,n) \in \iexp{ascii\_str\_nat\_rel} \Leftrightarrow n = \iexp{str\_uval} \app cs \land \iexp{is\_ascii\_unum\_str}
 \end{gather*}
 
-To finally obtain a relation between ascii string and integers, in a final step I extend $\iexp{ascii\_str\_nat\_rel}$ to consider a leading $\iexp{'-'}$ character which has ascii code $45$.
+To finally obtain a relation between ASCII string and integers, in a final step I extend $\iexp{ascii\_str\_nat\_rel}$ to consider a leading $\iexp{'-'}$ character which has ASCII code $45$.
 The final conversion function $\iexp{str\_sval} \dbcolon \iexp{string} \rightarrow \iexp{int}$ is implemented as
 \begin{gather*}
 	\iexp{str\_sval} \app cs =
@@ -136,7 +136,7 @@ The final conversion function $\iexp{str\_sval} \dbcolon \iexp{string} \rightarr
 		\iexp{int} \app   (\iexp{str\_uval} \app cs)  &\text{, otherwise}
 	\end{cases}
 \end{gather*}
-An invariant for ascii string representations of integers is given by $\iexp{is\_ascii\_snum\_str} \dbcolon \iexp{string} \rightarrow \iexp{bool}$ with
+An invariant for ASCII string representations of integers is given by $\iexp{is\_ascii\_snum\_str} \dbcolon \iexp{string} \rightarrow \iexp{bool}$ with
 \begin{gather*}
 	\iexp{is\_ascii\_snum\_str} \app cs =
 	\begin{cases}
@@ -161,7 +161,7 @@ Conversion from natural numbers to strings is implemented by $\iexp{chars\_of\_n
 		\iexp{chars\_of\_nat} (\lfloor \frac{n}{10} \rfloor) @ [\iexp{char\_of} \app (n \text{ mod } 10) + 48] &\text{, otherwise}
 	\end{cases}
 \end{gather*}
-where $\iexp{char\_of} \dbcolon \iexp{nat} \rightarrow \iexp{char}$ converts a natural number $n$ to the character with ascii code $n \text{ mod } 256$.
+where $\iexp{char\_of} \dbcolon \iexp{nat} \rightarrow \iexp{char}$ converts a natural number $n$ to the character with ASCII code $n \text{ mod } 256$.
 Extending to conversion from integers to strings is achieved by $\iexp{chars\_of\_int} \dbcolon \iexp{int} \rightarrow \iexp{nat}$ where
 \begin{gather*}
 	\iexp{chars\_of\_int} \app i =
@@ -178,24 +178,24 @@ The relation $\iexp{int\_ascii\_str\_rel} \dbcolon (\iexp{int}, \iexp{string}) \
 As a corollary, I prove that $\iexp{int\_ascii\_str\_rel} \circ \iexp{ascii\_str\_int\_rel} = \iexp{Id}$, where $\circ \dbcolon (\tv{a},\tv{b}) \app \iexp{set} \rightarrow (\tv{b},\tv{c}) \app \iexp{set} \rightarrow (\tv{a},\tv{c}) \app \iexp{set}$ is the composition of two relations and $\iexp{Id} \dbcolon (\tv{a},\tv{a}) \app \iexp{set}$ is the identity relation.
 Note that the inverse does not hold, i.e. $\iexp{ascii\_str\_int\_rel} \circ \iexp{int\_ascii\_str\_rel} \neq \iexp{Id}$, because $\iexp{ascii\_str\_int\_rel}$ is not injective as the strings $\iexp{"01"}$ and $\iexp{"1"}$ are both mapped to $1$.
 
-Note that the definition of $\iexp{chars\_of\_nat}$ indicates the approach I chose to implement conversion of integer to string: A given string is continuously divided by 10 (with remainder) until the result is representable by a single digit, the resulting string is then constructed from the collected remainders and final digit.
+Note that the definition of $\iexp{chars\_of\_nat}$ indicates the approach I chose to implement conversion of integer to string: a given number is continuously divided by 10 (with remainder) until the result is representable by a single digit; the resulting string is then constructed from the collected remainders and final digit.
 
 \subsection{Implementation of Conversion between String and Multiple Precision Integer}\label{sec:conversion-between-string-and-integer}
-The previous subsection, \refsec{sec:relating-integers-and-ascii-encoded-strings}, defines the semantics integers encoded as ascii strings.
-This subsection describes the concrete conversion implementation of the conversion between strings and arbitrary precision integers, required for parsing input files and printing coefficients in error messages.
+The previous subsection, \refsec{sec:relating-integers-and-ascii-encoded-strings}, defines the semantics of integers encoded as ASCII strings.
+This subsection describes the concrete implementation of the conversion between strings and arbitrary precision integers, required for parsing input files and printing coefficients in error messages.
 
 Pastèque uses the high level $\iexp{string} = \iexp{char} \app \iexp{list}$ type for strings, in particular for error messages.
-Isabelle-LLVM does not define a refinement target for $\iexp{char}$, so a custom refinement assertion is required for the this Thesis.
+Isabelle-LLVM does not define a refinement target for $\iexp{char}$, so a custom refinement assertion is required for this thesis.
 The high level $\iexp{char}$ type is defined by eight booleans, i.e. $\iexp{char} = \iexp{Char} \app (\iexp{digit0} \dbcolon \iexp{bool}) \app \dots \app (\iexp{digit7} \dbcolon \iexp{bool})$, so the natural refinement target is $8 \app \iexp{word}$.
 I use the existing refinement assertion $\iexp{un8\_assn} \dbcolon \iexp{nat} \rightarrow 8 \app \iexp{word} \rightarrow \iexp{assn}$, refining natural numbers $< 256$ by 8-bit machine words and compose it with the existing $\iexp{char\_of} \dbcolon \iexp{nat} \rightarrow \iexp{char}$ function to obtain $\iexp{char\_assn} \dbcolon \iexp{char} \rightarrow 8 \app \iexp{word} \rightarrow \iexp{assn}$.
-I then use the list implementation, discussed in \ref{sec:lists-with-tail-pointers}, to obtain a refinement assertion $\iexp{str\_assn}$ for strings.
+I then use the list implementation, discussed in \refsec{sec:lists-with-tail-pointers}, to obtain a refinement assertion $\iexp{str\_assn}$ for strings.
 
 Implementing conversion between strings and integers amounts to refining the functions $\iexp{chars\_of\_int}$ and $\iexp{str\_sval}$.
-For $str\_sval$ this is straight forward by use of the $\iexp{foldl}$ implementation for lists in LLVM which is discussed in \ref{sec:non-destructive-list-access-using-fold}.
+For $\iexp{str\_sval}$ this is straightforward by use of the $\iexp{foldl}$ implementation for lists in LLVM which is discussed in \refsec{sec:non-destructive-list-access-using-fold}.
 Refinement of $\iexp{chars\_of\_int}$ is more involved as it requires division of multiple precision integers by 10.
 In particular, for a given unsigned multiple precision integer $n$, the implementation must compute $\lfloor \frac{n}{10} \rfloor $ and $n \text{ mod } 10$.
 
-The division is implemented by classic school book division.
+The division is implemented by classic schoolbook division.
 The core of the division is implemented by a function $\iexp{bi\_div\_by\_w64}$, a simplified version of which is shown in \refalgo{algo:bi-div-by-w64}.
 \isabellecodeextern[linerange=12-28,label=algo:bi-div-by-w64,caption={
 	Core algorithm for dividing multiple precision numbers by a given 64-bit integer.
@@ -206,7 +206,7 @@ The helper function $\iexp{divmod2by1}$ is shown in \refalgo{algo:divmod2by1}.
 	Helper function dividing a 128-bit integer by a 64-bit integer.
 }]{isabelle-code/BigIntString_Simplified.thy}
 The reason that $\iexp{divmod2by1}$ is a separate function lies in the multiplication of $\iexp{hi}$ by $2^{64}$.
-The limbs in in the list are 64-bit integers which can not express $\iexp{hi} * 2^{64}$.
+The limbs in the list are 64-bit integers which cannot express $\iexp{hi} \cdot 2^{64}$.
 To still implement $\iexp{divmod2by1}$, the inputs $\iexp{hi}$ and $\iexp{lo}$ are upcast to a 128-bit integer before the division and modulo operations are performed.
 Note that throughout the execution of $\iexp{bi\_div\_by\_w64}$ it holds that $\iexp{r} < \iexp{l}$ which implies $\iexp{cur} \app \iexp{div} \app \iexp{d} < 2^{64}$, meaning that $\iexp{cur} \app \iexp{div} \app \iexp{d}$ can be downcast to a 64-bit integer without its value being changed.
 \todo{more elaborate explanation for why this is true.}

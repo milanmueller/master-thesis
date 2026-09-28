@@ -13,7 +13,8 @@
 #   pasteque-sml    IsaFoL/PAC_Checker2/code, Imperative-HOL/MLton, shared
 #                   variables ("Efficient"); code/no_sharing is not built
 #   pasteque-llvm   IsaFoL-Pasteque-LLVM/PAC_Checker_LLVM/code, Isabelle-LLVM,
-#                   `make pasteque_shared` (-DPASTEQUE_SHARED)
+#                   `make pasteque`: trusted parser (parser.c) linked against
+#                   the exported term.ll and pasteque.ll
 #
 # All three take the same three positional arguments: <input> <proof> <target>.
 #
@@ -33,6 +34,10 @@ LLVM_SRC="${LLVM_SRC:-$REPO_ROOT/isabelle/IsaFoL-Pasteque-LLVM/PAC_Checker_LLVM/
 
 BUILD="$EVAL_DIR/build"
 OUT="$EVAL_DIR/checkers"
+
+# Everything `make pasteque` in the LLVM code directory needs: the driver, the
+# hand-written/generated headers and the two Isabelle-LLVM exports.
+LLVM_FILES=(Makefile parser.c parser.h pasteque.h term.h pasteque.ll term.ll)
 
 ALL_CHECKERS=(pacheck pasteque-sml pasteque-llvm)
 
@@ -115,22 +120,14 @@ fi
 
 if wants pasteque-llvm; then
   missing=()
-  for f in Makefile parser.c parser.h pasteque_shared.h pasteque_shared.ll; do
+  for f in "${LLVM_FILES[@]}"; do
     [ -f "$LLVM_SRC/$f" ] || missing+=("$f")
   done
   if [ ${#missing[@]} -gt 0 ]; then
     die "missing in $LLVM_SRC: ${missing[*]}
-       The .ll/.h files are gitignored (working tree only). Regenerate them with:
+       The .ll files are gitignored (working tree only). Regenerate them with:
          cd $REPO_ROOT/isabelle && mk build_pasteque_llvm"
   fi
-  # The two LLVM exports are generated from one theory by two export_llvm
-  # invocations and their entry points differ only in name, so a stale export
-  # would silently substitute the non-shared checker for the shared one.
-  grep -q '@LPAC_Efficient_Checker_Synthesis_full_checker_l_s2_impl' \
-    "$LLVM_SRC/pasteque_shared.ll" || die \
-    "pasteque_shared.ll does not define the shared-variables entry point
-       (LPAC_Efficient_Checker_Synthesis_full_checker_l_s2_impl). The export is
-       stale; re-run: cd $REPO_ROOT/isabelle && mk build_pasteque_llvm"
 fi
 
 # --- build -----------------------------------------------------------------
@@ -174,17 +171,18 @@ build_pasteque_sml() {
 }
 
 build_pasteque_llvm() {
-  bold "==> pasteque-llvm (shared variables)"
+  bold "==> pasteque-llvm"
   local dir="$BUILD/pasteque-llvm"
   rm -rf "$dir"; mkdir -p "$dir"
-  cp "$LLVM_SRC/Makefile" "$LLVM_SRC/parser.c" "$LLVM_SRC/parser.h" \
-     "$LLVM_SRC/pasteque_shared.h" "$LLVM_SRC/pasteque_shared.ll" "$dir/"
+  for f in "${LLVM_FILES[@]}"; do cp "$LLVM_SRC/$f" "$dir/"; done
   # The exported IR needs no external library: parser.c defines the only two
   # symbols it declares (isabelle_llvm_calloc / isabelle_llvm_free). The
-  # Makefile compiles parser.c and the IR in one clang invocation so that LTO
-  # optimises the trusted parser together with the verified checker.
-  ( cd "$dir" && make CC="$CLANG" CLANG="$CLANG" pasteque_shared )
-  cp "$dir/pasteque_shared" "$OUT/pasteque-llvm"
+  # Makefile first rewrites term.ll and pasteque.ll to *_int.ll (hiding the
+  # clashing auxiliary definitions) and then compiles parser.c together with
+  # both in one clang invocation so that LTO optimises the trusted parser
+  # together with the verified checker.
+  ( cd "$dir" && make CC="$CLANG" pasteque )
+  cp "$dir/pasteque" "$OUT/pasteque-llvm"
 }
 
 for c in "${selected[@]}"; do

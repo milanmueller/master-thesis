@@ -1,23 +1,23 @@
 \section{Motivation}\label{sec:motivation}
 
 Tools in automated reasoning can autonomously find solutions to complex combinatorial problems.
-SAT solvers for instance are able to determine unsatisfiability of large CNF formulas and SMT solvers extend the SAT approach to satisfiability with respect to specific first-order-logic theories.
+SAT solvers, for instance, are able to determine unsatisfiability of large CNF formulas and SMT solvers extend the SAT approach to satisfiability with respect to specific first-order-logic theories.
 Being complex programs, such solvers are prone to have bugs leading to incorrect answers or crashes.
-This is not merely a theoretical argument as fuzz testing solvers from SAT competition 2007 showed errors in multiple competing solvers \cite{sat-fuzzing-2007} and fuzz testing SMT solvers has shown similar inconsistencies \cite{smt-fuzzing} \cite{smt-fuzzing-2020}.
-Especially when SAT or SMT solvers are used as part of larger verification effort, for instance when SMT solvers are used as an oracle by a deductive verifier, an unsound answer by the solver silently invalidates the entire verification process. 
-To increase trust in a SAT solvers result, proof formats like DRAT \cite{DRAT} have emerged as a means to enable validation of the solvers deduction independently by a third party proof checker \cite{Lammich2020}.
+This is not merely a theoretical argument as fuzz testing solvers from the SAT competition 2007 showed errors in multiple competing solvers \cite{sat-fuzzing-2007} and fuzz testing SMT solvers has shown similar inconsistencies \cite{smt-fuzzing,smt-fuzzing-2020}.
+Especially when SAT or SMT solvers are used as part of a larger verification effort, for instance when SMT solvers are used as an oracle by a deductive verifier, an unsound answer by the solver silently invalidates the entire verification process.
+To increase trust in a SAT solver's result, proof formats like DRAT \cite{DRAT} have emerged as a means to enable validation of the solver's deduction independently by a third-party proof checker \cite{Lammich2020}.
 
-This thesis follows a line of work by Kaufmann et al. \cite{kaufmann-phd-thesis, amulet2, pac-2024} which applies a similar approach to the verification of digital circuits, in particular multipliers for which SAT based verification is considered to be infeasible due to size of the resulting search space \cite{Kaufmann-column-wise-verification}.
-In said approach, the gate-level semantics of a given circuit is modeled by a Gröbener basis, and verification of the circuit is reduced to an ideal membership test of the polynomial implied by the specification. 
-The AMulet tool \cite{amulet2}, for given circuit and specification, applies this translation, carries out the membership tests and can also generate a proof certificate in either the Nullstellensatz format \cite{nullstellensatz} or in the practical algebraic calculus (PAC) format \cite{pac-2024}, the latter being the focus of this thesis.
+This thesis follows a line of work by Kaufmann et al. \cite{kaufmann-phd-thesis, amulet2, pac-2024} which applies a similar approach to the verification of digital circuits, in particular multipliers for which SAT based verification is considered to be infeasible due to the size of the resulting search space \cite{Kaufmann-column-wise-verification}.
+In said approach, the gate-level semantics of a given circuit is modeled by a Gröbner basis, and verification of the circuit is reduced to an ideal membership test of the polynomial implied by the specification.
+The AMulet tool \cite{amulet2}, for a given circuit and specification, applies this translation, carries out the membership tests and can also generate a proof certificate in either the Nullstellensatz format \cite{nullstellensatz} or in the practical algebraic calculus (PAC) format \cite{pac-2024}, the latter being the focus of this thesis.
 Checking a proof certificate in PAC format can be done either by use of the efficient Pacheck checker \cite{pac-2024}, implemented in C++, or by use of the slower but formally verified Pastèque checker, implemented by Fleury \cite{pac-2024} using the theorem prover Isabelle \cite{isabelle} with the Sepref framework by Lammich \cite{sepref}.
 
 Sepref allows its users to define imperative programs in Isabelle and enables verification of such programs using separation logic in conjunction with a refinement approach, allowing for step-wise concretization of initially abstract, idealized algorithms, while also automating large portions of corresponding correctness proofs.
-The verified programs can be exported to Standard ML code which is compiled using MLton \cite{mlton, weeks-mlton-2006} yielding an executable program. 
+The verified programs can be exported to Standard ML code which is compiled using MLton \cite{mlton, weeks-mlton-2006} yielding an executable program.
 Contrary to the mentioned SAT and SMT approaches, proof automation in Sepref is not trusted to be correct.
 Instead, each proof step is checked by Isabelle's small core reduction engine (kernel) which would reject unsound proofs.
 Compared to efficient languages like C++ with manual memory management however, programs written in Standard ML tend to be slower.
 The newer Isabelle-LLVM framework \cite{isabelle-llvm}, also by Lammich, employs the same step-wise refinement approach but targets a shallow embedding of LLVM instead of Standard ML, allowing for more efficient code with manual memory management while giving similar, if not stronger correctness guarantees due to the wide adoption and extensive testing of the LLVM compiler tools compared to the Standard ML and MLton backend which are trusted to be correct in Sepref.
 
-The formally verified SAT solver IsaSAT by Fleury \cite{isasat-sml} was initially implemented with Sepref and then migrated to Isabelle-LLVM which lead performance increase by factor 2 in tests \cite{isabelle-llvm}.
+The formally verified SAT solver IsaSAT by Fleury \cite{isasat-sml} was initially implemented with Sepref and then migrated to Isabelle-LLVM which led to a performance increase by a factor of two in tests \cite{isabelle-llvm}.
 This observation motivates the migration of the PAC checker Pastèque to Isabelle-LLVM which is the objective of this thesis.
