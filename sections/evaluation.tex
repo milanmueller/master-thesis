@@ -10,13 +10,13 @@ I measure wall-clock time and peak resident set size (RSS) for all checkers usin
 Benchmarks are run on a machine with an AMD Ryzen 5 7500F CPU and 32 GB of RAM.
 Each benchmark is run five times, the shown measurements are the respective mean values over all five runs.
 
-\input{evaluation2/results/table.tex}
+\input{evaluation/main/results/table.tex}
 Table~\ref{tab:checker-comparison} shows the resulting average measurements.
 Between the LLVM backend and the Standard ML backend, the variant with either lower wall clock execution time and memory usage is written in bold, Pacheck is the most efficient for every benchmark.
 
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=\textwidth]{evaluation2/results/plot.pdf}
+	\includegraphics[width=\textwidth]{evaluation/main/results/plot.pdf}
 	\caption{ Wall clock time (solid lines, left axis) and peak resident set size (dashed lines, right axis) of the three PAC proof checkers, both scales logarithmic.
 		Color identifies the checker, line style identifies the measure.
 	}
@@ -30,8 +30,31 @@ To analyze the performance of Pastèque with the LLVM backend, in comparison wit
 Pastèque with the Standard ML backend already breaks down execution times for
 \begin{itemize}
 	\item parsing input files,
-	\item initialization, i.e., sorting and normalizing all input polynomials,
-	\item and checking the proof steps.
+	\item checking the proof steps,
+	\item and time spent on garbage collection.
 \end{itemize}
-The time spent on garbage collection is also measured separately to obtain runtime without garbage collection.
-For the LLVM variant, I recreated the outer LLVM main function in C to obtain the same measurement with breakdown into the separate phases.
+To obtain a separation of individual phases with the LLVM backend aswell, I inject timing measurement instructions in the generated LLVM code.
+For the LLVM backend, I break down the time spent on
+\begin{itemize}
+	\item parsing input files,
+	\item initialization of input polynomials (sorting and normalization),
+	\item checking proof steps,
+	\item a final teardown phases which frees all allocated data.
+	      This last phase is not equivalent to the garbage collection phase in the Standard ML backend.
+\end{itemize}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\textwidth]{evaluation/phases/results/phases-plot.pdf}
+	\caption{
+		Relative time spent on each phase, considering only "btor" and "sparrc" benchmarks which both come in different bit-widths.
+		For the LLVM backend, there are four phases, for the Standard ML backend there are three phases.
+	}
+	\label{fig:phase-comparison}
+\end{figure}
+Figure~\ref{fig:phase-comparison} shows the relative amount of time that each backend spends in the individual phases.
+I only include the "btor" and "sparrc" benchmarks here as they provide different bit-widths which reveals a progression in the LLVM backend where, for larger bit-width, the relative amount of time spent on parsing and checking increases.
+This is not the case with the Standard ML backend.
+
+\input{evaluation/phases/results/phases-table.tex}
+Table~\ref{tab:phase-comparison} lists the same measurements for all benchmarks.

@@ -52,8 +52,8 @@ LATEX_SPECIALS = {
 
 
 def latex_escape(text: str) -> str:
-    """Escape LaTeX specials. Benchmark stems carry underscores (e.g.
-    512_512_U_SP_AR_RC_GenMul), which would otherwise break the build."""
+    """Escape LaTeX specials. A benchmark stem is a file name and may carry
+    underscores, which would otherwise break the build."""
     return "".join(LATEX_SPECIALS.get(c, c) for c in str(text))
 
 

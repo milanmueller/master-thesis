@@ -7,29 +7,36 @@ It then describes the additions I have made to use the library for Pastèque.
 
 The native precision integer library models natural numbers by lists of 64-bit machine words.
 Individual 64-bit machine words are referred to as \textit{limbs}.
-It defines an abstraction function $\iexp{big\_int\_}\alpha \dbcolon 64 \app \iexp{word} \rightarrow \iexp{nat}$, recursively defined as
+It defines an abstraction function $\iexp{big\_int\_}\alpha \dbcolon 64 \app \iexp{word} \app \iexp{list} \rightarrow \iexp{nat}$, recursively defined as
 \begin{gather*}
 	\iexp{big\_int\_}\alpha \app xs =
 	\begin{cases}
-		0 &\text{, if $xs=[ \app ]$} \\
-		\iexp{unat} \app x + 2^{64} \cdot (\iexp{big\_int\_}\alpha \app xs') &\text{, if $xs = (x \iexp{\#} xs')$}
+		0                                                                    & \text{, if $xs=[ \app ]$}            \\
+		\iexp{unat} \app x + 2^{64} \cdot (\iexp{big\_int\_}\alpha \app xs') & \text{, if $xs = (x \iexp{\#} xs')$}
 	\end{cases}
 \end{gather*}
 where $\iexp{unat} \dbcolon \tv{l} \app \iexp{word} \rightarrow \iexp{nat}$ is the natural number encoded by an (unsigned) machine word of bit-width $\tv{l}$.
 
-The library also defines an invariant $\iexp{big\_int\_invar} \dbcolon 64 \app \iexp{word} \rightarrow \iexp{bool}$ with $\iexp{big\_int\_invar} \app xs = (xs = [ \app ] \lor \iexp{last} \app xs \neq 0)$, where $\iexp{last} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a}$ yields the last element of a list.
+The library also defines an invariant $\iexp{big\_int\_invar} \dbcolon 64 \app \iexp{word} \app \iexp{list} \rightarrow \iexp{bool}$ with $\iexp{big\_int\_invar} \app xs = (xs = [ \app ] \lor \iexp{last} \app xs \neq 0)$, where $\iexp{last} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a}$ yields the last element of a list.
 In particular $\iexp{last} \app xs \neq 0$ implies that $xs$ is non empty.
 
-A relation $\iexp{big\_int\_rel} \dbcolon (64 \app \iexp{word}, \iexp{nat}) \app \iexp{set}$ is then defined such that $(ws,n) \in \iexp{big\_int\_rel} \Leftrightarrow n = \iexp{big\_int\_}\alpha \app ws \land \iexp{big\_int\_invar} \app ws$.
-Note that the invariant $\iexp{big\_int\_invar}$ forces a unique representation; the lists $[\iexp{0x0},\iexp{0x0},\iexp{0x0},\iexp{0x1}]$ and $[\iexp{0x1}]$ both evaluate to $1$ under $\iexp{big\_int\_}\alpha$, but only $[\iexp{0x1}]$ satisfies the invariant.
+A relation $\iexp{big\_int\_rel} \dbcolon (64 \app \iexp{word} \app \iexp{list}, \iexp{nat}) \app \iexp{set}$ is then defined such that $(ws,n) \in \iexp{big\_int\_rel} \Leftrightarrow n = \iexp{big\_int\_}\alpha \app ws \land \iexp{big\_int\_invar} \app ws$.
+Note that the invariant $\iexp{big\_int\_invar}$ forces a unique representation; the lists $[\iexp{0x1},\iexp{0x0},\iexp{0x0},\iexp{0x0}]$ and $[\iexp{0x1}]$ both evaluate to $1$ under $\iexp{big\_int\_}\alpha$, but only $[\iexp{0x1}]$ satisfies the invariant.
 Also, $[ \app ]$ is the unique representation of $0$.
 
-Spinei then implements addition, subtraction and multiplication operations for the 64-bit word lists, including correctness proofs of the form
+Relations like $\iexp{big\_int\_rel}$, which relate concrete values (in this case lists of 64-bit machine words) to abstract values (in this case natural numbers), based on an abstraction function (here $\iexp{big\_int\_}\alpha$) and an invariant constraining the allowed concrete values (here $\iexp{big\_int\_invar}$) are commonly used in the refinement framework.
+I refer to such relations as \textit{refinement relations} as they have a similar purpose as the refinement assertions introduced in \refsec{sec:isabelle-llvm}.
+Other than refinement assertions however, refinement relations do not require the concrete values to be representable in LLVM.
+The concrete values of a refinement relation, in this case $64 \app \iexp{word} \app \iexp{list}$ can serve as an intermediate abstraction between the final $\iexp{llM}$-level representation, which in case of the multiple precision library is an array of 64-bit integers refining $64 \app \iexp{word} \app \iexp{list}$, and the abstract type, in this case $\iexp{nat}$.
+Refinement assertions and refinement relations can be composed to obtain a full refinement assertion.
+The multiple precision integer library for instance defines $\iexp{bi\_assn} \dbcolon \iexp{nat} \rightarrow 64 \app \iexp{word} \times 64 \app \iexp{word} \times 64 \app \iexp{word} \app \iexp{ptr} \rightarrow \iexp{assn}$ through a composition of an auxiliary refinement assertion $\iexp{bi\_aux\_assn} \dbcolon 64 \app \iexp{word} \app \iexp{list} \rightarrow 64 \app \iexp{word} \times 64 \app \iexp{word} \times 64 \app \iexp{word} \app \iexp{ptr} \rightarrow \iexp{assn}$ and $\iexp{big\_int\_rel}$, where $64 \app \iexp{word} \times 64 \app \iexp{word} \times 64 \app \iexp{word} \app \iexp{ptr}$ is the $\iexp{llM}$-level representation of a resizable array of 64-bit machine words (the first two entries carry the array's size and capacity).
+
+Spinei implements addition, subtraction and multiplication operations for the 64-bit word lists, including correctness proofs of the form
 \begin{gather*}
 	(xs,n) \in \iexp{big\_int\_rel} \land (ys,m) \in \iexp{big\_int\_rel} \\
 	\Rightarrow (\iexp{big\_int\_add} \app xs \app ys, n + m) \in \iexp{big\_int\_rel}
 \end{gather*}
-where $\iexp{big\_int\_rel} \dbcolon 64 \app \iexp{word} \app \iexp{list} \rightarrow 64 \app \iexp{word} \app \iexp{list} \rightarrow 64 \app \iexp{word} \app \iexp{list}$ is the addition implementation.
+where $\iexp{big\_int\_add} \dbcolon 64 \app \iexp{word} \app \iexp{list} \rightarrow 64 \app \iexp{word} \app \iexp{list} \rightarrow 64 \app \iexp{word} \app \iexp{list}$ is the addition implementation.
 The other operations have analogous correctness proofs.
 The library contains a work-in-progress implementation of Karatsuba multiplication and a completed school book multiplication.
 For Pastèque, I use the school book multiplication.
@@ -46,24 +53,24 @@ This is the only position in the library, and in the LLVM port of Pastèque, whe
 
 Spinei's library refines natural numbers by lists of 64-bit machine words.
 Pastèque uses (signed) multiple precision integers for polynomial coefficients, meaning an unbounded refinement target for Isabelle's $\iexp{int}$ type is required.
-I therefore extend the library by representing signed integers by tuples of type $(64 \app \iexp{word} \app \iexp{list}, \iexp{bool})$, where the list represents the number's absolute value and the boolean represents the sign.
-Analogous to the library, I define an abstraction function $\iexp{signed\_big\_int\_}\alpha \dbcolon (64 \app \iexp{word} \app \iexp{list}, \iexp{bool}) \rightarrow int$ as
+I therefore extend the library by representing signed integers by tuples of type $(64 \app \iexp{word} \app \iexp{list} \times \iexp{bool})$, where the list represents the number's absolute value and the boolean represents the sign.
+Analogous to the library, I define an abstraction function $\iexp{signed\_big\_int\_}\alpha \dbcolon (64 \app \iexp{word} \app \iexp{list} \times \iexp{bool}) \rightarrow int$ as
 \begin{gather*}
-\iexp{signed\_big\_int\_}\alpha (ws,\sigma) =
-    \begin{cases}
-		- \iexp{int} \app (\iexp{big\_int\_}\alpha \app ws) &\text{, if $\sigma$} \\
-		\iexp{int} \app (\iexp{big\_int\_}\alpha \app ws) &\text{, otherwise}
+	\iexp{signed\_big\_int\_}\alpha (ws,\sigma) =
+	\begin{cases}
+		- \iexp{int} \app (\iexp{big\_int\_}\alpha \app ws) & \text{, if $\sigma$} \\
+		\iexp{int} \app (\iexp{big\_int\_}\alpha \app ws)   & \text{, otherwise}
 	\end{cases}
 \end{gather*}
 where $\iexp{int}$ converts $\iexp{nat}$ to $\iexp{int}$.
-I also define an invariant $\iexp{signed\_big\_int\_invar} \dbcolon (64 \app \iexp{word} \app \iexp{list}, \iexp{bool}) \rightarrow \iexp{bool}$ as
+I also define an invariant $\iexp{signed\_big\_int\_invar} \dbcolon (64 \app \iexp{word} \app \iexp{list} \times \iexp{bool}) \rightarrow \iexp{bool}$ as
 \begin{gather*}
 	\iexp{signed\_big\_int\_invar} \app (ws,\sigma) = \iexp{big\_int\_invar} \app ws \land (ws=[ \app ] \Rightarrow \lnot \sigma)
 \end{gather*}
 which forces a unique representation of 0, since $\iexp{signed\_big\_int\_invar} \app ([ \app ],\iexp{False}) = \iexp{True}$, while $\iexp{signed\_big\_int\_invar} \app ([ \app ], \iexp{True}) = \iexp{False}$.
-I then define a relation $\iexp{signed\_big\_int\_rel} \dbcolon ((64 \app \iexp{word} \app \iexp{list}, \iexp{bool}), \iexp{int}) \app \iexp{set}$ with
+I then define a relation $\iexp{signed\_big\_int\_rel} \dbcolon ((64 \app \iexp{word} \app \iexp{list} \times \iexp{bool}), \iexp{int}) \app \iexp{set}$ with
 \begin{gather*}
-    ((ws,\sigma),i) \in \iexp{signed\_big\_int\_rel} \\
+	((ws,\sigma),i) \in \iexp{signed\_big\_int\_rel} \\
 	\Leftrightarrow i = \iexp{signed\_big\_int\_}\alpha (ws,\sigma) \land \iexp{signed\_big\_int\_invar} (ws,\sigma)
 \end{gather*}
 analogously to $\iexp{big\_int\_rel}$.
@@ -71,13 +78,13 @@ analogously to $\iexp{big\_int\_rel}$.
 Implementing arithmetic functions for addition and multiplication, which are the only operations needed for Pastèque, is straightforward by case analysis on the signs of two given input numbers.
 Addition of two inputs $(ws_1,\sigma_1), (ws_2,\sigma_2)$ is achieved by
 \begin{align*}
-	&\iexp{signed\_big\_int\_add} \app (ws_1,\sigma_1) \app (ws_2,\sigma_2) \\
-	& = \begin{cases}
-		(\iexp{big\_int\_add} \app ws_1 \app ws_2,\iexp{False}) &\text{, if $\lnot \sigma_1 \land \lnot \sigma_2$} \\
-		(\iexp{big\_int\_add} \app ws_1 \app ws_2,\iexp{True}) &\text{, if $\sigma_1 \land \sigma_2$} \\
-		(\iexp{big\_int\_sub} \app ws_1 \app ws_2,\sigma_1) &\text{, if $\sigma_1 \neq \sigma_2 \land$ \parbox[t]{7cm}{$(\iexp{length} \app ws_1 > \iexp{length} \app ws_2$\\$\lor \iexp{length} \app ws_1 = \iexp{length} \app ws_2 \land \iexp{last} \app ws_1 \geq \iexp{last} \app ws_2)$}} \\
-		(\iexp{big\_int\_sub} \app ws_2 \app ws_1,\sigma_2) &\text{, otherwise}
-	\end{cases}
+	 & \iexp{signed\_big\_int\_add} \app (ws_1,\sigma_1) \app (ws_2,\sigma_2)                                                                                                     \\
+	 & = \begin{cases}
+		     (\iexp{big\_int\_add} \app ws_1 \app ws_2,\iexp{False}) & \text{, if $\lnot \sigma_1 \land \lnot \sigma_2$}                                                              \\
+		     (\iexp{big\_int\_add} \app ws_1 \app ws_2,\iexp{True})  & \text{, if $\sigma_1 \land \sigma_2$}                                                                          \\
+		     (\iexp{big\_int\_sub} \app ws_1 \app ws_2,\sigma_1)     & \text{, if $\sigma_1 \neq \sigma_2 \land$ \parbox[t]{7cm}{$(\iexp{length} \app ws_1 > \iexp{length} \app ws_2$ \\$\lor \iexp{length} \app ws_1 = \iexp{length} \app ws_2 \land \iexp{last} \app ws_1 \geq \iexp{last} \app ws_2)$}} \\
+		     (\iexp{big\_int\_sub} \app ws_2 \app ws_1,\sigma_2)     & \text{, otherwise}
+	     \end{cases}
 \end{align*}
 where $\iexp{big\_int\_sub}$ is the subtraction implementation from the library.
 Multiplication is implemented by
@@ -88,7 +95,7 @@ where $\iexp{big\_int\_mult}$ is the multiplication implementation from the libr
 
 I then prove correctness analogously to the unsigned case; in case of addition for example, I prove
 \begin{gather*}
-	((ws_1,\sigma_1),i_1) \in \iexp{big\_int\_rel} \land ((ws_2,\sigma_2),i_2) \in \iexp{signed\_big\_int\_rel} \\
+	((ws_1,\sigma_1),i_1) \in \iexp{signed\_big\_int\_rel} \land ((ws_2,\sigma_2),i_2) \in \iexp{signed\_big\_int\_rel} \\
 	\Rightarrow (\iexp{signed\_big\_int\_add} \app (ws_1,\sigma_1) \app (ws_2,\sigma_2), i_1 + i_2) \in \iexp{signed\_big\_int\_rel}
 \end{gather*}
 For multiplication I prove an analogous lemma.
@@ -132,16 +139,16 @@ The final conversion function $\iexp{str\_sval} \dbcolon \iexp{string} \rightarr
 \begin{gather*}
 	\iexp{str\_sval} \app cs =
 	\begin{cases}
-		- \iexp{int} \app (\iexp{str\_uval} \app cs') &\text{, if $cs = c \iexp{\#} cs' \land c = 45$} \\
-		\iexp{int} \app   (\iexp{str\_uval} \app cs)  &\text{, otherwise}
+		- \iexp{int} \app (\iexp{str\_uval} \app cs') & \text{, if $cs = c \iexp{\#} cs' \land c = 45$} \\
+		\iexp{int} \app   (\iexp{str\_uval} \app cs)  & \text{, otherwise}
 	\end{cases}
 \end{gather*}
 An invariant for ASCII string representations of integers is given by $\iexp{is\_ascii\_snum\_str} \dbcolon \iexp{string} \rightarrow \iexp{bool}$ with
 \begin{gather*}
 	\iexp{is\_ascii\_snum\_str} \app cs =
 	\begin{cases}
-		\iexp{is\_ascii\_unum\_str} cs' &\text{, if $cs = c \iexp{\#} cs' \land c = 45$} \\
-		\iexp{is\_ascii\_unum\_str} cs  &\text{, otherwise}
+		\iexp{is\_ascii\_unum\_str} cs' & \text{, if $cs = c \iexp{\#} cs' \land c = 45$} \\
+		\iexp{is\_ascii\_unum\_str} cs  & \text{, otherwise}
 	\end{cases}
 \end{gather*}
 The final relation $\iexp{ascii\_str\_int\_rel} \dbcolon (\iexp{string},\iexp{int}) \app \iexp{set}$, which is used in the correctness proofs of the string to multiple precision integer conversion (parsing), is then given by
@@ -157,8 +164,8 @@ Conversion from natural numbers to strings is implemented by $\iexp{chars\_of\_n
 \begin{gather*}
 	\iexp{chars\_of\_nat} \app n =
 	\begin{cases}
-		[n] &\text{, if $n<10$} \\
-		\iexp{chars\_of\_nat} (\lfloor \frac{n}{10} \rfloor) @ [\iexp{char\_of} \app (n \text{ mod } 10) + 48] &\text{, otherwise}
+		[n]                                                                                                    & \text{, if $n<10$} \\
+		\iexp{chars\_of\_nat} (\lfloor \frac{n}{10} \rfloor) @ [\iexp{char\_of} \app (n \text{ mod } 10) + 48] & \text{, otherwise}
 	\end{cases}
 \end{gather*}
 where $\iexp{char\_of} \dbcolon \iexp{nat} \rightarrow \iexp{char}$ converts a natural number $n$ to the character with ASCII code $n \text{ mod } 256$.
@@ -166,8 +173,8 @@ Extending to conversion from integers to strings is achieved by $\iexp{chars\_of
 \begin{gather*}
 	\iexp{chars\_of\_int} \app i =
 	\begin{cases}
-		\iexp{chars\_of\_nat} \app (\iexp{abs} \app i) &\text{, if $0 \leq i$} \\
-		(\iexp{'-'}) \iexp{\#} (\iexp{chars\_of\_nat} \app (\iexp{abs} \app i)) &\text{, otherwise.}
+		\iexp{chars\_of\_nat} \app (\iexp{abs} \app i)                          & \text{, if $0 \leq i$} \\
+		(\iexp{'-'}) \iexp{\#} (\iexp{chars\_of\_nat} \app (\iexp{abs} \app i)) & \text{, otherwise.}
 	\end{cases}
 \end{gather*}
 The function $\iexp{abs} \dbcolon \iexp{int} \rightarrow \iexp{nat}$ returns the absolute value of a given integer.
@@ -198,13 +205,13 @@ In particular, for a given unsigned multiple precision integer $n$, the implemen
 The division is implemented by classic schoolbook division.
 The core of the division is implemented by a function $\iexp{bi\_div\_by\_w64}$, a simplified version of which is shown in \refalgo{algo:bi-div-by-w64}.
 \isabellecodeextern[linerange=12-28,label=algo:bi-div-by-w64,caption={
-	Core algorithm for dividing multiple precision numbers by a given 64-bit integer.
-}]{isabelle-code/BigIntString_Simplified.thy}
+			Core algorithm for dividing multiple precision numbers by a given 64-bit integer.
+		}]{isabelle-code/BigIntString_Simplified.thy}
 Note that $\iexp{big\_int} \equiv 64 \app \iexp{word} \app \iexp{list}$.
 The helper function $\iexp{divmod2by1}$ is shown in \refalgo{algo:divmod2by1}.
 \isabellecodeextern[linerange=6-9,label=algo:divmod2by1,caption={
-	Helper function dividing a 128-bit integer by a 64-bit integer.
-}]{isabelle-code/BigIntString_Simplified.thy}
+			Helper function dividing a 128-bit integer by a 64-bit integer.
+		}]{isabelle-code/BigIntString_Simplified.thy}
 The reason that $\iexp{divmod2by1}$ is a separate function lies in the multiplication of $\iexp{hi}$ by $2^{64}$.
 The limbs in the list are 64-bit integers which cannot express $\iexp{hi} \cdot 2^{64}$.
 To still implement $\iexp{divmod2by1}$, the inputs $\iexp{hi}$ and $\iexp{lo}$ are upcast to a 128-bit integer before the division and modulo operations are performed.

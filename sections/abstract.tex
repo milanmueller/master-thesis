@@ -6,4 +6,4 @@ I migrate the formally verified PAC checker Pastèque from its original Standard
 To enable this migration, I extend a native multiple precision arithmetic library for Isabelle-LLVM for use in Pastèque and implement fundamental low-level datatypes, including hashmaps and nestable linked lists, for Isabelle-LLVM.
 I evaluate the performance of the LLVM migration, comparing it to the original Standard ML implementation and the Pacheck PAC checker written in C++, observing a performance improvement for smaller instances and a performance decline for large 512-bit multipliers, compared to the Standard ML backend.
 
-\todo{statt malloc -> je_malloc, LD_PRELOAD}
+\todo{statt malloc -> je\_malloc, LD\_PRELOAD}

@@ -1,0 +1,5 @@
+build/
+checkers/
+*.csv
+*.log
+.sweep.lock

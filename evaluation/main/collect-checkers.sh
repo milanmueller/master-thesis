@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Build the three PAC proof checkers on the host and collect the binaries in
 # Dependencies: mlton, g++, clang, gmp
-# on NixOS, the ./flake.nix provides a devshell with all requirements
+# on NixOS, the ../flake.nix provides a devshell with all requirements
 #
-#   nix develop -c ./collect-checkers.sh   # or: direnv allow, then run directly
+#   nix develop .. -c ./collect-checkers.sh   # or: direnv allow, then run directly
 #
 # Nothing here runs Isabelle. Both Pasteque backends are compiled from code
 # Isabelle has already exported; see the preflight messages below for how to
@@ -25,7 +25,7 @@
 set -euo pipefail
 
 EVAL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$EVAL_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$EVAL_DIR/../.." && pwd)"
 
 # Source trees. Override any of these from the environment if the layout moves.
 PACHECK_SRC="${PACHECK_SRC:-$REPO_ROOT/evaluation/pacheck2}"
@@ -95,8 +95,8 @@ CLANG="${CLANG:-clang}"
 need_tool() {
   command -v "$1" >/dev/null 2>&1 || die \
     "$1 not found on PATH. The toolchain is in the dev shell of
-       $EVAL_DIR/flake.nix. Run:
-         cd $EVAL_DIR && nix develop -c ./collect-checkers.sh"
+       $EVAL_DIR/../flake.nix. Run:
+         cd $EVAL_DIR && nix develop .. -c ./collect-checkers.sh"
 }
 
 wants pacheck       && need_tool "$CXX"

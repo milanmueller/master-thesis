@@ -5,7 +5,7 @@
 # results/plot.pdf.
 #
 # Dependencies: GNU time and python3 with pandas and matplotlib; on NixOS the
-# ./flake.nix devshell provides them.
+# ../flake.nix devshell provides them.
 #
 #   ./run-benchmarks.sh [options]
 #
@@ -47,7 +47,7 @@ usage() { sed -n '2,/^set -euo/p' "${BASH_SOURCE[0]}" | sed -e 's/^# \{0,1\}//' 
 
 # --- arguments -------------------------------------------------------------
 
-rounds=3
+rounds=10
 timeout_s=
 csv="$EVAL_DIR/results/raw.csv"
 averages=

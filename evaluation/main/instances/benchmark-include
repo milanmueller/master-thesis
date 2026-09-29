@@ -1,0 +1,17 @@
+# Benchmarks run by ./run-benchmarks.sh, one stem per line.
+#
+# A stem is the path of an instance below ./instances without the
+# .polys/.proof/.spec suffix; it may contain directories. All three files
+# must exist. Blank lines are skipped and '#' starts a comment.
+
+# example
+sparrc-128
+sparrc-256
+sparrc-512
+bpctbk-32
+bpwtcl-32
+btor-128
+btor-256
+btor-512
+sparcl-32
+spdtlf-32

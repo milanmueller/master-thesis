@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Time the PAC checkers on one instance and append the measurements to a CSV.
 #
-# Dependencies: GNU time; on NixOS the ./flake.nix devshell provides it.
+# Dependencies: GNU time; on NixOS the ../flake.nix devshell provides it.
 # Build the binaries first with ./collect-checkers.sh.
 #
 #   ./run-checkers.sh [options] <bench>
 #
 # <bench> is an instance stem below instances/, so that the three files
-# instances/<bench>.input, .proof and .target exist. A stem may contain
+# instances/<bench>.polys, .proof and .spec exist. A stem may contain
 # directories: ./run-checkers.sh KaufmannFleuryBiereKauers-JKU/.../foo
 #
 # Options:
@@ -71,7 +71,7 @@ done
 # bash's `time` is a keyword, so command -v would resolve to it; -P searches
 # PATH for the executable only.
 GNU_TIME="${GNU_TIME:-$(type -P time || true)}"
-[ -n "$GNU_TIME" ] || die "GNU time not found on PATH. Run: nix develop -c ./run-checkers.sh $*"
+[ -n "$GNU_TIME" ] || die "GNU time not found on PATH. Run: nix develop .. -c ./run-checkers.sh $*"
 
 prefix=()
 [ -n "${RUN_PREFIX:-}" ] && read -r -a prefix <<< "$RUN_PREFIX"

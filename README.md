@@ -16,9 +16,9 @@ The directory [`./isabelle`](./isabelle) contains all Isabelle theories and othe
 - [x] Port Pastèque to Isabelle-LLVM
   - [x] Rewrite parser in c, to eliminate SML dependence
   - [ ] (optional) Add support for integer sharing
-- [ ] Experiment/Evaluation - compare the performance of
-  - [ ] Pastèque using the SML backend
-  - [ ] Pastèque using the LLVM backend
+- [x] Experiment/Evaluation - compare the performance of
+  - [x] Pastèque using the SML backend
+  - [x] Pastèque using the LLVM backend
   - [ ] (optional) Pastèque using LLVM with GMP bindings
 - [ ] Write Thesis
 

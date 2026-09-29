@@ -8,3 +8,24 @@ The evaluation has shown that, for smaller instances, Pastèque with the LLVM ba
 For the large 512-bit multipliers however, the LLVM backend does not scale as well as it is slower and uses more memory than the Standard ML version.
 
 \subsection{Future Development}\label{sec:future-development}
+todo - list of ideas for future
+\begin{itemize}
+	\item try jealloc or mimalloc (this might still be doable in time)
+	\item terms/monoms as arrays
+	\item avoid extra pointer dereference through $\iexp{box\_assn}$
+	\item use borrowing/read-only access once fractional separation logic is integrated into sepref
+	\item add hash to buckets in hashmaps to avoid string comparisons where possible (although with array-based strings this should not be as significant anymore)
+\end{itemize}
+
+\subsection{AI-Assisted Proof Development}\label{sec:ai-usage-discussion}
+Discussion: How did I use AI, what was done by Gen-AI, what was not done by Gen-AI.\\
+When and why did I decide to use AI (low-level vcg stuff)\\
+How does AI usage in this environment (kernel checks everything) differ from AI usage in non-formal languages?\\
+How much was AI involved in writing the thesis?\\
+Other usages of AI (rendering tables and graphs, tooling, experiments...)?
+
+\subsection{Takeaways}\label{sec:takeaways}
+Subjective experience:\\
+What was hard?\\
+What would have been nice to have (tools, documentation)?\\
+Which domain specific knowledge is required to be productive with Isabelle-LLVM?
