@@ -196,7 +196,7 @@ $\iexp{!}$ is used in infix notation, e.g. $xs \app \iexp{!} \app 3$ returns the
 In the presented $\iexp{WHILET}$ notation, the first lambda function specifies the loop condition; if $i < \iexp{length} \app xs$ evaluates to $\iexp{False}$, the loop is exited.
 The second lambda function then specifies the loop body, in which the accumulator and index are updated.
 
-Correctness statements like $P \app a \app b \le \iexp{add\_spec} \app a \app b$ must be proven in Isabelle by the user.
+Correctness statements like $\iexp{sum} \app a \app b \le \iexp{add\_spec} \app a \app b$ must be proven in Isabelle by the user.
 The Refinement Framework offers tools to automate significant portions of such proofs.
 In particular, the $\iexp{refine\_vcg}$ verification condition generator can be used to transform goals expressed in the $\iexp{nres}$ monad to standard Isabelle/HOL goals, on which Isabelle's proof automation (in particular $\iexp{sledgehammer}$) can then often be used effectively.
 
@@ -206,7 +206,7 @@ In general, a program $\iexp{P} \dbcolon \tv{a} \app \iexp{nres}$ cannot be dire
 This subsection gives an informal overview of the Sepref tool \cite{sepref} by Lammich, which is used to synthesize an executable implementation from such a program.
 
 The Imperative-HOL framework \cite{Imperative-HOL} defines a semantics of imperative programs in Isabelle/HOL.
-Programs defined in Imperative-HOL can then be exported to Standard ML code.
+For programs defined in Imperative-HOL, Sepref can then generate compilable Standard ML code.
 Sepref utilizes a separation logic, using a heap monad in Imperative-HOL \cite{Separation_Logic_Imperative_HOL-AFP} which enables reasoning about imperative programs defined in Imperative-HOL.
 Note that Imperative-HOL and the separation logic on it are not discussed here, since, for the thesis, I work with Isabelle-LLVM \cite{isabelle-llvm} (also by Lammich) which can be seen as Sepref's successor and defines its own separation logic on a shallow embedding of LLVM instead of Imperative-HOL (cf. \refsec{sec:isabelle-llvm}).
 
@@ -229,7 +229,7 @@ The compiler MLton and the code generator are trusted to be correct.
 
 The newer Isabelle-LLVM framework uses the same $\iexp{nres}$ monad, but modifies the Sepref tool to target a shallow embedding of LLVM instead of Imperative-HOL, using its own separation logic.
 
-Migrating the verified SAT-solver IsaSAT by Fleury \cite{isasat-sml} from the Standard ML backend to LLVM \cite{isasat-llvm} improved its performance by a factor of two \todo{check number}.
+Migrating the verified SAT-solver IsaSAT by Fleury \cite{isasat-sml} from the Standard ML backend to LLVM  improved its performance by a factor of two \cite{isasat-llvm}.
 This observation motivated the migration of Pastèque from Standard ML to LLVM, which is the primary objective of this thesis.
 
 \subsection{Isabelle-LLVM}\label{sec:isabelle-llvm}

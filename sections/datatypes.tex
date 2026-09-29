@@ -119,7 +119,7 @@ The Hoare-triple implies that the original $xsi$ is destroyed after executing $\
 Consequently, $\iexp{sum\_impl}$ destroys the given list $xsi$.
 If it did not, there would simultaneously exist two pointers into the list, one owned by the caller of $\iexp{sum\_impl}$, one owned by $\iexp{sum\_impl}$, which is forbidden in the separation logic.
 
-If, from the caller's perspective, the original list is required to be kept intact, a straightforward solution is to simply create a deep copy of a list and then call $\iexp{sum\_impl}$ on the list copy.
+If, from the caller's perspective, the original list is required to be kept intact, a straightforward solution is to create a deep copy of a list and then call $\iexp{sum\_impl}$ on the list copy.
 Assuming the contained elements support copying (cf. \refsec{sec:interface-hierarchy-for-refinement-assertions}), a deep-copy operation $\iexp{ls\_copy} \dbcolon \tv{b} \app \iexp{node} \app \iexp{ptr} \rightarrow \tv{b} \app \iexp{node} \app \iexp{ptr} \app \iexp{llM}$ can easily be implemented by a recursive walk on the list, copying each element into a new list.\footnote{cf. function $\iexp{cl\_copy}$ in theory $\iexp{IICF\_Copying\_List}$.}
 However, conceptually, $\iexp{sum\_impl}$ only reads from the given list and does not modify it, as the contained elements (64-bit machine words refining natural numbers) are pure and can trivially be cloned for use in the addition $\iexp{ll\_add}$ without necessarily destroying the original list element.
 Creating a deep copy is wasteful in this case.
@@ -350,7 +350,7 @@ I discuss lookup and update here, the other functions are implemented in a simil
 	      This implementation introduces some further requirements for the low-level implementation: The array must be growable, and newly allocated slots must be initialized with (the refinement target of) $\iexp{None}$.
 \end{itemize}
 
-For each implemented operation I then prove correctness.
+For each implemented operation I then prove its correctness.
 For $\iexp{ol\_list\_lookup}$, correctness is proved by a lemma\footnote{The actual lemmas in theory $\iexp{IICF\_PartialMap}$ are given in "fref" notation with operations lifted into $\iexp{nres}$. For the thesis, I use a simplified formulation which implies the fref notation.}
 \begin{gather*}
 	m = \iexp{ol\_list\_}\alpha \app ol \Rightarrow
@@ -377,6 +377,7 @@ I therefore define a refinement assertion $\iexp{box\_assn} \dbcolon (\tv{a} \ri
 \begin{gather*}
 	\iexp{box\_assn} \app A = \lambda a \app p. \app \exists ai. \app A \app a \app ai \app \ast p\mapsto ai
 \end{gather*}
+\todo{why do we need box assn?}
 where $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ is an existing refinement assertion.
 It is then straightforward to use $\iexp{box\_assn}$ as a generic implementation for optionals, where for $a \dbcolon \tv{a}$, $\iexp{Some} \app a$ with $A \app a \app ai$ is refined by a pointer $p \dbcolon \tv{b} \app \iexp{ptr}$ with $p \mapsto ai$ and $\iexp{None}$ is refined by the null pointer.
 $\iexp{box\_assn} \app A$ can then be used to instantiate $\iexp{dflt\_option\_private}$ even if the refinement assertion $A$ itself does not define an $\iexp{is\_dflt}$ check.
@@ -384,6 +385,7 @@ For the remainder of this subsection, I assume $A \dbcolon \tv{a} \rightarrow \t
 
 I refine the outer list of the high level $\tv{a} \app \iexp{option} \app \iexp{list}$ using a variation of Isabelle-LLVM's $\iexp{arl\_assn}$\footnote{Defined in theory $\iexp{Isabelle\_LLVM.LLVM\_DS\_Array\_List}$.}.
 $\iexp{arl\_assn}$ refines lists by arrays and stores the array's length and capacity (which might be greater than the length).
+\todo{Kein Verkleinern}
 The variation of $\iexp{arl\_assn}$ I use is defined by $\iexp{iarl\_assn} \dbcolon \tv{a} \app \iexp{list} \rightarrow (64 \app \iexp{word} \app \times \app 64 \app \iexp{word} \app \times \app \tv{a} \app \iexp{ptr}) \rightarrow \iexp{assn}$ as follows:\footnote{The notation given here is slightly simplified, the actual assertion is defined in theory $\iexp{IICF\_PartialMap}$.}
 \begin{align*}
 	\iexp{iarl\_assn}   & \app xs \app (li,ci,ai) =                                                                                                                                     \\
@@ -398,8 +400,9 @@ Note that $xs' \dbcolon \tv{a} \app \iexp{list}$ is an auxiliary list that allow
 
 There are only two differences, compared to the original $\iexp{arl\_assn}$; firstly, the width of length and capacity is fixed to 64 bits.
 This makes proofs simpler but makes the implementation less generic, compared to the original $\iexp{arl\_assn}$ for which the bit-width is generic (with a lower bound of 5).
-Secondly, $\iexp{iarl\_assn}$ also asserts that the allocated cells beyond the current length are initialized with $\iexp{dflt}$.
-This is always the case for allocated arrays, but $\iexp{arl\_assn}$ does not carry this information.
+Secondly, $\iexp{iarl\_assn}$ also explicitly asserts that the allocated cells beyond the current length are initialized with $\iexp{dflt}$.
+Allocations in Isabelle-LLVM are done through a c-function \inlinecode{isabelle_llvm_calloc} which is a wrapper around \iexp{calloc} which ensures that allocated data is zero-initialized.
+Since all allocations go through \inlinecode{isabelle_llvm_calloc}, all arrays in Isabelle-LLVM are initialized with $\iexp{dflt}$, but $\iexp{arl\_assn}$ does not carry this information.
 For the purpose of carrying the option type, given by $\iexp{box\_assn}$, it is required that newly allocated space explicitly has value $\iexp{dflt}$, which would be impossible to prove (despite being true) if $\iexp{arl\_assn}$ was used.
 As $\iexp{iarl\_assn}$ only extends $\iexp{arl\_assn}$ by information required for proofs, but otherwise uses the same underlying representation, operations already defined on $\iexp{arl\_assn}$ (in particular accessing or updating elements and initializing or resizing the array) can be reused and corresponding correctness proofs carry over to $\iexp{iarl\_assn}$ easily.
 
