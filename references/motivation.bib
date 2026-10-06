@@ -475,5 +475,142 @@
 	doi = {10.1007/s10703-018-00329-2},
 	url = {https://doi.org/10.1007/s10703-018-00329-2},
 }
-
-
+@inproceedings{cake-lpr,
+	author = "Tan, Yong Kiam and Heule, Marijn J. H. and Myreen, Magnus O.",
+	editor = "Groote, Jan Friso and Larsen, Kim Guldstrand",
+	title = "cake{\_}lpr: Verified Propagation Redundancy Checking in CakeML",
+	booktitle = "Tools and Algorithms for the Construction and Analysis of
+	             Systems",
+	year = "2021",
+	publisher = "Springer International Publishing",
+	address = "Cham",
+	pages = "223--241",
+	abstract = "Modern SAT solvers can emit independently checkable proof
+	            certificates to validate their results. The state-of-the-art
+	            proof system that allows for compact proof certificates is
+	            propagation redundancy (PR). However, the only existing method to
+	            validate proofs in this system with a formally verified tool
+	            requires a transformation to a weaker proof system, which can
+	            result in a significant blowup in the size of the proof and
+	            increased proof validation time. This paper describes the first
+	            approach to formally verify PR proofs on a succinct
+	            representation; we present (i) a new Linear PR (LPR) proof format
+	            , (ii) a tool to efficiently convert PR proofs into LPR format,
+	            and (iii) cake{\_}lpr, a verified LPR proof checker developed in
+	            CakeML. The LPR format is backwards compatible with the existing
+	            LRAT format, but extends the latter with support for the addition
+	            of PR clauses. Moreover, cake{\_}lpr is verified using CakeML 's
+	            binary code extraction toolchain, which yields correctness
+	            guarantees for its machine code (binary) implementation. This
+	            further distinguishes our clausal proof checker from existing
+	            ones because unverified extraction and compilation tools are
+	            removed from its trusted computing base. We experimentally show
+	            that LPR provides efficiency gains over existing proof formats
+	            and that the strong correctness guarantees are obtained without
+	            significant sacrifice in the performance of the verified
+	            executable.",
+	isbn = "978-3-030-72013-1",
+}
+@misc{satcomp2026output,
+	author = {{SAT Competition 2026 Organizers}},
+	title = {{SAT Competition 2026}: Output Format and Certificates of
+	         Unsatisfiability},
+	year = {2026},
+	howpublished = {\url{https://satcompetition.github.io/2026/output.html}},
+	note = {Accessed: 2026-10-06},
+}
+@inproceedings{Vampire2019:SAT_Computer_Algebra_Multipliers,
+	author = {Daniela Kaufmann and Armin Biere and Manuel Kauers},
+	title = {SAT, Computer Algebra, Multipliers},
+	booktitle = {Vampire 2018 and Vampire 2019. The 5th and 6th Vampire
+	             Workshops},
+	editor = {Laura Kovacs and Andrei Voronkov},
+	series = {EPiC Series in Computing},
+	volume = {71},
+	publisher = {EasyChair},
+	bibsource = {EasyChair, https://easychair.org},
+	issn = {2398-7340},
+	url = {/publications/paper/bpc4},
+	doi = {10.29007/j8cm},
+	pages = {1-18},
+	year = {2020},
+}
+@misc{acm2012llvm,
+  author       = {{Association for Computing Machinery}},
+  title        = {{ACM Software System Award} 2012: {LLVM} -- Vikram Adve, Evan Cheng, Chris Lattner. Award Citation},
+  year         = {2013},
+  howpublished = {\url{https://awards.acm.org/award-recipients/adve_3453297}},
+  note         = {Accessed: 2026-10-06}
+}
+@inproceedings{alive2,
+author = {Lopes, Nuno P. and Lee, Juneyoung and Hur, Chung-Kil and Liu, Zhengyang and Regehr, John},
+title = {Alive2: bounded translation validation for LLVM},
+year = {2021},
+isbn = {9781450383912},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3453483.3454030},
+doi = {10.1145/3453483.3454030},
+abstract = {We designed, implemented, and deployed Alive2: a bounded translation validation tool for the LLVM compiler’s intermediate representation (IR). It limits resource consumption by, for example, unrolling loops up to some bound, which means there are circumstances in which it misses bugs. Alive2 is designed to avoid false alarms, is fully automatic through the use of an SMT solver, and requires no changes to LLVM. By running Alive2 over LLVM’s unit test suite, we discovered and reported 47 new bugs, 28 of which have been fixed already. Moreover, our work has led to eight patches to the LLVM Language Reference—the definitive description of the semantics of its IR—and we have participated in numerous discussions with the goal of clarifying ambiguities and fixing errors in these semantics. Alive2 is open source and we also made it available on the web, where it has active users from the LLVM community.},
+booktitle = {Proceedings of the 42nd ACM SIGPLAN International Conference on Programming Language Design and Implementation},
+pages = {65–79},
+numpages = {15},
+keywords = {Automatic Software Verification, Compilers, IR Semantics, Translation Validation},
+location = {Virtual, Canada},
+series = {PLDI 2021}
+}
+@article{10.1145/1993316.1993532,
+author = {Yang, Xuejun and Chen, Yang and Eide, Eric and Regehr, John},
+title = {Finding and understanding bugs in C compilers},
+year = {2011},
+issue_date = {June 2011},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {46},
+number = {6},
+issn = {0362-1340},
+url = {https://doi.org/10.1145/1993316.1993532},
+doi = {10.1145/1993316.1993532},
+abstract = {Compilers should be correct. To improve the quality of C compilers, we created Csmith, a randomized test-case generation tool, and spent three years using it to find compiler bugs. During this period we reported more than 325 previously unknown bugs to compiler developers. Every compiler we tested was found to crash and also to silently generate wrong code when presented with valid input. In this paper we present our compiler-testing tool and the results of our bug-hunting study. Our first contribution is to advance the state of the art in compiler testing. Unlike previous tools, Csmith generates programs that cover a large subset of C while avoiding the undefined and unspecified behaviors that would destroy its ability to automatically find wrong-code bugs. Our second contribution is a collection of qualitative and quantitative results about the bugs we have found in open-source C compilers.},
+journal = {SIGPLAN Not.},
+month = jun,
+pages = {283–294},
+numpages = {12},
+keywords = {random testing, random program generation, compiler testing, compiler defect, automated testing}
+}
+@inproceedings{Csmith,
+author = {Yang, Xuejun and Chen, Yang and Eide, Eric and Regehr, John},
+title = {Finding and understanding bugs in C compilers},
+year = {2011},
+isbn = {9781450306638},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/1993498.1993532},
+doi = {10.1145/1993498.1993532},
+abstract = {Compilers should be correct. To improve the quality of C compilers, we created Csmith, a randomized test-case generation tool, and spent three years using it to find compiler bugs. During this period we reported more than 325 previously unknown bugs to compiler developers. Every compiler we tested was found to crash and also to silently generate wrong code when presented with valid input. In this paper we present our compiler-testing tool and the results of our bug-hunting study. Our first contribution is to advance the state of the art in compiler testing. Unlike previous tools, Csmith generates programs that cover a large subset of C while avoiding the undefined and unspecified behaviors that would destroy its ability to automatically find wrong-code bugs. Our second contribution is a collection of qualitative and quantitative results about the bugs we have found in open-source C compilers.},
+booktitle = {Proceedings of the 32nd ACM SIGPLAN Conference on Programming Language Design and Implementation},
+pages = {283–294},
+numpages = {12},
+keywords = {random testing, random program generation, compiler testing, compiler defect, automated testing},
+location = {San Jose, California, USA},
+series = {PLDI '11}
+}
+@article{bdd-bound,
+author = {Woelfel, Philipp},
+title = {Bounds on the OBDD-size of integer multiplication via universal hashing},
+year = {2005},
+issue_date = {November 2005},
+publisher = {Academic Press, Inc.},
+address = {USA},
+volume = {71},
+number = {4},
+issn = {0022-0000},
+url = {https://doi.org/10.1016/j.jcss.2005.05.004},
+doi = {10.1016/j.jcss.2005.05.004},
+abstract = {Bryant [On the complexity of VLSI implementations and graph representations of boolean functions with applications to integer multiplication, IEEE Trans. Comput. 40 (1991) 205-213] has shown that any OBDD for the function MUL"n"-"1","n, i.e. the middle bit of the n-bit multiplication, requires at least 2^n^/^8 nodes. In this paper a stronger lower bound of essentially 2^n^/^2/61 is proven by a new technique, using a universal family of hash functions. As a consequence, one cannot hope anymore to verify e.g. 128-bit multiplication circuits using OBDD-techniques because the representation of the middle bit of such a multiplier requires more than 3.10^1^7OBDD-nodes. Further, a first non-trivial upper bound of 7/3.2^4^n^/^3 for the OBDD-size of MUL"n"-"1","n is provided.},
+journal = {J. Comput. Syst. Sci.},
+month = nov,
+pages = {520–534},
+numpages = {15},
+keywords = {Binary decision diagrams, Branching programs, Integer multiplication, OBDDs}
+}

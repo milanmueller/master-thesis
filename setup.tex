@@ -300,6 +300,8 @@ literate=
 	/isacode/label/.default=,
 	/isacode/caption/.store in=\isacode@caption,
 	/isacode/caption/.default=,
+	/isacode/placement/.store in=\isacode@placement,
+	/isacode/placement/.default=,
 	/isacode/.unknown/.code={%
 			\edef\isacode@keyname{\expandafter\isacode@stripprefix\pgfkeyscurrentkey\@nil}%
 			\ifx\isacode@rest\@empty
@@ -308,6 +310,44 @@ literate=
 				\edef\isacode@rest{\isacode@rest,\isacode@keyname=\pgfkeyscurrentvalue}%
 			\fi
 		},
+}
+% Listings are typeset as floats of class `figure': the tcolorbox around a
+% listing is unbreakable, so a listing that does not fit in the remaining space
+% on a page would otherwise push all following text to the next page and leave
+% the rest of the current page empty. As floats, listings keep their relative
+% order with respect to each other and to the figures of the document, and
+% placeins (loaded with the `section' option) confines them to their section.
+% The price is that a listing can be placed before the paragraph referring to
+% it, so references to listings are not necessarily backward references.
+% The default float specifier can be overridden per listing with
+% placement={...}; placement={} typesets the listing in place, without a float.
+\newcommand{\isacodeplacementdefault}{htbp}
+\newcommand{\isacode@caption@and@label}{%
+	\ifx\isacode@caption\@empty
+		\ifx\isacode@label\@empty\else\label{\isacode@label}\fi
+	\else
+		\vspace{0.5em}%
+		% \label must stay inside this group: \captionof sets \@currentlabel
+		% locally, and it would revert to a stale value (e.g. the enclosing
+		% section number) once the group closes.
+		{\footnotesize
+			\captionof{lstlisting}{\isacode@caption}%
+			\ifx\isacode@label\@empty\else\label{\isacode@label}\fi
+		}%
+	\fi
+}
+% #1: fully expanded tcolorbox option list, including the listing file.
+\newcommand{\isacode@emit}[1]{%
+	\ifx\isacode@placement\@empty
+		\tcbinputlisting{#1}%
+		\isacode@caption@and@label
+	\else
+		\edef\isacode@beginfloat{\noexpand\begin{figure}[\isacode@placement]}%
+		\isacode@beginfloat
+		\tcbinputlisting{#1}%
+		\isacode@caption@and@label
+		\end{figure}%
+	\fi
 }
 % label/caption are rendered below the box (in a smaller font) instead of
 % inside it, since listings' native captionpos=b places the caption inside
@@ -324,6 +364,7 @@ literate=
 	\def\isacode@rest{}%
 	\def\isacode@label{}%
 	\def\isacode@caption{}%
+	\let\isacode@placement\isacodeplacementdefault
 	\pgfkeys{/isacode,#1}%
 	% Force full expansion of \isacode@rest into literal text before
 	% \tcbinputlisting grabs its argument: xkeyval's key=value splitting
@@ -334,19 +375,7 @@ literate=
 		listing file={\isabellelistingdir/#2},%
 		listing options={style=isabellestyle,\isacode@rest}%
 	}%
-	\expandafter\tcbinputlisting\expandafter{\isacode@fullargs}%
-	\ifx\isacode@caption\@empty
-		\ifx\isacode@label\@empty\else\label{\isacode@label}\fi
-	\else
-		\vspace{0.5em}%
-		% \label must stay inside this group: \captionof sets \@currentlabel
-		% locally, and it would revert to a stale value (e.g. the enclosing
-		% section number) once the group closes.
-		{\footnotesize
-			\captionof{lstlisting}{\isacode@caption}%
-			\ifx\isacode@label\@empty\else\label{\isacode@label}\fi
-		}%
-	\fi
+	\expandafter\isacode@emit\expandafter{\isacode@fullargs}%
 }
 \makeatother
 
@@ -386,22 +415,14 @@ literate=
 	\def\isacode@rest{}%
 	\def\isacode@label{}%
 	\def\isacode@caption{}%
+	\let\isacode@placement\isacodeplacementdefault
 	\pgfkeys{/isacode,#1}%
 	\edef\isacode@fullargs{%
 		isabellebox,%
 		listing file={\pseudocodedir/#2},%
 		listing options={style=pseudocodestyle,\isacode@rest}%
 	}%
-	\expandafter\tcbinputlisting\expandafter{\isacode@fullargs}%
-	\ifx\isacode@caption\@empty
-		\ifx\isacode@label\@empty\else\label{\isacode@label}\fi
-	\else
-		\vspace{0.5em}%
-		{\footnotesize
-			\captionof{lstlisting}{\isacode@caption}%
-			\ifx\isacode@label\@empty\else\label{\isacode@label}\fi
-		}%
-	\fi
+	\expandafter\isacode@emit\expandafter{\isacode@fullargs}%
 }
 \makeatother
 

@@ -10,7 +10,9 @@
 % Rows follow the grouping of the ROOT file of PAC_Checker_LLVM.
 {\small\singlespacing
 \begin{longtable}{@{}l l >{\raggedright\arraybackslash}p{0.45\textwidth}@{}}
-\caption[Theories of the Isabelle-LLVM port of Pasteque]{Theories of the session \isaname{PAC_Checker_LLVM}. The column \emph{Origin} names the session that contains the theory this one was ported from: AFP refers to \isaname{PAC_Checker} in the AFP, IsaFoL refers to \isaname{PAC_Checker2} in IsaFoL, and \enquote{new} marks a theory without a counterpart.}\label{tab:appendix-theories}\\
+\caption[Theories of the Isabelle-LLVM port of Pasteque]{
+Theories of the session \isaname{PAC_Checker_LLVM} containing the Isabelle-LLVM migration of Pastèque.
+The column \emph{Origin} names the session that contains the theory this one was ported from: AFP refers to the original Pastèque implementation \isaname{PAC_Checker} published in the Isabelle archive of formal proofs AFP \cite{PAC_Checker-AFP}, IsaFoL refers to the newer Pastèque implementation \isaname{PAC_Checker2} in IsaFoL \cite{isafol}, and \enquote{new} marks a new theory which existed in neither version of Pastèque.}\label{tab:appendix-theories}\\
 \toprule
 Theory & Origin & Changes or purpose \\
 \midrule
@@ -31,21 +33,21 @@ Theory & Origin & Changes or purpose \\
 \isaname{PAC_Specification} & AFP & Unchanged. \\
 \isaname{LPAC_Specification} & IsaFoL & Unchanged apart from imports. \\
 \isaname{Finite_Map_Multiset} & AFP & Unchanged. \\
-\isaname{PAC_Checker_Specification} & AFP & Unchanged apart from imports (\isaname{Isabelle_LLVM.IICF} instead of \isaname{Refine_Imperative_HOL.IICF}). \\
+\isaname{PAC_Checker_Specification} & AFP & Unchanged apart from imports. \\
 \isaname{LPAC_Checker_Specification} & IsaFoL & Unchanged apart from imports. \\
 \addlinespace
 \multicolumn{3}{@{}l}{\emph{Refinement infrastructure}} \\
 \isaname{Aux_Lemmas} & new & Lemmas and definitions from Imperative-HOL that Isabelle-LLVM lacks (\isaname{list_mset_rel}, \isaname{monadic_nfoldli}). \\
-\isaname{LLVM_Assn_Env} & new & Locale hierarchy over refinement assertions (\isaname{freeable_assn}, \isaname{copyable_assn}, \isaname{eq_assn}, \isaname{linorder_assn}, \isaname{hashable_assn}) used to state generic data structures once for all element types. \\
+\isaname{LLVM_Assn_Env} & new & Hierarchy of refinement assertions, discussed in \ref{sec:interface-hierarchy-for-refinement-assertions}.\\
 \isaname{More_Loops} & AFP & Unchanged. \\
-\isaname{More_EOArray} & new & Array list \isaname{oa_assn} of impure elements whose lookup returns a copy; instantiated as string tables. \\
+\isaname{More_EOArray} & new & An extension to the \isaname{Isabelle_LLVM.EOArray} theory. \\
 \isaname{PAC_Map_Rel} & AFP & Ported to Isabelle-LLVM; removed the rewrite of key membership into an option-returning lookup; commented out the Imperative-HOL hash map. \\
 \isaname{PAC_Checker_Relation} & AFP & Largely rewritten: removed the \isaname{String.literal} representation and the assertions for monomials, polynomials, and steps (now in \isaname{PAC_Polynomials_Assn} and \isaname{PAC_Step_Assn}); kept the term order; added \isaname{mnl_le_impl}. \\
 \addlinespace
 \multicolumn{3}{@{}l}{\emph{Data structures}} \\
 \isaname{LLVM_DS_Copying_List} & new & Copying list \isaname{cl_assn}: a singly linked list whose head operation copies the element instead of destroying the list; includes non-destructive folds with an explicit environment, because LLVM has no closures. \\
-\isaname{LLVM_DS_Partial_Map} & new & Partial map from 64-bit words to possibly impure values over an initialised array list (\isaname{pmap_assn}); boxing (\isaname{box_assn}) to store impure values. \\
-\isaname{LLVM_DS_Hash_Set} & new & Hash set (\isaname{hs_assn}) of possibly impure elements with copying-list buckets and resizing. \\
+\isaname{LLVM_DS_Partial_Map} & new & Partial map from 64-bit words to values with possibly non-pure refinement assertions over an initialised array list (\isaname{pmap_assn}); boxing (\isaname{box_assn}) to store such values. \\
+\isaname{LLVM_DS_Hash_Set} & new & Hash set (\isaname{hs_assn}) of elements with possibly non-pure refinement assertions, with copying-list buckets and resizing. \\
 \isaname{LLVM_DS_Hash_Map} & new & Hash map with copying-list buckets of key and boxed value; reuses the bucket machinery of the hash set. \\
 \isaname{LLVM_DS_Char} & new & Refinement of \isaname{char} to 8-bit words, linear order and comparisons on characters, FNV-1a hashing. \\
 \isaname{LLVM_DS_String} & new & List-based (\isaname{strl_assn}) and array-based (\isaname{stra_assn}) strings with hashing, equality, lexicographic order, and conversion from list to array. \\

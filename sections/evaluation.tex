@@ -2,19 +2,19 @@
 
 This section discusses the evaluation of the migrated Pastèque implementation with the LLVM backend in comparison to the original Pastèque implementation targeting Standard ML \cite{pac-2024} and the efficient Pacheck \cite{pac-2024} checker written in C++.
 
-For the Standard ML backend, Pastèque offers a \inlinecode{uloop} flag with which the outer main loop is replaced by an untrusted version where parsing and checking are interleaved, improving both runtime and memory usage.
+For the Standard ML backend, Pastèque offers a \inlinecode{uloop} flag with which the outer main loop is replaced by an untrusted version where parsing and checking are interleaved, improving runtime and reducing memory usage.
 As the LLVM backend behaves like the default version of the Standard ML backend (without the \inlinecode{uloop} flag) with parsing and checking being entirely separate steps, I do not use the \inlinecode{uloop} flag in any benchmark.
 It should be noted that a \inlinecode{uloop} variant could also be implemented for the LLVM backend, but it would also increase the amount of trusted code to include an outer, unverified main loop.
 
 \subsection{Comparison of all Checkers}\label{sec:comparison-of-all-checkers}
 
-As the main benchmark, I use the experimental data presented on the original webpage \cite{pacheck_pasteque} for the evaluation.
+As the main benchmark, I use the experimental data presented on the original PAC webpage \cite{pacheck_pasteque} for the evaluation.
 The dataset consists of different multiplier circuits with different bit-widths, ranging from 32-bit multipliers to 512-bit multipliers.
 I use the current version of the AMulet tool by Kaufmann \cite{amulet2} which decides the given multipliers to be correct and also generates proof certificates in the PAC format.
 The resulting certificates are then checked by Pastèque with both the LLVM and Standard ML backend and by Pacheck.
 I measure wall-clock time and peak resident set size (RSS) for all checkers using GNU time \cite{gnutime}.
 Benchmarks are run on a machine with an AMD Ryzen 5 7500F CPU and 32 GB of RAM.
-Each benchmark is run five times, the shown measurements are the respective mean values over all five runs.
+Each benchmark is run ten times, the shown measurements are the respective mean values over all five runs.
 
 \input{evaluation/main/results/table.tex}
 Table~\ref{tab:checker-comparison} shows the resulting average measurements.
@@ -29,128 +29,128 @@ Between the LLVM backend and the Standard ML backend, the variant with either lo
 	\label{fig:checker-comparison}
 \end{figure}
 Figure~\ref{fig:checker-comparison} shows the same average values for wall clock time and peak RSS in a line chart, where the x-axis contains all benchmarks, ordered by wall clock time for Pastèque with the LLVM backend.
-The average values show that, for smaller instances, the LLVM backend is faster and consumes less memory (both by about a factor 2) while for the large 512-bit instances, the Standard ML backend is faster and consumes less memory for .
+The average values show that, for smaller instances, the LLVM backend is faster and consumes less memory (both by about a factor 2) while for the large 512-bit instances, the Standard ML backend is faster and also consumes less memory in the "sparrc-512" benchmark.
 Pacheck, as expected, is the fastest checker and consumes the least memory for every benchmark.
 
-\subsection{Evaluating Phases of Pastèque}\label{sec:pasteque-breakdown}
+% \subsection{Evaluating Phases of Pastèque}\label{sec:pasteque-breakdown}
 
-To analyze the performance of Pastèque with the LLVM backend, in comparison with the Standard ML backend, especially for the large 512-bit benchmarks, I break down the execution times of the individual phases of both checkers.
-Pastèque with the Standard ML backend already breaks down execution times for
-\begin{itemize}
-	\item parsing input files,
-	\item checking the proof steps,
-	\item and time spent on garbage collection.
-\end{itemize}
-To obtain a separation of individual phases with the LLVM backend aswell, I inject timing measurement instructions in the generated LLVM code.
-For the LLVM backend, I break down the time spent on
-\begin{itemize}
-	\item parsing input files,
-	\item initialization of input polynomials (sorting and normalization),
-	\item checking proof steps,
-	\item a final teardown phases which frees all allocated data.
-\end{itemize}
-It should be noted that the runtimes of these phases can not be compared directly between the Standard ML backend and the LLVM backend, as the LLVM backend does include manual deallocations in every phase while with Standard ML backend breaks down garbage collection into its own phase making it impossible to assign the required deallocations to either the checking or parsing phase.
-Also, compared to the original runtimes from Table~\ref{tab:checker-comparison}, injecting timing measurements into the LLVM code changes the total runtime.
+% To analyze the performance of Pastèque with the LLVM backend, in comparison with the Standard ML backend, especially for the large 512-bit benchmarks, I break down the execution times of the individual phases of both checkers.
+% Pastèque with the Standard ML backend already breaks down execution times for
+% \begin{itemize}
+% 	\item parsing input files,
+% 	\item checking the proof steps,
+% 	\item and time spent on garbage collection.
+% \end{itemize}
+% To obtain a separation of individual phases with the LLVM backend aswell, I inject timing measurement instructions in the generated LLVM code.
+% For the LLVM backend, I break down the time spent on
+% \begin{itemize}
+% 	\item parsing input files,
+% 	\item initialization of input polynomials (sorting and normalization),
+% 	\item checking proof steps,
+% 	\item a final teardown phases which frees all allocated data.
+% \end{itemize}
+% It should be noted that the runtimes of these phases can not be compared directly between the Standard ML backend and the LLVM backend, as the LLVM backend does include manual deallocations in every phase while with Standard ML backend breaks down garbage collection into its own phase making it impossible to assign the required deallocations to either the checking or parsing phase.
+% Also, compared to the original runtimes from Table~\ref{tab:checker-comparison}, injecting timing measurements into the LLVM code changes the total runtime.
 
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[width=\textwidth]{evaluation/phases/results/phases-plot.pdf}
-	\caption{
-		Relative time spent on each phase, considering only "btor" and "sparrc" benchmarks which both come in different bit-widths.
-		For the LLVM backend, there are four phases, for the Standard ML backend there are three phases.
-	}
-	\label{fig:phase-comparison}
-\end{figure}
-Figure~\ref{fig:phase-comparison} shows the relative amount of time that each backend spends in the individual phases.
-I only include the "btor" and "sparrc" benchmarks here as they provide different bit-widths which reveals a progression in the LLVM backend where, for larger bit-width, the relative amount of time spent on parsing and checking increases.
-This is not the case with the Standard ML backend.
+% \begin{figure}[htbp]
+% 	\centering
+% 	\includegraphics[width=\textwidth]{evaluation/phases/results/phases-plot.pdf}
+% 	\caption{
+% 		Relative time spent on each phase, considering only "btor" and "sparrc" benchmarks which both come in different bit-widths.
+% 		For the LLVM backend, there are four phases, for the Standard ML backend there are three phases.
+% 	}
+% 	\label{fig:phase-comparison}
+% \end{figure}
+% Figure~\ref{fig:phase-comparison} shows the relative amount of time that each backend spends in the individual phases.
+% I only include the "btor" and "sparrc" benchmarks here as they provide different bit-widths which reveals a progression in the LLVM backend where, for larger bit-width, the relative amount of time spent on parsing and checking increases.
+% This is not the case with the Standard ML backend.
 
-\input{evaluation/phases/results/phases-table.tex}
-Table~\ref{tab:phase-comparison} lists the same measurements for all benchmarks.
+% \input{evaluation/phases/results/phases-table.tex}
+% Table~\ref{tab:phase-comparison} lists the same measurements for all benchmarks.
 
-\subsection{A simple Fuzzer for PAC}\label{sec:simple-pac-fuzzer}
-To specifically evaluate the parsers of both the Standard ML backend and the LLVM backend, I create a simple fuzzer to generate random input files, allowing to measure the effect of certain parameters on the parsers performance.
-Note that for the LLVM backend, the parser directly builds nested lists of polynomials for proof steps and input polynomials and stores the input polynomials in a partial map, so testing the parser also tests the list and partial map implementation and also the string to multiple precision integer conversion.
-The fuzzer does not generate valid proofs, so running the checker steps on the generated inputs almost certainly fails on the first proof step.
+% \subsection{A simple Fuzzer for PAC}\label{sec:simple-pac-fuzzer}
+% To specifically evaluate the parsers of both the Standard ML backend and the LLVM backend, I create a simple fuzzer to generate random input files, allowing to measure the effect of certain parameters on the parsers performance.
+% Note that for the LLVM backend, the parser directly builds nested lists of polynomials for proof steps and input polynomials and stores the input polynomials in a partial map, so testing the parser also tests the list and partial map implementation and also the string to multiple precision integer conversion.
+% The fuzzer does not generate valid proofs, so running the checker steps on the generated inputs almost certainly fails on the first proof step.
 
-For the fuzzer, I define the following parameters
-\begin{itemize}
-	\item The number of digits in coefficients.
-	      Every coefficient in the generated polynomials has the same amount of digits.
-	      This value primarily allows to stress-test the string to multiple precision integer conversion.
+% For the fuzzer, I define the following parameters
+% \begin{itemize}
+% 	\item The number of digits in coefficients.
+% 	      Every coefficient in the generated polynomials has the same amount of digits.
+% 	      This value primarily allows to stress-test the string to multiple precision integer conversion.
 
-	      The largest number of digits in a single coefficient that can be observed in the 512-bit benchmarks is 309.
-	\item The number of variables in polynomials. For consistency and simplicity, every generated polynomial contains all combinations of variables each with a random coefficient.
-	\item The number of summands in linear combination proof steps.
-	\item The number of input polynomials to generate.
-	      This parameter allows stress-testing the update operation of the partial map implementation.
-\end{itemize}
-For each parameter I define a base value shown in Table~\ref{tab:fuzzer-base-values}.
-\begin{table}[htbp]
-	\centering
-	\caption{
-		Base values of the fuzzer parameters.
-	}
-	\label{tab:fuzzer-base-values}
-	\begin{tabular}{l r}
-		\toprule
-		Parameter                             & Base value \\
-		\midrule
-		Digits per coefficient ("c")          & 30         \\
-		Variables ("v")                       & 7          \\
-		Summands per linear combination ("s") & 2          \\
-		Input polynomials ("p")               & 1000       \\
-		Linear combination steps ("l")        & 1000       \\
-		\bottomrule
-	\end{tabular}
-\end{table}
-To analyze the effect of the parameters on the parsers runtimes, I run test with increasing values for one parameter and the other parameters fixed to the default value.
+% 	      The largest number of digits in a single coefficient that can be observed in the 512-bit benchmarks is 309.
+% 	\item The number of variables in polynomials. For consistency and simplicity, every generated polynomial contains all combinations of variables each with a random coefficient.
+% 	\item The number of summands in linear combination proof steps.
+% 	\item The number of input polynomials to generate.
+% 	      This parameter allows stress-testing the update operation of the partial map implementation.
+% \end{itemize}
+% For each parameter I define a base value shown in Table~\ref{tab:fuzzer-base-values}.
+% \begin{table}[htbp]
+% 	\centering
+% 	\caption{
+% 		Base values of the fuzzer parameters.
+% 	}
+% 	\label{tab:fuzzer-base-values}
+% 	\begin{tabular}{l r}
+% 		\toprule
+% 		Parameter                             & Base value \\
+% 		\midrule
+% 		Digits per coefficient ("c")          & 30         \\
+% 		Variables ("v")                       & 7          \\
+% 		Summands per linear combination ("s") & 2          \\
+% 		Input polynomials ("p")               & 1000       \\
+% 		Linear combination steps ("l")        & 1000       \\
+% 		\bottomrule
+% 	\end{tabular}
+% \end{table}
+% To analyze the effect of the parameters on the parsers runtimes, I run test with increasing values for one parameter and the other parameters fixed to the default value.
 
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[width=0.8\textwidth]{evaluation/fuzzing/results/sweep-c.pdf}
-	\caption{
-		Parsing time of both backends for an increasing number of digits per coefficient.
-	}
-	\label{fig:fuzzer-sweep-digits}
-\end{figure}
+% \begin{figure}[htbp]
+% 	\centering
+% 	\includegraphics[width=0.8\textwidth]{evaluation/fuzzing/results/sweep-c.pdf}
+% 	\caption{
+% 		Parsing time of both backends for an increasing number of digits per coefficient.
+% 	}
+% 	\label{fig:fuzzer-sweep-digits}
+% \end{figure}
 
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[width=0.8\textwidth]{evaluation/fuzzing/results/sweep-v.pdf}
-	\caption{
-		Parsing time of both backends for an increasing number of variables.
-	}
-	\label{fig:fuzzer-sweep-variables}
-\end{figure}
+% \begin{figure}[htbp]
+% 	\centering
+% 	\includegraphics[width=0.8\textwidth]{evaluation/fuzzing/results/sweep-v.pdf}
+% 	\caption{
+% 		Parsing time of both backends for an increasing number of variables.
+% 	}
+% 	\label{fig:fuzzer-sweep-variables}
+% \end{figure}
 
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[width=0.8\textwidth]{evaluation/fuzzing/results/sweep-s.pdf}
-	\caption{
-		Parsing time of both backends for an increasing number of summands per linear combination.
-	}
-	\label{fig:fuzzer-sweep-summands}
-\end{figure}
+% \begin{figure}[htbp]
+% 	\centering
+% 	\includegraphics[width=0.8\textwidth]{evaluation/fuzzing/results/sweep-s.pdf}
+% 	\caption{
+% 		Parsing time of both backends for an increasing number of summands per linear combination.
+% 	}
+% 	\label{fig:fuzzer-sweep-summands}
+% \end{figure}
 
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[width=0.8\textwidth]{evaluation/fuzzing/results/sweep-p.pdf}
-	\caption{
-		Parsing time of both backends for an increasing number of input polynomials.
-	}
-	\label{fig:fuzzer-sweep-polys}
-\end{figure}
+% \begin{figure}[htbp]
+% 	\centering
+% 	\includegraphics[width=0.8\textwidth]{evaluation/fuzzing/results/sweep-p.pdf}
+% 	\caption{
+% 		Parsing time of both backends for an increasing number of input polynomials.
+% 	}
+% 	\label{fig:fuzzer-sweep-polys}
+% \end{figure}
 
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[width=0.8\textwidth]{evaluation/fuzzing/results/sweep-l.pdf}
-	\caption{
-		Parsing time of both backends for an increasing number of linear combination steps.
-	}
-	\label{fig:fuzzer-sweep-steps}
-\end{figure}
+% \begin{figure}[htbp]
+% 	\centering
+% 	\includegraphics[width=0.8\textwidth]{evaluation/fuzzing/results/sweep-l.pdf}
+% 	\caption{
+% 		Parsing time of both backends for an increasing number of linear combination steps.
+% 	}
+% 	\label{fig:fuzzer-sweep-steps}
+% \end{figure}
 
-Figures~\ref{fig:fuzzer-sweep-digits},~\ref{fig:fuzzer-sweep-variables},~\ref{fig:fuzzer-sweep-summands},~\ref{fig:fuzzer-sweep-polys} and ~\ref{fig:fuzzer-sweep-steps} show the effect of increasing each parameter individually.
-Both parsers show similar scaling behavior in all graphs with the exception of increasing the number of digits in coefficients, shown in Figure~\ref{fig:fuzzer-sweep-digits}.
-Here, the llvm backend is significantly more affected by larger numbers of digits in coefficients.
+% Figures~\ref{fig:fuzzer-sweep-digits},~\ref{fig:fuzzer-sweep-variables},~\ref{fig:fuzzer-sweep-summands},~\ref{fig:fuzzer-sweep-polys} and ~\ref{fig:fuzzer-sweep-steps} show the effect of increasing each parameter individually.
+% Both parsers show similar scaling behavior in all graphs with the exception of increasing the number of digits in coefficients, shown in Figure~\ref{fig:fuzzer-sweep-digits}.
+% Here, the llvm backend is significantly more affected by larger numbers of digits in coefficients.

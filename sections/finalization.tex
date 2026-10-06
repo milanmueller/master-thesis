@@ -4,11 +4,11 @@ This remaining work and some performance-oriented optimizations are discussed in
 
 \subsection{A new Parser for Pastèque}\label{sec:pasteque-parser-c}
 The original Pastèque implementation employs an unverified parser written in Standard ML which constructs the inputs for the verified checker from the given input files.
-Concretely, the checker takes the following inputs (on HOL-level):
+Concretely the parser must construct (refinement targets of) the following input for the verified checker:
 \begin{enumerate}
-	\item A target polynomial,
-	\item a list of input polynomials of type $\iexp{llist\_polynomial} \app \iexp{list}$,
-	\item a list of proof steps of type $\iexp{pac\_step} \app \iexp{list}$.
+	\item A specification of type $\iexp{llist\_polynomial}$.
+	\item A list of input polynomials of type $\iexp{llist\_polynomial} \app \iexp{list}$, the polynomials $\iexp{sllist\_polynomial}$ with shared variables are constructed on the verified LLVM side.
+	\item A list of proof steps of type $\iexp{pac\_step} \app \iexp{list}$.
 \end{enumerate}
 For the Isabelle-LLVM migration, I write a custom parser in C that constructs these inputs.
 To enable writing of such a parser, I export fundamental functions to construct (lists of) polynomials and proof steps directly from C.
@@ -43,4 +43,5 @@ The partial map implementation from \ref{sec:partial-maps} effectively introduce
 The reason is that indices are represented by signed 64-bit integers which introduce an upper bound $2^{63}-1$ and, in addition, when a given index $i$ is outside the current length of the outer array, the array is resized to length $i+1$ meaning that $i$ can be at most $2^{63}-2$.
 As this limitation was not present with the Standard ML backend, I create a new error message for when an index is too large.
 It should be noted that none of the benchmark instances, discussed in \refsec{sec:evaluation}, has triggered that.
-The largest index in the "sparrc-512" instance is 6013954 so well below $2^{23}$.
+The largest observed index in the "sparrc-512" instance is 6013954 so well below $2^{23}$.
+An experimental modification an input file to use $2^{63}-1$ as an index has triggered the new error path in the LLVM backend and has led to a runtime exception in the Standard ML backend.

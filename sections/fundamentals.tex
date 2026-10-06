@@ -1,9 +1,11 @@
 \section{\iflanguage{english}{Fundamentals}{Grundlagen}}\label{sec:fundamentals}
 
+This section discusses the fundamentals of the practical algebraic calculus (PAC), the input format, data types and algorithms used in Pastèque (and PAC checkers in general) and the frameworks used to develop Pastèque.
+
 \subsection{The Practical Algebraic Calculus}\label{sec:practical-algebraic-calculus}
 
-This section introduces the practical algebraic calculus (PAC) as it is used by Pastèque.
-For a thorough introduction on PAC, I refer to the work of Kaufmann et al. \cite{pac-2018,pac-2024,kaufmann-phd-thesis}.
+I introduce a notion of the practical algebraic calculus (PAC) as it is used by Pastèque.
+For a thorough and more general introduction to PAC, I refer to the work of Kaufmann et al. \cite{pac-2018,pac-2024,kaufmann-phd-thesis}.
 
 \begin{itemize}
 	\item A PAC checker considers multivariate polynomials $\mathbb{Z}[X]$ with variables $X$ and coefficients in $\mathbb{Z}$.
@@ -40,17 +42,17 @@ Given a list of such derivations, a PAC checker checks the soundness of each der
 Note that, by construction, every model of $G$ is a root of every polynomial in $\langle G \rangle$.
 
 Concretely, a PAC checker holds a state $(\mathscr{V},P)$, where $\mathscr{V}$ is a set of variables and $P$ is a partial function $\mathbb{N} \rightharpoonup \mathbb{Z}[\mathscr{V}]$.
-Initially it holds that $\mathscr{V} = X$ and $\text{img}(P)$ is the set of gate constraints, but throughout execution, further variables may be added to $\mathscr{V}$ and new polynomials (at a new index) are added to $P$.
-The Boolean value constraints $B(X)$ are not in $\text{img}(P)$.
-Instead, throughout the execution of the PAC checker, all monomials ${x_1}^{e_1} \dots {x_n}^{e_n} \cdot z$, for $x_1,\dots,x_n \in \mathscr{V}, e_1,\dots,e_n \in \mathbb{N}, z \in \mathbb{Z}$ are normalized to $x_1  \dots  x_n \cdot z$.
+Initially it holds that $\mathscr{V} = X$ is the set of variables in the gate constraints and $\text{img}(P)$ is the set of gate constraints.
+Throughout execution, further variables may be added to $\mathscr{V}$ and new polynomials (at a new index) are added to $P$.
+
 A PAC checker is given as input:
 \begin{itemize}
-	\item A list $[(i_1,p_1),\dots,(i_k,p_k)]$, where $i_1,\dots,i_k \in \mathbb{N}$ are pairwise distinct and $p_1, \dots, p_k \in \mathbb{Z}[X]$,
-	\item a \textit{specification} $f \in \mathbb{Z}[X]$,
-	\item and a list of \textit{proof steps}. A proof step is one of the following:
+	\item A list $[(i_1,p_1),\dots,(i_k,p_k)]$, where $i_1,\dots,i_k \in \mathbb{N}$ are pairwise distinct and $p_1, \dots, p_k \in \mathbb{Z}[X]$ representing enumerated gate constraints.
+	\item A \textit{specification} $f \in \mathbb{Z}[X]$.
+	\item A list of \textit{proof steps}. A proof step is one of the following:
 	      \begin{itemize}
 		      \item A deletion step $\text{Del} (i)$, where $i \in \mathbb{N}$, or
-		      \item an extension step $\text{Ext} (i, x, p)$, where $i \in \mathbb{N}$, $x \not\in \mathscr{V}$ and $p \in \mathbb{Z}[\mathscr{V}]$, or
+		      \item an extension step $\text{Ext} (i, x, p)$, where $i \in \mathbb{N}$, $x \not\in \mathscr{V}_0$ and $p \in \mathbb{Z}[\mathscr{V}]$, where $\mathscr{V}_0$ is the initial set of variables, or
 		      \item a linear combination step $\text{LinComb} (i, r, [(i_1, q_1),  \dots, (i_n, q_n)])$, where
 		            $i \in \mathbb{N}$, $r \in  \mathbb{Z}[\mathscr{V}]$, and for all $1 \le j \le n$ $i_j \in \mathbb{N}$ and $q_j \in \mathbb{Z}[\mathscr{V}]$.
 	      \end{itemize}
@@ -69,9 +71,13 @@ The state of a PAC checker is initialized by $\sigma_0 := (\mathscr{V}_0, P_0)$,
 Proof steps update the state $\sigma = (\mathscr{V},P)$ as follows:
 \begin{itemize}
 	\item For a deletion step $\text{Del} (i)$, the state is updated to $\sigma' := (\mathscr{V},P(i\mapsto \bot))$.
-	\item For an extension step $\text{Ext} (i,x,p)$, the state is updated to $\sigma' := (\mathscr{V} \cup \{x\}, P(i \mapsto -x + p))$ if it holds that $P(i) = \bot$, $x \notin \mathscr{V}$ and $p \in \mathbb{Z}[X]\setminus B(X)$.
+	\item   For an extension step $\text{Ext} (i,x,p)$, the state is updated to $\sigma' := (\mathscr{V} \cup \{x\}, P(i \mapsto -x + p))$ if it holds that $P(i) = \bot$, $x \notin \mathscr{V}$ and $p \in \mathbb{Z}[X] \text{ mod } B(X)$.
 	\item For a linear combination step $\text{LinComb} (i,r,[(i_1,q_1),\dots,(i_n,q_n)])$, the state is updated to $\sigma' := (\mathscr{V}, P(i \mapsto r))$ if it holds that $P(i) = \bot$, $\forall j \in \{1,\dots,n\}. P(i_j) \neq \bot$ and $r = \sum_{1 \le j\le n}P(i_j)q_j \text{ mod } B(X)$.
 \end{itemize}
+The Boolean value constraints $B(X)$ are not in $\text{img}(P)$.
+Instead, throughout the execution of the PAC checker, all monomials ${x_1}^{e_1} \dots {x_n}^{e_n} \cdot z$, for $x_1,\dots,x_n \in \mathscr{V}, e_1,\dots,e_n \in \mathbb{N}, z \in \mathbb{Z}$ are normalized to $x_1  \dots  x_n \cdot z$ to achieve linear combinations modulo $B(X)$.
+
+Note that deletion steps are not required for soundness of a proof but can reduce memory usage by allowing for deallocation of polynomials from $P$ that are no longer required.
 
 \subsection{Isabelle/HOL}\label{sec:isabelle-hol}
 
@@ -85,11 +91,11 @@ Crucially, errors in a proof method do not lead to acceptance of an unsound proo
 
 The core Isabelle system, referred to as \textit{Isabelle/Pure}, is a generic theorem proving framework, meaning it can serve as a basis for implementation of different logical theories with distinct axioms.
 The most widespread instance of Isabelle is \textit{Isabelle/HOL}, which is an axiomatization of simply typed higher-order logic on top of Isabelle/Pure.
-Throughout this thesis, I use Isabelle/HOL.
+In this thesis I use Isabelle/HOL.
 
 % Isabelle has been used for formalizations from various domains, including fundamentals of mathematics, e.g. Gödel's Incompleteness Theorems \cite{Incompleteness-AFP} or the Prime Number Theorem \cite{Prime-Number-Theorem-Avigad} \cite{Prime_Number_Theorem-AFP}, but also the verification of computer systems, for instance in the seL4 OS microkernel \cite{seL4}.
 
-Throughout this thesis, I assume familiarity with simply typed higher-order logic and use notation closely tied to actual Isabelle syntax.
+I assume familiarity with simply typed higher-order logic and use notation closely tied to actual Isabelle syntax.
 \begin{itemize}
 	\item Leading apostrophes indicate type variables, e.g. $\tv{a}$.
 	\item I use $\dbcolon$ to annotate the type of a value, e.g. $a \dbcolon \tv{a}$ means that value $a$ is of type $\tv{a}$.
@@ -106,7 +112,7 @@ Throughout this thesis, I assume familiarity with simply typed higher-order logi
 	      type parameters $\tv{a_1}, \dots, \tv{a_k}$ as well as the defined type
 	      $(\tv{a_1}, \dots, \tv{a_k}) \app \iexp{ta}$ itself, allowing recursive
 	      datatypes.
-	\item Functions are first-class objects and are typically presented in curried form.
+	\item Functions are first-class objects and are presented in curried form.
 	      A function $f \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \tv{c}$, for a given $a \dbcolon \tv{a}$, returns a function of type $\tv{b} \rightarrow \tv{c}$.
 	\item For a function $f \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \tv{c}$, $f\app a\app b$ denotes function application for arguments $a \dbcolon \tv{a}, b \dbcolon \tv{b}$.
 	\item $\lambda$ denotes anonymous functions, e.g. $\lambda \app a \app b. f \app a \app b$ is an anonymous function that applies the named function $f$ to arguments $a$ and $b$.
@@ -140,12 +146,12 @@ Throughout this thesis, I assume familiarity with simply typed higher-order logi
 \end{itemize}
 
 \subsection{Isabelle Refinement Framework}\label{sec:isabelle-refinement-framework}
-The Isabelle Refinement Framework by Lammich \cite{isabelle-refinement-framework} enables a refinement approach to defining imperative programs and proving correctness properties of such programs. \todo{In motivation, write a section on what the idea of refinement is, and which problem it solves.}
+The Isabelle Refinement Framework by Lammich \cite{isabelle-refinement-framework} enables a refinement approach to defining imperative programs and proving correctness properties of such programs.
 This subsection introduces a simplified view of the underlying $\iexp{nres}$ monad and sketches its usage for defining and verifying imperative programs in Isabelle/HOL.
 Most of the algorithms I implemented for this thesis are expressed in the $\iexp{nres}$ monad, the exception being fundamental operations on custom datatypes that \refsec{sec:low-level-datatypes-in-isabelle-llvm} introduces.
 
 Nondeterministic computations are represented using the $\iexp{nres}$ monad.
-$\iexp{nres}$ over some type $\tv{a}$, representing computations with results of type $\tv{a}$, is defined as\footnote{The presented $\iexp{nres}$ type is slightly simplified; the original version is defined in the theory $\iexp{Refine\_Monadic.Refine\_Basic}$.}
+$\iexp{nres}$ over some type $\tv{a}$, representing computations with results of type $\tv{a}$, is defined as\footnote{The presented $\iexp{nres}$ type is slightly simplified; the original version is defined in the theory \isaname{Refine_Monadic.Refine_Basic}.}
 $$
 	\tv{a} \app \iexp{nres} = \iexp{FAIL} \mid \iexp{RES} \app (\tv{a} \app \iexp{set})
 $$
@@ -180,9 +186,8 @@ Intuitively, $P \le P'$ means that every possible result of program $P$ is also 
 A program $P \dbcolon \tv{a} \app \iexp{nres}$ is said to \textit{refine} program $P' \dbcolon \tv{a} \app \iexp{nres}$ if $P \le P'$.
 In particular, if $P'$ is known to be correct, with respect to some definition of correctness, then $P \le P'$ implies that $P$ is also correct with respect to that definition of correctness.
 For instance, $P \app a \app b \le \iexp{add\_spec} \app a \app b$ states that $P$ computes the sum of two natural numbers $a,b$.
-
-Note that $(\tv{a} \app \iexp{nres}, \le)$ is a complete lattice with top element $\iexp{FAIL}$ and bottom element $\iexp{RES} \app \{\}$.
-In particular, a refining program may only fail if the refined program also fails.
+$(\tv{a} \app \iexp{nres}, \le)$ is a complete lattice with top element $\iexp{FAIL}$ and bottom element $\iexp{RES} \app \{\}$.
+A refining program may only fail if the refined program also fails.
 
 A $\iexp{bind} \dbcolon \tv{a} \app \iexp{nres} \rightarrow (\tv{a} \rightarrow \tv{b} \app \iexp{nres}) \rightarrow \tv{b} \app \iexp{nres}$ operator on $\iexp{nres}$, coupled with do-notation syntax, enables convenient denotation of sequential programs.
 In addition, while loops and Isabelle's built-in $\iexp{if}$ expressions can be used to define programs in a typical imperative style.
@@ -217,20 +222,17 @@ Consider the example program in \refalgo{algo:nres-set-lookup}, lifting a simple
 As is, it is impossible to obtain an executable program for $\iexp{contains\_elem}$, since $\tv{a} \app \iexp{set}$ is the HOL type of (potentially infinite) sets, which cannot be represented with finite memory.
 If the set $\iexp{s}$ is known to be finite, one could choose to implement $\iexp{contains\_elem}$ using an implementable datatype (e.g. a hashset) to represent $\iexp{s}$.
 In such a case, the \textit{concrete} hashset datatype is said to \textit{refine} the \textit{abstract} set datatype.
-\todo{Maybe a more rigorous introduction of datatype refinement here.}
 The Sepref tool offers a collection of concrete data structures alongside refinement rules for implementing abstract datatypes.
 In particular, Pastèque uses hashsets and hashmaps to refine sets and partial maps.
 
-In addition, Sepref synthesizes Imperative-HOL programs and automates refinement proofs for given abstract programs, defined in the $\iexp{nres}$ monad. \todo{Should be more elaborate and mention the separation logic.}
+In addition, Sepref synthesizes Imperative-HOL programs and automates refinement proofs for given abstract programs, defined in the $\iexp{nres}$ monad.
 For the synthesized Imperative-HOL programs, a code generator then generates Standard ML code which, in the case of Pastèque, is compiled with MLton \cite{mlton,weeks-mlton-2006} to obtain an executable program.
-
 In this scenario, the correctness of the synthesized program, relative to the semantics of Imperative-HOL and Sepref's separation logic on Imperative-HOL, is checked by the Isabelle kernel.
 The compiler MLton and the code generator are trusted to be correct.
 
 The newer Isabelle-LLVM framework uses the same $\iexp{nres}$ monad, but modifies the Sepref tool to target a shallow embedding of LLVM instead of Imperative-HOL, using its own separation logic.
-
 Migrating the verified SAT-solver IsaSAT by Fleury \cite{isasat-sml} from the Standard ML backend to LLVM  improved its performance by a factor of two \cite{isasat-llvm}.
-This observation motivated the migration of Pastèque from Standard ML to LLVM, which is the primary objective of this thesis.
+This observation motivated the migration of Pastèque from Standard ML to LLVM.
 
 \subsection{Isabelle-LLVM}\label{sec:isabelle-llvm}
 
@@ -244,14 +246,13 @@ The following definitions and terminology depend on the memory model and are onl
 	      Isabelle-LLVM instantiates the abstract separation algebra with its memory model.
 	\item An \textit{assertion} is a function $f \dbcolon \iexp{mem} \rightarrow \iexp{bool}$ used to make statements about the state of memory.
 	      I use the type synonym $\iexp{assn} := \iexp{mem} \rightarrow \iexp{bool}$ as type annotation for assertions.
-	\item $\iexp{emp}$ is an assertion that evaluates to $\iexp{True}$ iff. the given state is $0$, i.e. $\iexp{emp} = \lambda s. s = 0$.
 	\item The separating conjunction operator $\ast \dbcolon \iexp{assn} \rightarrow \iexp{assn} \rightarrow \iexp{assn}$ allows for combination of assertions.
 	      If $A \dbcolon \iexp{assn}$ and $B \dbcolon \iexp{assn}$ are assertions, then $A \ast B$ is an assertion that evaluates to $\iexp{True}$ for a given state $h \dbcolon \iexp{mem}$, iff. there exists a decomposition $h = x + y$ such that $x \#\# y$ (i.e. $x$ and $y$ are disjoint) and $A \app x$ and $B \app y$.
 	\item Some datatypes can be represented in LLVM.
 	      In particular, the type $w \app \iexp{word}$, of machine words with width $w$, where $w$ is one of $1,8,64,128$, is representable in LLVM and is used throughout the thesis.
 	      Note that other bit-widths are also representable, but are not used in the thesis.
 	\item $\tv{a} \app \iexp{ptr}$ is the type of pointers to values of type $\tv{a}$.
-	      For $\mapsto \dbcolon \tv{a} \app \iexp{ptr} \rightarrow \tv{a} \rightarrow \iexp{assn}$, the assertion $(p \mapsto a) \sigma $ evaluates to $\iexp{True}$, iff. $p$ is a pointer to $a$ in state $\sigma$\footnote{$\mapsto$ is based on the assertion $\iexp{ll\_bpto}$, which is defined in the theory $\iexp{Isabelle\_LLVM.LLVM\_DS\_Block\_Alloc}$.}.
+	      For $\mapsto \dbcolon \tv{a} \app \iexp{ptr} \rightarrow \tv{a} \rightarrow \iexp{assn}$, the assertion $(p \mapsto a) \sigma $ evaluates to $\iexp{True}$, iff. $p$ is a pointer to $a$ in state $\sigma$\footnote{$\mapsto$ is based on the assertion $\iexp{ll\_bpto}$, which is defined in the theory \isaname{Isabelle_LLVM.LLVM_DS_Block_Alloc}.}.
 	      Note that $p \mapsto a$ implicitly states exclusive ownership of the object $p$ points to, as no object can have multiple separate owners in the separation logic.
 	      \refsec{sec:ownership-in-isabelle-llvm} discusses this more thoroughly as this observation introduces the main challenge for the migration of Pastèque to Isabelle-LLVM.
 	\item Similarly to the $\iexp{nres}$ monad, Isabelle-LLVM uses a state-error-nondeterminism monad $\tv{a} \app \iexp{llM}$ to describe sequential LLVM programs with return type $\tv{a}$.
@@ -260,7 +261,8 @@ The following definitions and terminology depend on the memory model and are onl
 	      While I do not give a formal introduction of the $\iexp{llM}$ monad, \refalgo{algo:sum-imperative-refined} shows an example program expressed in $\iexp{llM}$.
 \end{itemize}
 
-To make assertions independent of the state of memory, a boolean value can be lifted to an assertion by $\uparrow \dbcolon \iexp{bool} \rightarrow \iexp{assn}$ where $\uparrow \app b = \lambda h. \iexp{emp} h \land b$.
+$\iexp{emp}$ is an assertion that evaluates to $\iexp{True}$ iff the given state is $0$, i.e. $\iexp{emp} = \lambda s. s = 0$.
+To make assertions independent of the state of memory, a boolean value can be lifted to an assertion by $\uparrow \app \dbcolon \iexp{bool} \rightarrow \iexp{assn}$ where $\uparrow \app b = \lambda h. \iexp{emp} h \land b$.
 
 In Isabelle-LLVM, a \textit{refinement assertion} $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ is a function that produces an assertion for given values of type $\tv{a}$ and $\tv{b}$, where type $\tv{b}$ is representable in LLVM.
 Refinement assertions specify how abstract HOL types are represented in LLVM programs by concrete, implementable data types.
@@ -268,8 +270,8 @@ For example, a refinement assertion $\iexp{si8\_assn} \dbcolon \iexp{int} \right
 It holds that $\iexp{si8\_assn} \app (-128) \app \iexp{0x80} \app 0 = \iexp{True}$, while $\iexp{si8\_assn} \app 128 \app w \app \sigma = \iexp{False}$ for any $w$ and $\sigma$, as $128$ is not representable with an 8-bit signed integer.
 Throughout the thesis, for a refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$, I refer to $\tv{b}$ as the \textit{refinement target} of the abstract type $\tv{a}$.
 
-To express correctness properties on programs defined in $\iexp{llM}$, Hoare-triples are used.
-A \textit{Hoare-triple} $\{\Psi \dbcolon \iexp{assn}\} (P \dbcolon \tv{a} \app \iexp{llM}) \{\Phi \dbcolon \tv{a} \rightarrow \iexp{assn}\}$ states that, if a \textit{precondition} $\Psi$ holds initially, then the program $P$ is executed successfully and the \textit{postcondition} $\Phi$ holds afterwards.
+Correctness properties on programs defined in $\iexp{llM}$ are stated by use of Hoare-triples.
+A \textit{Hoare-triple} $\{\Psi \dbcolon \iexp{assn}\} \app (P \dbcolon \tv{a} \app \iexp{llM}) \app \{\Phi \dbcolon \tv{a} \rightarrow \iexp{assn}\}$ states that, if a \textit{precondition} $\Psi$ holds initially, then the program $P$ is executed successfully and the \textit{postcondition} $\Phi$ holds afterwards.
 For example, the Hoare-triple
 $$
 	\{\iexp{si8\_assn} \app a \app ai \ast \iexp{si8\_assn} \app b \app bi\}
@@ -317,10 +319,10 @@ In this example, one could also choose to, e.g., implement the abstract list by 
 For both these functions, the array implementation also specifies corresponding correctness lemmas which are required for proving the overall correctness of $\iexp{sum\_impl}$.
 
 Note that the original $\iexp{sum}$ program from \refalgo{algo:sum-imperative} could not be synthesized by \inlinecode{sepref} as in the concrete implementation $\iexp{sum\_impl}$, the accumulator could overflow, leading to a different end result compared to the abstract $\iexp{sum}$ which uses unbounded natural numbers.
-More concretely, in addition to synthesized $\iexp{llM}$ programs, \inlinecode{sepref} also automatically proves refinement theorems.
-For the $\iexp{sum\_impl}$ example, a simplified lemma using Hoare-triple notation of the corresponding refinement is given by
+More concretely, in addition to synthesized $\iexp{llM}$ programs, \inlinecode{sepref} also automatically proves \textit{refinement lemmas} that serve as a correctness proof for the synthesized program.
+For the $\iexp{sum\_impl}$ example, a simplified lemma, using Hoare-triple notation, of the corresponding refinement lemma is given by
 \begin{gather*}
-	\{(\iexp{array\_assn} \app \iexp{sn64\_assn}) \app xs \app xsi\}\\
+	\{(\iexp{array\_assn} \app \iexp{sn64\_assn}) \app xs \app xsi \app \ast \app \uparrow ((\iexp{foldl} \app (+) \app 0) \app xs < \iexp{max\_snat} \app 64)\}\\
 	(\iexp{sum\_impl} \app xsi) \\
 	\{\lambda r. \app \iexp{sn64\_assn} \app (\iexp{sum'} \app xs) \app r\}
 \end{gather*}
@@ -328,19 +330,14 @@ where $\iexp{array\_assn} \app \iexp{sn64\_assn} \dbcolon \iexp{nat} \app \iexp{
 
 As a final step, the $\iexp{llM}$-level program $\iexp{sum\_impl}$ in \refalgo{algo:sum-imperative-refined} can then be exported by Isabelle-LLVM's code generator to obtain compilable LLVM code.
 The code generator can also generate header files so the exported functions can be called from C programs.
-For Pastèque in particular, I implemented the initial parsing of input files in C to then use the parsed inputs as arguments for the verified LLVM algorithms.
 
 \subsubsection{Ownership in Isabelle-LLVM}\label{sec:ownership-in-isabelle-llvm}
-This subsection introduces the notion of \textit{pure} and \textit{impure} refinement assertions and how Isabelle-LLVM's backend is different from the Imperative-HOL backend with respect to the purity of lists.
+This subsection introduces the notion of pure refinement assertions and how Isabelle-LLVM's backend is different from the Imperative-HOL backend with respect to lists.
 
-Refinement Assertions are distinguished between \textit{pure} and \textit{impure}.
-A refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ is pure if it holds that $\forall a \app b \app s. \app A \app a \app b \app s \Rightarrow s = 0$.
+A refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ is \textit{pure} if it holds that $\forall a \app b \app s. \app A \app a \app b \app s \Rightarrow s = 0$.
 Refinement assertions with stack allocated refinement targets, in particular machine words, are pure.
 The introduced refinement assertions $\iexp{si8\_assn}$ and $\iexp{sn64\_assn}$ are therefore examples of pure refinement assertions.
-Refinement assertions with heap allocated refinement targets, in particular data structures like arrays or lists, are impure.
-$\iexp{array\_assn} \app \iexp{sn64\_assn}$ is an example of an impure refinement assertion.
-
-Stack allocated values can be duplicated without requiring a specific copy implementation.
+Refinement targets of pure assertions can be trivially duplicated without requiring a custom defined copy implementation as such duplication corresponds to a single move instruction.
 For example, the earlier Hoare-triple from \refsec{sec:isabelle-llvm} can be strengthened to
 \begin{gather*}
 	\{\uparrow(a + b \le 127 \land -128 \le a + b) \ast \iexp{si8\_assn} \app a \app ai \ast \iexp{si8\_assn} \app b \app bi\} \\
@@ -349,7 +346,8 @@ For example, the earlier Hoare-triple from \refsec{sec:isabelle-llvm} can be str
 \end{gather*}
 The addition of $\iexp{si8\_assn} \app a \app ai \ast \iexp{si8\_assn} \app b \app bi$ means that, after being used as arguments for $\iexp{add}$, $ai$ and $bi$ remain valid representations of the original abstract integers $a$ and $b$ and could be used again in further computations.
 
-Impure assertions behave differently with respect to preservation of values.
+Refinement assertions with heap allocated refinement targets, in particular data structures like arrays or lists, are not pure, so $\iexp{array\_assn} \app \iexp{sn64\_assn}$ is an example of a non-pure refinement assertion.
+Assertions which are not pure behave differently with respect to preservation of values.
 As an example, consider the function $\iexp{take} \dbcolon \iexp{nat} \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$ which returns a prefix of the given length for the given list.
 Assuming a list of natural numbers $\iexp{nat} \app \iexp{list}$ is refined by an array of (signed) 64-bit machine words, i.e. $64 \app \iexp{word} \times 64 \app \iexp{word} \app \iexp{ptr}$, like in the $\iexp{sum\_impl}$ example (cf. \refalgo{algo:sum-imperative-refined}), one might want to prove a Hoare-triple
 \begin{gather*}
@@ -359,10 +357,12 @@ Assuming a list of natural numbers $\iexp{nat} \app \iexp{list}$ is refined by a
 \end{gather*}
 for an implementation $\iexp{take\_impl}$ of $\iexp{take}$ such that the original array $xsi$ is kept intact after executing $\iexp{take\_impl} \app ii \app xsi$.
 
-In a language like C, one might implement $\iexp{take\_impl}$ in a way such that $xsi$ and $r$ both point to the same data in memory, but $r$ has length $ii$, while $xsi$ still has its original length.
-While this is efficient and has constant runtime complexity, in Isabelle-LLVM it is impossible to implement $\iexp{take\_impl}$ this way since two distinct pointers must not point to the same object in memory.
-In other words, each resource must have one unique owner.%
-\footnote{In recent developments, Isabelle-LLVM was extended to support fractional separation logic \cite{isabelle-llvm-fractional} which enables shared read-only access to an object and in this example might allow for using a shared, read-only prefix of $xsi$, but at the time of starting the work on this thesis, the extension was not yet published.}
+In a language like C, one might implement $\iexp{take\_impl}$ such that $xsi$ and $r$ both point to the same data in memory, but $r$ has length $ii$, while $xsi$ still has its original length.
+While this is efficient and has constant runtime complexity, in Isabelle-LLVM it is impossible to implement $\iexp{take\_impl}$ this way since, for a conjunct of refinement assertions, the respective assertions must hold for separate parts of memory.
+Intuitively, drawing an analogy to Rust's ownership model \cite[Ch. ~4]{rustbook2023}, each resource must have a unique owner.
+
+In recent developments, Isabelle-LLVM was extended to support fractional separation logic \cite{isabelle-llvm-fractional} which enables shared read-only access to an object and in this example might allow for using a shared, read-only prefix of $xsi$, but at the time of starting the work on this thesis, the extension was not yet published.
+
 The actual implementation of the $\iexp{take}$ operation in Isabelle-LLVM therefore proves a different Hoare-triple
 \begin{gather*}
 	\{(\iexp{array\_assn} \app \iexp{si64\_assn}) \app xs \app xsi \app \ast \app \iexp{si64\_assn} \app i \app ii\} \\
@@ -372,23 +372,23 @@ The actual implementation of the $\iexp{take}$ operation in Isabelle-LLVM theref
 where in the postcondition the second conjunct is lost, meaning that the original array $xsi$ is destroyed and can no longer be used.
 If $xsi$ must be kept intact, $\iexp{take\_impl}$ would have to create a deep copy of the respective prefix, leading to linear runtime and allocation of a new array.
 
-In the Imperative-HOL backend, the refinement assertion $\iexp{list\_assn}$ on lists is actually a pure assertion.
+In the Imperative-HOL backend, the refinement assertion $\iexp{list\_assn}$ on lists is a pure assertion (as long as the refinement assertion of the contained elements is pure).
 Efficient handling of lists and creating deep copies where necessary is handled by the compiler and garbage collector.
-In LLVM, this is not the case; lists are an impure chain of nodes, meaning that any algorithm which uses functions like $\iexp{take}$ necessarily destroys given input lists.
+In LLVM, this is not the case; the list assertion $\iexp{os\_assn}$ \footnote{defined in theory \isaname{Isabelle_LLVM.LLVM_DS_Open_List}.} is not pure, as lists are refined by a chain of heap allocated nodes, meaning that any algorithm which uses functions like $\iexp{take}$ necessarily destroys given input lists.
 
-As lists are frequently used in the implementation of Pastèque, this complicates the migration to Isabelle-LLVM significantly, unless every function working on lists creates a deep copy first.
+As (nested) lists are used as the core data structure in the implementation of Pastèque, this complicates the migration to Isabelle-LLVM significantly, unless every function working on lists creates a deep copy first.
 \refsec{sec:lists-with-tail-pointers} introduces some measures I took to avoid deep copies by reformulating functions using $\iexp{foldl}$ where possible.
 
 \subsection{Pastèque}\label{sec:methodology_high-level-representation-of-polynomials}
-This subsection introduces the fundamental algorithms and HOL-level data types used in Pastèque, implemented by Fleury \cite{pasteque} \cite{pac-2024}.
-The discussed implementations are done on $\iexp{nres}$ level and remain unmodified in the migration to LLVM, meaning that all my contributions are refinements of the existing algorithms (apart from the unverified parser which is an entirely new implementation in c).
+This subsection introduces the fundamental algorithms and HOL-level data types used in Pastèque, implemented by Fleury \cite{pasteque, pac-2024}.
+The discussed implementations are done on $\iexp{nres}$ level and remain unmodified in the migration to LLVM, meaning that all my contributions are refinements of the existing algorithms (apart from the unverified parser which is an entirely new implementation written in C).
 
 To represent polynomials, Pastèque defines
 \begin{align*}
-	\iexp{variable}   & = \iexp{string}                    \\
-	\iexp{term}       & = \iexp{variable} \app \iexp{list} \\
-	\iexp{monomial}   & = \iexp{term} \times \iexp{int}    \\
-	\iexp{polynomial} & = \iexp{monomial} \app \iexp{list}
+	\iexp{variable}   & := \iexp{string}                    \\
+	\iexp{term}       & := \iexp{variable} \app \iexp{list} \\
+	\iexp{monomial}   & := \iexp{term} \times \iexp{int}    \\
+	\iexp{polynomial} & := \iexp{monomial} \app \iexp{list}
 \end{align*}
 For instance, a polynomial $3xy + 2x + y$ is represented by
 $[([\iexp{"x"}], 2), ([\iexp{"x"}, \iexp{"y"}], 3), ([\iexp{"y"}], 1)]$ in Pastèque.
@@ -396,23 +396,23 @@ $[([\iexp{"x"}], 2), ([\iexp{"x"}, \iexp{"y"}], 3), ([\iexp{"y"}], 1)]$ in Past�
 The map of polynomials $P$, as defined in \ref{sec:practical-algebraic-calculus}, is represented by a partial map $\iexp{A} \dbcolon \iexp{nat} \rightharpoonup \iexp{polynomial}$.\footnote{Partial maps $m \dbcolon \tv{a} \rightharpoonup \tv{b}$ in Isabelle/HOL are total functions $f_m \dbcolon \tv{a} \rightarrow \tv{b} \app \iexp{option}$, where $\forall a \dbcolon \tv{a}. \app a \in \iexp{dom} \app m \Rightarrow \exists b \dbcolon \tv{b}. f_m \app a = \iexp{Some} \app b$, while $\forall a \dbcolon \tv{a}. \app a \not\in \iexp{dom} \app m. f_m \app a = \iexp{None}$.}
 The specification, called $f$ in \ref{sec:practical-algebraic-calculus}, is represented by a polynomial $\iexp{spec} \dbcolon \iexp{polynomial}$.
 Proof steps are represented through an algebraic datatype\footnote{
-	This presentation is simplified, the actual $\iexp{pac\_step}$ definition in theory $\iexp{LPAC\_Checker\_Specification}$ is parametric over the datatypes of variables, polynomials indices and polynomials.
+	This presentation is simplified, the actual $\iexp{pac\_step}$ definition in theory \isaname{LPAC_Checker_Specification} is parametric over the datatypes of variables, polynomials indices and polynomials.
 }
 \begin{align*}
-	\iexp{pac\_step} = & \iexp{LinComb} \app ((\iexp{polynomial} \times \iexp{nat}) \app \iexp{list}) \app \iexp{nat} \app \iexp{polynomial} \\
+	\iexp{pac\_step} := \app & \iexp{LinComb} \app ((\iexp{polynomial} \times \iexp{nat}) \app \iexp{list}) \app \iexp{nat} \app \iexp{polynomial} \\
 	                   & \mid \iexp{Ext} \app \iexp{nat} \app \iexp{string} \app \iexp{polynomial}                                           \\
 	                   & \mid \iexp{Del} \app \iexp{nat}
 \end{align*}
 which directly models the notion of proof steps from \ref{sec:practical-algebraic-calculus}.
 
-Throughout execution, all polynomials are sorted with respect to a lexicographic order on the monomials' terms, allowing for an efficient addition of polynomials.
+Throughout execution, all polynomials are normalized and sorted with respect to a lexicographic order on the monomials' terms, allowing for an efficient addition of polynomials.
 As an example, consider two unsorted polynomials
 \begin{align*}
 	p_1 & := 3x + 2y + z \\
 	p_2 & := 3z + 2y + x
 \end{align*}
 a naive implementation of addition of polynomials might concatenate $p_1$ and $p_2$, sort the result (with respect to the monomials' terms) and then merge monomials $3x,x \rightsquigarrow 4x$, $2y,2y \rightsquigarrow 4y$ and $z,3z \rightsquigarrow 4z$, amounting to an implementation for addition with runtime complexity $\mathcal{O}(n\log(n))$.
-If polynomials are sorted however, addition is possible in linear time.
+If polynomials are sorted however, addition is possible in linear time with results being normalized as well.
 Consider two polynomials $p = c_{p1}m_{p1} + \dots + c_{pn}m_{pn}, q = c_{q1}m_{q1} + \dots + c_{qk}m_{qk}$ that are both sorted with respect to their monomials' terms, i.e., $m_{p1} < \dots < m_{pn}$ and $m_{q1} < \dots < m_{qk}$.
 The addition $r := p+q$ is computed by initializing $r=0$ and iterating over pairs $(c_{pj}m_{pj},c_{ql}m_{ql})$ of monomials from $p$ and $q$ as follows:
 \begin{itemize}
@@ -427,14 +427,15 @@ This is done until the end of either $p$ or $q$ is reached.
 The remaining monomials of the other polynomial are appended to the result.
 Note that the result $r$ is also sorted with respect to its monomials' terms.
 
-The current state in Pastèque is represented by a triple $(\mathscr{V}, \iexp{A}, \iexp{s}) \dbcolon \iexp{variable} \app \iexp{set} \times (\iexp{nat} \rightharpoonup \iexp{polynomial}) \times \iexp{status}$, where $\iexp{status} = \iexp{FAILED} \mid \iexp{SUCCESS} \mid \iexp{FOUND}$, where $\iexp{SUCCESS}$, which is also the initial status, is kept as long as proof steps are valid, $\iexp{FAILED}$ is entered once an invalid proof step occurs and $\iexp{FOUND}$ is entered if all steps are valid and the target polynomial $\iexp{spec}$ is the result of a linear combination proof step.
+The current state in Pastèque is represented by a triple $(\mathscr{V}, \iexp{A}, \iexp{s}) \dbcolon \iexp{variable} \app \iexp{set} \times (\iexp{nat} \rightharpoonup \iexp{polynomial}) \times \iexp{status}$, where $\iexp{status} = \iexp{FAILED} \mid \iexp{SUCCESS} \mid \iexp{FOUND}$.
+$\iexp{SUCCESS}$, which is also the initial status, is kept as long as proof steps are valid, $\iexp{FAILED}$ is entered once an invalid proof step occurs and $\iexp{FOUND}$ is entered if all steps are valid and the target polynomial $\iexp{spec}$ is the result of a linear combination proof step.
 Once all proof steps have been checked, or if $\iexp{FAILED}$ is entered, Pastèque returns its last state.
 
-As an optimization to the $\iexp{monomial}$ type above, a variant of Pastèque uses \textit{shared variables} given a mapping $\iexp{VN} \dbcolon \iexp{variable} \rightharpoonup \iexp{nat}$ and a list $\iexp{NV} \dbcolon \iexp{string} \app \iexp{list}$  such that
-\begin{enumerate}
+As an optimization to the $\iexp{monomial}$ type above, a variant of Pastèque uses \textit{shared variables} given by a mapping $\iexp{VN} \dbcolon \iexp{variable} \rightharpoonup \iexp{nat}$ and a list $\iexp{NV} \dbcolon \iexp{string} \app \iexp{list}$  such that
+\begin{itemize}
 	\item $\forall n \dbcolon \iexp{nat}. \app n < \iexp{length} \app NV \Rightarrow \iexp{VN} (\iexp{NV} \app \iexp{!} \app n) = \iexp{Some} \app n$, and
 	\item $\forall s \dbcolon \iexp{string}. \app s \in \iexp{dom} \app \iexp{VN} \Rightarrow \iexp{NV} \app \iexp{!} \app (\iexp{the} \app (\iexp{VN} \app s)) = s$,
-\end{enumerate}
+\end{itemize}
 where $\iexp{the} \dbcolon \tv{a} \app \iexp{option} \rightarrow \tv{a}$ unwraps optionals.
 This allows for a more efficient representation of polynomials given by $\iexp{sllist\_polynomial} :\equiv (\iexp{nat} \app \iexp{list} \times \iexp{int}) \app \iexp{list}$, where terms are represented by the inner list $\iexp{nat} \app \iexp{list}$ containing indices of the $\iexp{NV}$ list.
 For the remainder of the thesis, I refer to the original $\iexp{string}$ based polynomials as $\iexp{llist\_polynomial}  :\equiv \iexp{polynomial}$ which is the nomenclature in the actual Pastèque source code.
@@ -442,22 +443,24 @@ Compared to the original $\iexp{llist\_polynomial}$s, with $\iexp{sllist\_polyno
 
 With the shared variable maps, the state of Pastèque extends to $(\mathscr{V}, \iexp{A}, \iexp{s}, \iexp{NV}, \iexp{VN})$.
 For the migration to Isabelle-LLVM, a refinement target for this state, which is representable in LLVM, is required, leading to the two main tasks for this thesis:
-\begin{enumerate}
-	\item The Isabelle/HOL $\iexp{int}$ type is unbounded and can hold arbitrarily large numbers.
-	      The Imperative-HOL backend, which produces Standard ML code that is compiled by MLton, supports this natively.
-	      LLVM only supports bounded numbers, represented as machine words of a fixed width.
-	      Eberl et al. have used bindings to GMP \cite{gmp} in Isabelle-LLVM to implement a verified algorithm for computing Bernoulli numbers \cite{eberl-bernoulli-numbers}.
-	      Instead of GMP, I use a native library for arbitrary precision numbers, created by Spinei \cite{spinei_isabelle_big_integer}.
-	      This library implements addition, subtraction and multiplication for unsigned numbers and can thus refine these operations on natural numbers.
-	      To use it for Pastèque, I extend the implementation to support signed numbers to refine integers used in Pastèque.
-	      Furthermore, I implement conversion between numbers and strings which is required for printing error messages and parsing input files.
-	      \refsec{sec:multiple-precision-integers} discusses the work on arbitrary-precision integers.
-	\item The state representation defined above implies a need for container data types which are not directly available in Isabelle-LLVM:
-	      \begin{itemize}
-		      \item I extend the existing linked list implementation to obtain a nestable list implementation which is discussed in \ref{sec:lists-with-tail-pointers}.
-		      \item I compose and extend existing data structures to implement a partial map, yielding a refinement target for the map of stored polynomials $\iexp{A}$.
-		            The partial map implementation is discussed in \refsec{sec:partial-maps}.
-		      \item To refine the set of variables $\mathscr{V}$, I implement hashsets and define a simple hash function for strings.
-		      \item I refine $\iexp{VN}$ by a custom hashmap implementation, reusing the hash function from the hashset of strings.
-	      \end{itemize}
-\end{enumerate}
+
+Firstly, the Isabelle/HOL $\iexp{int}$ type is unbounded and can hold arbitrarily large (or small) numbers up to the physical bound of available memory.
+The Imperative-HOL backend, which produces Standard ML code that is compiled by MLton, supports this natively.
+LLVM only supports bounded numbers, represented as machine words of a fixed width.
+Eberl et al. have obtained multiple precision arithmetic using bindings to GMP \cite{gmp} in Isabelle-LLVM to implement a verified algorithm for computing Bernoulli numbers \cite{eberl-bernoulli-numbers}.
+Instead of GMP, I use a native library for arbitrary precision numbers, created by Spinei \cite{spinei_isabelle_big_integer}.
+This library implements addition, subtraction and multiplication for unsigned numbers and can thus refine these operations on natural numbers.
+To use it for Pastèque, I extend the implementation to support signed numbers to refine integers used in Pastèque.
+Furthermore, I implement conversion between numbers and strings which is required for printing error messages and parsing input files. \refsec{sec:multiple-precision-integers} discusses the work on arbitrary-precision integers.
+
+Secondly, the state representation defined above implies a need for container data types which are not directly available in Isabelle-LLVM:
+\begin{itemize}
+    \item I extend the existing linked list implementation to obtain a nestable list implementation which is discussed in \ref{sec:lists-with-tail-pointers}.
+    \item I compose and extend existing data structures to implement a partial map, yielding a refinement target for the map of stored polynomials $\iexp{A}$.
+        The partial map implementation is discussed in \refsec{sec:partial-maps}.
+    \item To refine the set of variables $\mathscr{V}$, I implement hashsets and define a simple hash function for strings.
+    \item I refine $\iexp{VN}$ by a custom hashmap implementation, reusing the hash function from the hashset of strings.
+\end{itemize}
+
+Some finalizing work on the Isabelle-LLVM migration of Pastèque is discussed in \ref{sec:finalization-of-llvm-migration}.
+Table ~\ref{tab:appendix-theories} in the appendix presents a comprehensive list of all theories and some notes on the performed changes to each theory.
