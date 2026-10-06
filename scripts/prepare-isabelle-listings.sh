@@ -13,9 +13,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="$REPO_ROOT/build/isabelle-listings"
 
 FILES=(
-  "isabelle/IsaFoL-Pasteque-LLVM/PAC_Checker_LLVM/IICF_PartialMap.thy"
+  "isabelle/IsaFoL-Pasteque-LLVM/PAC_Checker_LLVM/LLVM_DS_Partial_Map.thy"
   "isabelle/IsaFoL-Pasteque-LLVM/PAC_Checker_LLVM/PAC_Polynomials_Operations.thy"
-  "isabelle/IsaFoL-Pasteque-LLVM/PAC_Checker_LLVM/Interleaving_Fold.thy"
+  "isabelle/IsaFoL-Pasteque-LLVM/PAC_Checker_LLVM/LLVM_Interleaving_Fold.thy"
 )
 
 while IFS= read -r -d '' thy; do

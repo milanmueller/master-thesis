@@ -41,7 +41,7 @@ not a string.
 ### §Interleaving fold — `dec` type (line 173)
 
 **[W]** "a function $\iexp{dec} \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{direction}$".
-`Interleaving_Fold.thy:16–18` fixes `dec :: 'b ⇒ 'c ⇒ direction` — it inspects the two *list
+`LLVM_Interleaving_Fold.thy:16–18` fixes `dec :: 'b ⇒ 'c ⇒ direction` — it inspects the two *list
 elements*, not the accumulator. The following sentences correctly use `dec b c`, so only the type
 annotation is wrong.
 
@@ -57,14 +57,14 @@ keyword line is the established style here, not a mistake.
 
 **[N] `ls_assn` vs. `cl_assn`.** The thesis calls the linked-list refinement assertion `ls_assn`
 throughout (introduced at line 84). In the sources it is `cl_assn` / `cl_assn'`
-(`IICF_Copying_List.thy:75–76`), built on `olseg` (line 72) rather than directly on `lseg` and
+(`LLVM_DS_Copying_List.thy:75–76`), built on `olseg` (line 72) rather than directly on `lseg` and
 `list_aux`. The thesis's `list_aux` is the AFP/Isabelle-LLVM `list_assn` (already footnoted), but
 `ls_assn` has no counterpart under that name.
 Same for the tail-pointer variant: thesis `lst_assn` (line 275) is `clt_assn`
-(`IICF_Copying_List.thy:1199–1205`).
+(`LLVM_DS_Copying_List.thy:1199–1205`).
 
 **[N] `str_assn`.** Used at `datatypes.tex:525` and `multiprecision.tex:191`; the sources use
-`strl_assn'` (e.g. `LLVM_Polynomials.thy:11`, `LLVM_String.thy:39`).
+`strl_assn'` (e.g. `PAC_Polynomials_Assn.thy:11`, `LLVM_DS_String.thy:39`).
 
 ### §A refinement assertion for lists — `lseg` recursion (lines 68–79)
 
@@ -82,7 +82,7 @@ repeats the same slip.
 ### §Non-destructive list access using `foldl`
 
 **[W] `64 word cl_list = 64 word ptr` (line 102).** A list is a pointer to a *node*, as stated at
-line 45. `IICF_Copying_List.thy` uses `'a cl_list = 'a node ptr`, so the equation should read
+line 45. `LLVM_DS_Copying_List.thy` uses `'a cl_list = 'a node ptr`, so the equation should read
 `64 word cl_list = 64 word node ptr`.
 
 **[W] `sum'` is applied to three arguments (line 146).** `isabelle-code/Lists.thy:58–60` defines
@@ -106,13 +106,13 @@ where the recursive call passed the next-pointer as the accumulator and the accu
 pointer. The call is now `ll_fold f a (node.next n)`, and the function was renamed
 `ll_foldl` → `ll_fold` to match the thesis text.
 Note that the demo theory's `ll_fold` is still a separate illustration: the function actually used
-in Pastèque is `cl_fold` in `IICF_Copying_List.thy`, which the footnote at `datatypes.tex:128`
+in Pastèque is `cl_fold` in `LLVM_DS_Copying_List.thy`, which the footnote at `datatypes.tex:128`
 points at.
 
 ### §A generic merge sort implementation for lists
 
 **[N] `linord_assn`.** Used at `datatypes.tex:23, 239`; the locale in the sources is
-`linorder_assn` (interpreted e.g. at `LLVM_Polynomials.thy:20`).
+`linorder_assn` (interpreted e.g. at `PAC_Polynomials_Assn.thy:20`).
 
 ### §Partial maps — requirement 3 (lines 304–306)
 
@@ -123,7 +123,7 @@ inhabited must still be representable." The requirement being motivated is that 
 ### §High-level refinement of partial map by list of optionals
 
 **[W] `opt_list_update` drops the `Some` (line 342).** The thesis writes
-`(ol @ None^(k + 1 - length m))[k := v]`. `IICF_PartialMap.thy:65`:
+`(ol @ None^(k + 1 - length m))[k := v]`. `LLVM_DS_Partial_Map.thy:65`:
 
 ```isabelle
 definition \<open>opt_list_update k v m \<equiv> (m @ replicate (k + 1 - length m) None)[k:=Some v]\<close>
@@ -135,7 +135,7 @@ The list has element type `'a option`, so the update must insert `Some v`.
 **[W] Missing result types in the operation signatures (lines 331, 340).**
 `opt_list_lookup :: nat → 'a option list` must be `nat → 'a option list → 'a option`, and
 `opt_list_update :: nat → 'a → 'a option list` must be
-`nat → 'a → 'a option list → 'a option list` (cf. `IICF_PartialMap.thy:65, 69`).
+`nat → 'a → 'a option list → 'a option list` (cf. `LLVM_DS_Partial_Map.thy:65, 69`).
 
 **[W] `opt_list_α` result type (line 318).** Stated as
 `'a option list → nat → 'a`; it yields a partial map, i.e. `'a option list → nat → 'a option`
@@ -158,7 +158,7 @@ and the whole point of §Signed Arbitrary Precision Integers is that coefficient
 
 ### §Low-level refinement of lists of optionals — listing range (line 410)
 
-**[R]** `linerange=346-358` on `IICF_PartialMap.thy` points at `lemma pmap_len_hnr`, not at the
+**[R]** `linerange=346-358` on `LLVM_DS_Partial_Map.thy` points at `lemma pmap_len_hnr`, not at the
 update function. `pmap_update` is defined at lines **379–392**. The caption
 ("Implementation of the update function on partial maps at llM level (actual Isabelle source
 code)") therefore does not match the rendered listing.
@@ -166,7 +166,7 @@ code)") therefore does not match the rendered listing.
 ### §Low-level refinement of lists of optionals — `pmap_update` precondition (line 419)
 
 **[W] Off-by-one bound.** The thesis Hoare-triple carries `↑(k + 1 < 2^63 - 1)`.
-`IICF_PartialMap.thy:450–454` has
+`LLVM_DS_Partial_Map.thy:450–454` has
 
 ```isabelle
 \<up>\<^sub>d(k + 1 < max_snat 64)
@@ -183,7 +183,7 @@ word \times \dots$").
 
 **[W] Missing function in the walk-through (lines 412–415).** The paragraph names `arl_len`,
 `arl_nth` and `arl_upd` as the reused Isabelle-LLVM functions but the growing branch actually
-calls `iarl_resize` (`IICF_PartialMap.thy:389`), which is the thesis's own extension and is the
+calls `iarl_resize` (`LLVM_DS_Partial_Map.thy:389`), which is the thesis's own extension and is the
 one operation that needs the extra `init` information carried by `iarl_assn`.
 
 ### §High-level set refinement by nested lists
@@ -194,7 +194,7 @@ one operation that needs the extra `init` information carried by `iarl_assn`.
 lshs_resize := λ n (xs, l). fold lshs_insert (concat xs) (replicate n [], n)
 ```
 
-`IICF_HashSet.thy:164, 168`:
+`LLVM_DS_Hash_Set.thy:164, 168`:
 
 ```isabelle
 definition \<open>lshs_op_set_empty n \<equiv> (replicate n ([] :: 'a list), 0::nat)\<close>
@@ -206,7 +206,7 @@ The counter of the fresh hashset is `0`, not `n` — with `n` the element count 
 the number of buckets after every resize.
 
 **[W] `bucket_of` signature and missing `unat` (line 453).** The thesis defines
-`bucket_of x n := ahash x mod n`. `IICF_HashSet.thy:157`:
+`bucket_of x n := ahash x mod n`. `LLVM_DS_Hash_Set.thy:157`:
 
 ```isabelle
 definition \<open>lshs_bucket_of n a \<equiv> unat (ahash a) mod n\<close>
@@ -220,7 +220,7 @@ so the two subsections contradict each other.
 **[N] Inconsistent names within the subsection.** Line 450 defines `hs_invar`, line 461 uses
 `lshs_invar`; lines 459–462 define `lshs_rel`, lines 465–476 use `hs_rel`. The source names are
 `lshs_invar`, `lshs_α`, `lshs_rel`, `lshs_op_set_insert`, `lshs_op_set_member`,
-`lshs_op_set_resize` (`IICF_HashSet.thy:157–168`) — the thesis drops the `op_set_` infix
+`lshs_op_set_resize` (`LLVM_DS_Hash_Set.thy:157–168`) — the thesis drops the `op_set_` infix
 (`lshs_insert`, `lshs_member`, `lshs_resize`).
 
 **[W] `lshs_α` ignores its own binder (line 459).** `λ(xs,l). {a. ∃b ∈ set xs. a ∈ set b}` is
@@ -230,13 +230,13 @@ elsewhere in the same subsection; harmless, but it reads as a different object.
 ### §Low-level hashset implementation
 
 **[W] Claimed cap on the number of buckets (line 500).** "the number of buckets is always capped
-to $2^{63}-1$". `ht_grow` (`IICF_HashSet.thy:113`) is
+to $2^{63}-1$". `ht_grow` (`LLVM_DS_Hash_Set.thy:113`) is
 `if n < 2^62 then 2*n else n`, so doubling stops once `n ≥ 2^62` and the reachable bucket count is
 bounded by `2^63 - 2` (from `n = 2^62 - 1`). Either give the actual bound or phrase it in terms of
 `ht_grow`.
 
 **[N] `hs_assn'` refinement target (line 502).** The thesis writes
-`64 word × 'b ptr ptr × 64 word`; `IICF_HashSet.thy:266` has
+`64 word × 'b ptr ptr × 64 word`; `LLVM_DS_Hash_Set.thy:266` has
 `type_synonym 'bi hs_conc = 64 word × 'bi node ptr ptr × 64 word` — the `node` is missing.
 
 ### §Hashmaps (intro, line 519)
@@ -249,7 +249,7 @@ implementation.
 
 **[W] Buckets do not store hashes (line 527).** "the inner tuples of type `k × 'v` … store not
 only a given string, but also its corresponding hash." The entries are `('k × 'v)` — key and
-value (`IICF_HashMap.thy:83, 86–96`); the hash is recomputed by `lshm_bucket_of` whenever a bucket
+value (`LLVM_DS_Hash_Map.thy:83, 86–96`); the hash is recomputed by `lshm_bucket_of` whenever a bucket
 index is needed and is never stored. The genuine difference to the hashset is that hashmap buckets
 carry key/value *pairs* (and the invariant requires `distinct (map fst …)`), not that they carry
 hashes.
@@ -269,7 +269,7 @@ lshsm_α := λ (xss,l) m. map_of (xss ! lshm_bucket_of (length xss) k) k
 ```
 
 The second parameter must be the key `k`, not `m` (`k` is otherwise unbound), and the name is
-misspelled `lshsm_α` (extra `s`). Source, `IICF_HashMap.thy:77–78`:
+misspelled `lshsm_α` (extra `s`). Source, `LLVM_DS_Hash_Map.thy:77–78`:
 
 ```isabelle
 definition lshm_\<alpha> :: \<open>('k, 'v) hashmap \<Rightarrow> 'k \<Rightarrow> 'v option\<close> where
@@ -285,26 +285,26 @@ definition lshm_\<alpha> :: \<open>('k, 'v) hashmap \<Rightarrow> 'k \<Rightarro
 **[W] Wrong assumption on `A` (lines 524–525).** "I assume $A \dbcolon \tv{v} \rightarrow \tv{b}
 \rightarrow \iexp{assn}$ … instantiates `hashable_assn` and `copyable_assn`. In Pastèque, hashmaps
 are only used for strings, i.e., $A = \iexp{str\_assn}$." The hashmap locale separates keys from
-values: `khash` is fixed for keys only (`IICF_HashMap.thy:69`), and §Low-level hashmap
+values: `khash` is fixed for keys only (`LLVM_DS_Hash_Map.thy:69`), and §Low-level hashmap
 implementation correctly introduces `K` (hashable) and `V` (copyable). So the hashable assumption
 belongs to the *key* assertion `K = strl_assn'`, while values (`nat`) only need copying.
 
 **[N] Type and operation names.** Thesis `hm_abs`, `lshm_update`, `lshm_contains_key`,
 `lshm_lookup`; sources: `('k, 'v) hashmap`, `lshm_op_map_update`, `lshm_op_map_contains_key`,
-`lshm_op_map_lookup` (`IICF_HashMap.thy:70, 92, 114, 120`). The hash on keys is `khash`, not
+`lshm_op_map_lookup` (`LLVM_DS_Hash_Map.thy:70, 92, 114, 120`). The hash on keys is `khash`, not
 `ahash`.
 
 ### §Low-level hashmap implementation
 
 **[N] `entry_assn` (line 577).** The source abbreviation is
-`boxed_bucket_assn ≡ K ×⇩a (λv. vopt_assn (Some v))` (`IICF_HashMap.thy:48`); the thesis name
+`boxed_bucket_assn ≡ K ×⇩a (λv. vopt_assn (Some v))` (`LLVM_DS_Hash_Map.thy:48`); the thesis name
 `entry_assn` does not occur.
 
 **[W] `hm_assn` footnote is slightly off (line 583).** The footnote says the actual assertion is
 `hm_assn''` composed with `hm_opt_rel`. In the sources `hm_assn''`
-(`IICF_HashMap.thy:735–736`) *already* contains that composition (it is `hm_assn'` `hr_comp`'d
+(`LLVM_DS_Hash_Map.thy:735–736`) *already* contains that composition (it is `hm_assn'` `hr_comp`'d
 with `hm_opt_rel`, paired with the counter assertion); the assertion composed with `lshm_rel` on
-top is the abbreviation `hm_assn` (`IICF_HashMap.thy:1334`). Naming the three levels explicitly
+top is the abbreviation `hm_assn` (`LLVM_DS_Hash_Map.thy:1334`). Naming the three levels explicitly
 (`hm_assn'` → `hm_assn''` → `hm_assn`) would avoid the ambiguity.
 
 ---

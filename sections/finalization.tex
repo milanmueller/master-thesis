@@ -1,6 +1,6 @@
 \section{Finalization of the LLVM-migration}\label{sec:finalization-of-llvm-migration}
-With the conversion between strings and multiple precision integers, discussed in \refsec{sec:multiple-precision-integers}, and the fundamental datatypes, discussed in \refsec{sec:low-level-datatypes-in-isabelle-llvm}, some more setup is required to finalize the migration of Pastèque to Isabelle-LLVM.
-This remaining work, alongside some performance-oriented optimizations, are discussed in this section.
+In addition to the conversion between strings and multiple precision integers, discussed in \refsec{sec:multiple-precision-integers}, and the fundamental datatypes, discussed in \refsec{sec:low-level-datatypes-in-isabelle-llvm}, some more setup is required to finalize the migration of Pastèque to Isabelle-LLVM.
+This remaining work and some performance-oriented optimizations are discussed in this section.
 
 \subsection{A new Parser for Pastèque}\label{sec:pasteque-parser-c}
 The original Pastèque implementation employs an unverified parser written in Standard ML which constructs the inputs for the verified checker from the given input files.
@@ -10,14 +10,13 @@ Concretely, the checker takes the following inputs (on HOL-level):
 	\item a list of input polynomials of type $\iexp{llist\_polynomial} \app \iexp{list}$,
 	\item a list of proof steps of type $\iexp{pac\_step} \app \iexp{list}$.
 \end{enumerate}
-For the Isabelle-LLVM migration, I wrote a custom parser in C that constructs these inputs.
+For the Isabelle-LLVM migration, I write a custom parser in C that constructs these inputs.
 To enable writing of such a parser, I export fundamental functions to construct (lists of) polynomials and proof steps directly from C.
-Isabelle-LLVM's code generator also generates C header files to allow calling the respective functions directly from C.
-The C parser first runs a lexer to obtain an array of tokens, based on the original PAC syntax as defined in \cite{pac-2024}.
+The C parser first runs a lexer to obtain an array of tokens, based on the original PAC syntax as defined in \cite{pac-2024}, and then calls the exported list construction functions to directly built the inputs expected by the verified checker code.
 
 The Isabelle-LLVM code generator not only generates \inlinecode{.ll} files containing LLVM code but also C-header files to allow for conveniently calling the verified LLVM functions from c-code.
-This approach has a notable limitation however; the code generator is unable to represent the type of 1-bit integers (i.e. booleans), which are used in the signed multiple precision integers to store their sign, in the generated c-header files.
-As the input polynomials contain signed multiple precision integers, which are used to represent coefficients, significant parts of the functions required by the C parser can not be included in the generated header files as that would require representing the 1-bit integers.
+The header generation has a notable limitation however; the code generator is unable to represent the type of 1-bit integers (i.e. booleans), which are used in the signed multiple precision integers to store their sign, in the generated c-header files.
+As the type signature of input polynomials contains signed multiple precision integers, significant parts of the functions required by the C parser can not be included in the generated header files as that would require representing the 1-bit integers.
 The header file for the respective functions relying on this datatype is therefore created manually.
 Importantly, this has no effect on the LLVM code generation and thus does not affect correctness guarantees of the exported LLVM code.
 
@@ -38,3 +37,10 @@ The interleaving fold, introduced in \refsec{sec:left-consuming-interleaving-fol
 In the actual Pastèque implementation, the linear combination steps do not combine two existing polynomials from the table of input polynomials, but rather update an accumulator polynomial by each given summand (which is computed using polynomials from the table).
 Using the original interleaving fold constructs a new polynomial for each summand (as sketched out in the pseudo code \refalgo{algo:polynomial-move}) which means that the previous accumulator must be freed manually.
 To avoid this manual (deep) free operation, I implement a variant of the interleaving fold that only keeps its right input list intact and frees the respective node of the left input list in each iteration.
+
+\subsection{A new Error Path}\label{sec:a-new-error-path}
+The partial map implementation from \ref{sec:partial-maps} effectively introduces an upper bound of $2^{63}-2$ on the indices of polynomials.
+The reason is that indices are represented by signed 64-bit integers which introduce an upper bound $2^{63}-1$ and, in addition, when a given index $i$ is outside the current length of the outer array, the array is resized to length $i+1$ meaning that $i$ can be at most $2^{63}-2$.
+As this limitation was not present with the Standard ML backend, I create a new error message for when an index is too large.
+It should be noted that none of the benchmark instances, discussed in \refsec{sec:evaluation}, has triggered that.
+The largest index in the "sparrc-512" instance is 6013954 so well below $2^{23}$.

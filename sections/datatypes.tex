@@ -415,7 +415,7 @@ This uses the auxiliary $\iexp{list\_aux}$ assertion as defined in \refsec{sec:r
 All operations from the high-level list of optionals implementation are then implemented on $\iexp{llM}$ level.
 \isabellecodeextern[linerange=379-392,label=algo:pmap_update-implementation,caption={
 			Implementation of the update function on partial maps at $\iexp{llM}$ level (actual Isabelle source code).
-		}]{isabelle/IsaFoL-Pasteque-LLVM/PAC_Checker_LLVM/IICF_PartialMap.thy}
+		}]{isabelle/IsaFoL-Pasteque-LLVM/PAC_Checker_LLVM/LLVM_DS_Partial_Map.thy}
 As an example, the update function is implemented as shown in \refalgo{algo:pmap_update-implementation}:
 $\iexp{ll\_icmp\_ult} \app \iexp{ki} \app \iexp{l}$ returns the 1-bit machine word $\iexp{0x1}$ (which corresponds to $\iexp{True}$) if the given key $\iexp{ki}$ is less than the length $\iexp{l}$ of the array.
 If the given key is allocated already, the previous element at position $\iexp{ki}$ is freed and the new given value is inserted.

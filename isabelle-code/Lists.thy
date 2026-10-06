@@ -1,6 +1,6 @@
 theory Lists
   imports Main Isabelle_LLVM.IICF Isabelle_LLVM.LLVM_DS_Open_List
-    PAC_Checker_LLVM.IICF_Copying_List PAC_Checker_LLVM.PAC_Polynomials_Operations
+    PAC_Checker_LLVM.LLVM_DS_Copying_List PAC_Checker_LLVM.PAC_Polynomials_Operations
 begin
 fun 
   merge :: \<open>nat list \<Rightarrow> nat list \<Rightarrow> nat list\<close> where

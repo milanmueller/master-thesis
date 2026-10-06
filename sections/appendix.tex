@@ -1,2 +1,95 @@
 \addcontentsline{toc}{section}{\iflanguage{english}{Appendix}{Anhang}}
 \section*{\iflanguage{english}{Appendix}{Anhang}}\label{sec:appendix}
+
+\subsection*{Theories of the Isabelle-LLVM Port}\label{sec:appendix-theories}
+
+% Column "Origin":
+%   AFP    = mirror-afp-2025-1/thys/PAC_Checker
+%   IsaFoL = IsaFoL/PAC_Checker2
+%   new    = no theory of the same name in either
+% Rows follow the grouping of the ROOT file of PAC_Checker_LLVM.
+{\small\singlespacing
+\begin{longtable}{@{}l l >{\raggedright\arraybackslash}p{0.45\textwidth}@{}}
+\caption[Theories of the Isabelle-LLVM port of Pasteque]{Theories of the session \isaname{PAC_Checker_LLVM}. The column \emph{Origin} names the session that contains the theory this one was ported from: AFP refers to \isaname{PAC_Checker} in the AFP, IsaFoL refers to \isaname{PAC_Checker2} in IsaFoL, and \enquote{new} marks a theory without a counterpart.}\label{tab:appendix-theories}\\
+\toprule
+Theory & Origin & Changes or purpose \\
+\midrule
+\endfirsthead
+\toprule
+Theory & Origin & Changes or purpose \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\emph{continued on next page}} \\
+\endfoot
+\bottomrule
+\endlastfoot
+%
+\multicolumn{3}{@{}l}{\emph{Abstract specification}} \\
+\isaname{PAC_More_Poly} & AFP & Unchanged apart from the document text. \\
+\isaname{PAC_Misc} & AFP & Unchanged. \\
+\isaname{PAC_Specification} & AFP & Unchanged. \\
+\isaname{LPAC_Specification} & IsaFoL & Unchanged apart from imports. \\
+\isaname{Finite_Map_Multiset} & AFP & Unchanged. \\
+\isaname{PAC_Checker_Specification} & AFP & Unchanged apart from imports (\isaname{Isabelle_LLVM.IICF} instead of \isaname{Refine_Imperative_HOL.IICF}). \\
+\isaname{LPAC_Checker_Specification} & IsaFoL & Unchanged apart from imports. \\
+\addlinespace
+\multicolumn{3}{@{}l}{\emph{Refinement infrastructure}} \\
+\isaname{Aux_Lemmas} & new & Lemmas and definitions from Imperative-HOL that Isabelle-LLVM lacks (\isaname{list_mset_rel}, \isaname{monadic_nfoldli}). \\
+\isaname{LLVM_Assn_Env} & new & Locale hierarchy over refinement assertions (\isaname{freeable_assn}, \isaname{copyable_assn}, \isaname{eq_assn}, \isaname{linorder_assn}, \isaname{hashable_assn}) used to state generic data structures once for all element types. \\
+\isaname{More_Loops} & AFP & Unchanged. \\
+\isaname{More_EOArray} & new & Array list \isaname{oa_assn} of impure elements whose lookup returns a copy; instantiated as string tables. \\
+\isaname{PAC_Map_Rel} & AFP & Ported to Isabelle-LLVM; removed the rewrite of key membership into an option-returning lookup; commented out the Imperative-HOL hash map. \\
+\isaname{PAC_Checker_Relation} & AFP & Largely rewritten: removed the \isaname{String.literal} representation and the assertions for monomials, polynomials, and steps (now in \isaname{PAC_Polynomials_Assn} and \isaname{PAC_Step_Assn}); kept the term order; added \isaname{mnl_le_impl}. \\
+\addlinespace
+\multicolumn{3}{@{}l}{\emph{Data structures}} \\
+\isaname{LLVM_DS_Copying_List} & new & Copying list \isaname{cl_assn}: a singly linked list whose head operation copies the element instead of destroying the list; includes non-destructive folds with an explicit environment, because LLVM has no closures. \\
+\isaname{LLVM_DS_Partial_Map} & new & Partial map from 64-bit words to possibly impure values over an initialised array list (\isaname{pmap_assn}); boxing (\isaname{box_assn}) to store impure values. \\
+\isaname{LLVM_DS_Hash_Set} & new & Hash set (\isaname{hs_assn}) of possibly impure elements with copying-list buckets and resizing. \\
+\isaname{LLVM_DS_Hash_Map} & new & Hash map with copying-list buckets of key and boxed value; reuses the bucket machinery of the hash set. \\
+\isaname{LLVM_DS_Char} & new & Refinement of \isaname{char} to 8-bit words, linear order and comparisons on characters, FNV-1a hashing. \\
+\isaname{LLVM_DS_String} & new & List-based (\isaname{strl_assn}) and array-based (\isaname{stra_assn}) strings with hashing, equality, lexicographic order, and conversion from list to array. \\
+\isaname{LLVM_ASCII_String} & new & Parsing of decimal ASCII strings into signed big integers and printing of big integers to strings. \\
+\isaname{LLVM_List_Sorting} & new & Generic bottom-up merge sort over copying lists; replaces \isaname{WB_Sort} of the AFP. \\
+\isaname{LLVM_Interleaving_Fold} & new & Fold over two copying lists at once (\isaname{ifoldl}, \isaname{cl_ifoldl}) that advances the left, right, or both lists per step; used for merging without copying. Not listed in \isaname{ROOT}; imported. \\
+\isaname{PAC_Polynomials_Assn} & new & Assertions for monomials, coefficients, and polynomials over copying lists, list-based strings, and big integers; copy, free, comparison, and printing. \\
+\isaname{PAC_Polynomials_Assn_Array} & new & Variant of \isaname{PAC_Polynomials_Assn} with array-based strings, as produced by the C parser; normalisation of polynomials. Not listed in \isaname{ROOT}; imported. \\
+\isaname{LLVM_DS_Char_Literals} & new & Constant table that lets Sepref synthesise character literals (printable ASCII and newline). \\
+\addlinespace
+\multicolumn{3}{@{}l}{\emph{Polynomial layer}} \\
+\isaname{PAC_Polynomials} & AFP & Unchanged. \\
+\isaname{PAC_Polynomials_Term} & AFP & Moved the order on characters to \isaname{LLVM_DS_Char}. \\
+\isaname{PAC_Polynomials_Operations} & AFP & Replaced the recursive \isaname{add_poly_l} by a curried loop version with an equivalence proof; added a loop version of coefficient merging (\isaname{merge_coeffs1}). \\
+\addlinespace
+\multicolumn{3}{@{}l}{\emph{Checker layer}} \\
+\isaname{PAC_Checker} & AFP & Ported the step assertion to Isabelle-LLVM separation logic; adapted to the curried \isaname{add_poly_l}; adapted the overflow bound to \isaname{max_snat 64}. \\
+\isaname{PAC_Step_Assn} & new & Assertion for PAC steps as tagged products, with constructors, discriminators, destructors, and deallocation. \\
+\isaname{LPAC_Step_Assn} & new & Assertion for LPAC steps, analogous to \isaname{PAC_Step_Assn}; replaces \isaname{LPAC_Steps_Refine} of IsaFoL. \\
+\isaname{LPAC_Step_Assn_Array} & new & Variant of \isaname{LPAC_Step_Assn} with array-based strings. Not listed in \isaname{ROOT}; imported. \\
+\isaname{LPAC_Checker} & IsaFoL & Replaced the Imperative-HOL step assertion by \isaname{LPAC_Step_Assn}; adapted to the curried \isaname{add_poly_l}. \\
+\isaname{LPAC_Checker_Error} & new & Synthesis of the LPAC error messages for both checkers and printing of shared polynomials; moved out of \isaname{LPAC_Checker_Synthesis} and \isaname{LPAC_Efficient_Checker_Synthesis}. \\
+\isaname{LPAC_Perfectly_Shared} & IsaFoL & Unchanged apart from imports. \\
+\isaname{LPAC_Perfectly_Shared_Vars} & IsaFoL & Kept the abstract layer; replaced the Imperative-HOL implementation by an Isabelle-LLVM one (string table and hash map, memory status as 1-bit word). \\
+\isaname{LPAC_Efficient_Checker} & IsaFoL & Adapted to the curried \isaname{add_poly_l}. \\
+\isaname{LPAC_Efficient_Checker_Sorting} & new & Merge sort with a monadic comparison, needed because the order on shared terms depends on the variable table. \\
+\isaname{LPAC_Version} & IsaFoL & Unchanged. \\
+\addlinespace
+\multicolumn{3}{@{}l}{\emph{Synthesis}} \\
+\isaname{PAC_Checker_Error} & new & Synthesis of the status type and the PAC error messages; moved out of \isaname{PAC_Checker_Synthesis} of the AFP. \\
+\isaname{PAC_Checker_Init} & AFP & Reduced to the normalisation of input polynomials; replaced quicksort and \isaname{WB_Sort} by \isaname{LLVM_List_Sorting}. \\
+\isaname{PAC_Checker_Synthesis} & AFP & Restructured: hash set of strings for variables, partial map for polynomials, loop and fold refinements of polynomial arithmetic, new side condition \isaname{step_id_bounded}; removed code export; correctness theorem commented out. \\
+\isaname{LPAC_Checker_Init} & IsaFoL & Emptied; the sorting it contained is no longer needed. \\
+\isaname{LPAC_Efficient_Checker_Refinement} & new & Refinement layer of the efficient checker (nres programs and their refinement proofs, without Sepref); moved out of \isaname{LPAC_Efficient_Checker_Synthesis} and reworked for synthesis. \\
+\isaname{LPAC_Efficient_Checker_Synthesis} & IsaFoL & Reduced to Sepref synthesis of the efficient checker; added fused lookup and addition that avoids copying polynomials from the map. \\
+\isaname{LPAC_Checker_Synthesis} & IsaFoL & Rewritten for Isabelle-LLVM; added \isaname{step_id_bounded}; removed SML-specific code setup and code export. \\
+\isaname{LPAC_Codegen} & new & Export of LLVM code and C header: builder functions for the C parser and the entry point \isaname{run_checker}; replaces \isaname{PAC_Checker_MLton}, \isaname{LPAC_Checker_MLton}, and \isaname{LPAC_Efficient_Checker_MLton}. \\
+\end{longtable}
+}
+
+% Not part of the session build:
+%   LPAC_Efficient_Checker_Correctness  end-to-end theorem PAC_full_correctness, commented out in ROOT
+%   BigInt_String                       big integer <-> decimal string (superseded by LLVM_ASCII_String?)
+%   PAC_Polynomials_Sort                older copy of LLVM_List_Sorting
+%   LookupTest, Scratch                 experiments
+% AFP theories without counterpart: PAC_Assoc_Map_Rel (-> LLVM_DS_Partial_Map / LLVM_DS_Hash_Map),
+%   WB_Sort (-> LLVM_List_Sorting), PAC_Checker_MLton (-> LPAC_Codegen), PAC_Version (-> LPAC_Version)

@@ -99,6 +99,8 @@ I then prove correctness analogously to the unsigned case; in case of addition f
 	\Rightarrow (\iexp{signed\_big\_int\_add} \app (ws_1,\sigma_1) \app (ws_2,\sigma_2), i_1 + i_2) \in \iexp{signed\_big\_int\_rel}
 \end{gather*}
 For multiplication I prove an analogous lemma.
+Unwrapping the tuple at $\iexp{llM}$-level would usually destroy the original tuple.
+I use contributions by Fleury to achieve non-destructive arithmetic operations through extracting the pure elements, in particular the sign flag, from the tuple.
 
 \subsection{Relating Integers and ASCII Encoded Strings}\label{sec:relating-integers-and-ascii-encoded-strings}
 

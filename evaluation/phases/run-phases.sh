@@ -382,6 +382,10 @@ else
   bold "==> rendering table"
   "$EVAL_DIR/render-phases-table.py" --sml "$sml_averages" --llvm "$llvm_averages" \
     --out "$table_file" "${table_args[@]}" || status=1
+  # The scaling table is derived from the same two CSVs, so it is rendered
+  # whenever the table is and lands next to it.
+  "$EVAL_DIR/render-phases-scaling-table.py" --sml "$sml_averages" --llvm "$llvm_averages" \
+    --out "$(dirname "$table_file")/phases-scaling-table.tex" || status=1
 fi
 
 exit $status
