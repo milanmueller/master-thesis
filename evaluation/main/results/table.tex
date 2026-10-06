@@ -2,7 +2,7 @@
 % Regenerate rather than edit; needs booktabs.
 \begin{table}[htbp]
   \centering
-  \caption{Wall clock time (\emph{wct}, in seconds) and peak resident set size (\emph{rss}, in MiB) of the three PAC proof checkers. Each value is the mean over 5 rounds. For each benchmark the lower of the two Pastèque backends is set in bold.}
+  \caption{Wall clock time (\emph{wct}, in seconds) and peak resident set size (\emph{rss}, in MiB) of the three PAC proof checkers. Each value is the mean over 10 rounds. For each benchmark the lower of the two Pastèque backends is set in bold.}
   \label{tab:checker-comparison}
   \begin{tabular}{l rr rr rr}
     \toprule
@@ -10,16 +10,16 @@
     \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
     Benchmark & wct & rss & wct & rss & wct & rss \\
     \midrule
-    bpctbk-32 & 0.04 & 10.1 & \textbf{0.12} & \textbf{52.1} & 0.25 & 142.7 \\
-    bpwtcl-32 & 0.04 & 11.1 & \textbf{0.13} & \textbf{56.6} & 0.26 & 141.4 \\
-    btor-128 & 0.80 & 94.5 & \textbf{2.34} & \textbf{701.6} & 3.84 & 1811.2 \\
-    btor-256 & 3.93 & 368.4 & \textbf{11.33} & \textbf{2842.6} & 16.93 & 8205.4 \\
-    btor-512 & 18.57 & 1472.2 & 73.25 & \textbf{11697.4} & \textbf{54.68} & 13558.6 \\
-    sparcl-32 & 0.05 & 12.1 & \textbf{0.16} & \textbf{66.0} & 0.31 & 212.6 \\
-    sparrc-128 & 1.13 & 138.2 & \textbf{3.17} & \textbf{1045.0} & 5.39 & 2238.5 \\
-    sparrc-256 & 5.30 & 544.4 & \textbf{14.95} & \textbf{4226.0} & 30.84 & 14005.2 \\
-    sparrc-512 & 28.52 & 2177.9 & \textbf{81.26} & 17176.0 & 81.30 & \textbf{15705.5} \\
-    spdtlf-32 & 0.07 & 12.4 & \textbf{0.22} & \textbf{101.3} & 0.48 & 288.6 \\
+    bpctbk-32 & 0.04 & 10.2 & \textbf{0.11} & \textbf{52.1} & 0.24 & 142.7 \\
+    bpwtcl-32 & 0.04 & 11.2 & \textbf{0.12} & \textbf{56.6} & 0.25 & 141.4 \\
+    btor-128 & 0.79 & 94.6 & \textbf{2.26} & \textbf{701.7} & 3.69 & 1811.4 \\
+    btor-256 & 3.76 & 368.6 & \textbf{11.14} & \textbf{2842.7} & 16.30 & 8205.7 \\
+    btor-512 & 17.97 & 1472.3 & 71.61 & \textbf{11697.7} & \textbf{53.41} & 13558.6 \\
+    sparcl-32 & 0.04 & 12.2 & \textbf{0.14} & \textbf{66.0} & 0.29 & 212.7 \\
+    sparrc-128 & 1.03 & 138.2 & \textbf{3.10} & \textbf{1045.0} & 5.38 & 2238.6 \\
+    sparrc-256 & 4.95 & 544.4 & \textbf{14.06} & \textbf{4226.1} & 22.09 & 15844.4 \\
+    sparrc-512 & 21.09 & 2177.9 & 78.64 & 17176.5 & \textbf{64.21} & \textbf{15849.8} \\
+    spdtlf-32 & 0.07 & 12.6 & \textbf{0.22} & \textbf{101.3} & 0.46 & 288.6 \\
     \bottomrule
   \end{tabular}
 \end{table}
