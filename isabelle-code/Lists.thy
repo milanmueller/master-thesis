@@ -96,7 +96,7 @@ text \<open>The synthesized implementation, spelled out with readable names.  \<
   accumulated sum and \<open>xsi\<close> the list of remaining elements; both are the concrete
   counterparts of \<open>r\<close> and \<open>xs\<close> in @{term sum_nres}.\<close>
 definition 
-sum_impl :: \<open>64 word cl_list \<Rightarrow> 64 word llM\<close> where
+sum_impl :: \<open>(64 word) node ptr \<Rightarrow> 64 word llM\<close> where
   \<open>sum_impl \<equiv> \<lambda>xsi. doM {
     (ri, xsi) \<leftarrow> MMonad.REC (\<lambda>sumr (ri, xsi). doM {
         b \<leftarrow> os_is_empty xsi;
@@ -113,7 +113,7 @@ sum_impl :: \<open>64 word cl_list \<Rightarrow> 64 word llM\<close> where
           })
       }) (0, xsi);
     \<comment> \<open>Free the (now empty) remaining xsi\<close>
-    unat64.cl_free xsi;
+    un64.cl_free xsi;
     Mreturn ri
   }\<close>
 
@@ -193,6 +193,26 @@ proof -
        (auto simp: add_update_def add_dec_def add_copy_remainder_def COPY_def Let_def)
   from this[of \<open>[]\<close> p q] show ?thesis by simp
 qed
+
+fun
+add_poly :: \<open>llist_polynomial \<Rightarrow> llist_polynomial \<Rightarrow> llist_polynomial\<close>
+where \<open>add_poly p [] = p\<close> |
+      \<open>add_poly [] q = q\<close> |
+      \<open>add_poly ((xs, n) # p) ((ys, m) # q) =
+           (if xs = ys then
+              if n + m = 0 then
+                add_poly p q
+              else
+                 let pq = add_poly p q in
+                 ((xs, n + m) # pq)
+            else if (xs, ys) \<in> term_order_rel
+              then
+                 let pq = add_poly p ((ys, m) # q) in
+                 ((xs, n) # pq)
+            else
+                 let pq = add_poly ((xs, n) # p) q in
+                 ((ys, m) # pq)
+            )\<close>
 
 
 end
