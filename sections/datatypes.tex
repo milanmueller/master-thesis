@@ -307,7 +307,7 @@ Adding a new polynomial with an existing index is treated as overwriting the exi
 
 The high-level datatype indicates three requirements for its low-level refinement target:
 \begin{enumerate}
-	\item The map must be able to hold values whose refinement assertions are not pure, while indices can be refined by 64-bit machine words. Note that this adds the constraint that the number of stored polynomials must not exceed the largest representable index of $2^{63}-1$ (indices use signed integers)\footnote{Due to the resizing implementation, the actual upper bound is $2^{63}-2$. This is discussed in \refsec{sec:a-new-error-path}}.
+	\item The map must be able to hold values whose refinement assertions are not pure, while indices can be refined by (signed) 64-bit machine words. Note that this adds the constraint that the number of stored polynomials must not exceed the largest representable index\footnote{Due to the resizing implementation, the upper bound is $2^{63}-2$ rather than $2^{63}-1$. This is discussed in \refsec{sec:a-new-error-path}}.
 	\item Lookup and update should have $\mathcal{O}(1)$ time complexity.
 	\item The map must be able to represent empty slots, i.e. it might be that Pastèque references an index at which no polynomial is stored.
 	      This would result in a runtime error, but the state where a slot is inhabited must still be representable.
@@ -315,7 +315,7 @@ The high-level datatype indicates three requirements for its low-level refinemen
 \end{enumerate}
 For the lookup operation, there are two options to choose from:
 Retrieving an element could either transfer ownership of the element to the caller, leaving the slot empty, or the contained element can be copied out of the map.
-I initially chose the latter by requiring contained elements to instantiate $\iexp{copyable\_assn}$, a later added optimization avoids this copy from the callers side which is discussed in \ref{sec:avoiding-polynomial-deep-copies}.
+I initially chose the latter by requiring contained elements to instantiate $\iexp{copyable\_assn}$, a later added optimization avoids this copy from the callers side which is discussed in \refsec{sec:avoiding-polynomial-deep-copies}.
 
 The linked lists in \refsec{sec:lists-with-tail-pointers} directly refine Isabelle/HOL's list type.
 For the partial maps, the high-level type to refine is $\iexp{nat} \rightharpoonup \iexp{polynomial}$ which is a type synonym for $\iexp{nat} \rightarrow \tv{a} \app \iexp{option}$.
@@ -323,7 +323,7 @@ I choose a two-step refinement approach here; I first refine $\iexp{nat} \righta
 
 \subsubsection{High-Level Refinement of Partial Map by List of Optionals}\label{sec:partial-map-by-list-of-optionals}
 
-A list of optionals $\tv{a} \app \iexp{option} \app \iexp{list}$ is associated to a map $\iexp{nat} \rightarrow \tv{a} \app \iexp{option}$ by an abstraction function $\iexp{opt\_list\_}\alpha \dbcolon \tv{a} \app \iexp{option} \app \iexp{list} \rightarrow \iexp{nat} \rightarrow \tv{a}$ where
+I associate lists of optionals $\tv{a} \app \iexp{option} \app \iexp{list}$ to a map $\iexp{nat} \rightarrow \tv{a} \app \iexp{option}$ by an abstraction function $\iexp{opt\_list\_}\alpha \dbcolon \tv{a} \app \iexp{option} \app \iexp{list} \rightarrow \iexp{nat} \rightarrow \tv{a}$ where
 \begin{gather*}
 	\iexp{opt\_list\_}\alpha \app ol = \lambda \app n.
 	\begin{cases}
@@ -332,14 +332,14 @@ A list of optionals $\tv{a} \app \iexp{option} \app \iexp{list}$ is associated t
 	\end{cases}
 \end{gather*}
 so that $\iexp{opt\_list\_}\alpha$ yields a partial map for a given list of optionals.
-Similarly to the refinement relations discussed in \ref{sec:multiple-precision-integers}, a refinement relation between lists of optionals and partial maps is given by $\iexp{opt\_list\_map\_rel} \dbcolon (\tv{a} \app \iexp{option} \app \iexp{list} \times \iexp{nat} \rightarrow \tv{a} \app \iexp{option}) \app \iexp{set}$ where
+Similarly to the refinement relations discussed in \refsec{sec:multiple-precision-integers}, a refinement relation between lists of optionals and partial maps is given by $\iexp{opt\_list\_map\_rel} \dbcolon (\tv{a} \app \iexp{option} \app \iexp{list} \times \iexp{nat} \rightarrow \tv{a} \app \iexp{option}) \app \iexp{set}$ where
 \begin{gather*}
 	(ol,m) \in \iexp{opt\_list\_map\_rel} \Leftrightarrow m = \iexp{opt\_list\_}\alpha \app ol
 \end{gather*}
-with the trivial invariant $\lambda \_. \app \iexp{True}$
+with the trivial invariant $\lambda x. \app \iexp{True}$.
 
-I implement all required operations from Isabelle-LLVM's map interface\footnote{cf. theory \isaname{Isabelle_LLVM.IICF_Map}.} on lists of optionals.
-I discuss lookup and update here, the other functions are implemented in a similar manner.\footnote{cf. theory \isaname{LLVM_DS_Partial_Map}.}
+I implement all required operations from Isabelle-LLVM's map interface\footnote{from theory \isaname{Isabelle_LLVM.IICF_Map}, I implement $\iexp{op\_map\_empty}$, $\iexp{op\_map\_update}$, $\iexp{op\_map\_delete}$, $\iexp{op\_map\_contains\_key}$, $\iexp{op\_map\_lookup}$ and $\iexp{op\_map\_the\_lookup}$.} on lists of optionals.
+I discuss lookup and update here, the other functions are implemented in a similar manner.
 \begin{itemize}
 	\item The lookup function, $\iexp{opt\_list\_lookup} \dbcolon \iexp{nat} \rightarrow \tv{a} \app \iexp{option} \app \iexp{list}$ for a given key $k$ and a list of optionals $ol$ is implemented by
 	      \begin{gather*}
@@ -361,12 +361,12 @@ I discuss lookup and update here, the other functions are implemented in a simil
 For each implemented operation I then prove its correctness.
 For $\iexp{opt\_list\_lookup}$, correctness is proved by a lemma\footnote{The actual lemmas in theory \isaname{LLVM_DS_Partial_Map} are given in "fref" notation with operations lifted into $\iexp{nres}$. For the thesis, I use a simplified formulation which implies the fref notation.}
 \begin{gather*}
-	m = \iexp{opt\_list\_}\alpha \app ol \Rightarrow
+	(ol,m) \in \iexp{opt\_list\_map\_rel} \Rightarrow
 	\iexp{opt\_list\_lookup} \app k \app ol = m \app k
 \end{gather*}
 For $\iexp{opt\_list\_update}$, correctness is given by
 \begin{gather*}
-	m = \iexp{opt\_list\_}\alpha \app ol \Rightarrow
+	(ol,m) \in \iexp{opt\_list\_map\_rel} \Rightarrow
 	\iexp{opt\_list\_}\alpha \app (\iexp{opt\_list\_update} \app k \app v \app ol) = m(k\mapsto v)
 \end{gather*}
 where $m(k \mapsto v)$ is map $m$ with $k$ mapped to $v$.
@@ -376,16 +376,18 @@ where $m(k \mapsto v)$ is map $m$ with $k$ mapped to $v$.
 The lists of optionals from \refsec{sec:partial-map-by-list-of-optionals} need a concrete refinement target in $\iexp{llM}$.
 Isabelle-LLVM defines a refinement target for optionals through the locale $\iexp{dflt\_option\_private}$\footnote{defined in theory \isaname{Isabelle_LLVM.Sepref_HOL_Bindings}.}, which requires the contained elements to provide a check for whether they are initialized.
 A type's default value $\iexp{dflt}$ represents uninitialized values.
-When allocating an array for instance, all slots have value $\iexp{dflt}$ initially\footnote{cf. lemma $\iexp{narray\_new\_rule\_snat}$ in theory \isaname{Isabelle_LLVM.LLVM_DS_NArray}.}.
+When allocating an array for instance, all slots have value $\iexp{dflt}$ initially\footnote{cf. lemma $\iexp{narray\_new\_rule\_snat}$ in theory \isaname{Isabelle_LLVM.LLVM_DS_NArray}.} because allocations in Isabelle-LLVM are implemented by a C-function \inlinecode{isabelle_llvm_calloc} which is a wrapper around \iexp{calloc}, ensuring that allocated data is zero-initialized.
+
 To refine optionals, a refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ has to provide a function $\iexp{is\_dflt} \dbcolon \tv{b} \rightarrow \iexp{bool} \app \iexp{llM}$.
 With $\iexp{is\_dflt}$, $A$ can instantiate $\iexp{dflt\_option\_private}$, and obtain $A\iexp{.option\_assn} \dbcolon \tv{a} \app \iexp{option} \rightarrow \tv{b} \rightarrow \iexp{assn}$ which is a refinement assertion for optionals of type $\tv{a} \app \iexp{option}$.
 
-For pointers in particular, it holds that $\iexp{dflt} = \iexp{null}$ and it is possible to check if a pointer $p$ is $\iexp{null}$ using Isabelle-LLVM's $\iexp{ll\_ptrcmp\_eq}$\footnote{Defined in theory \isaname{Isabelle_LLVM.LLVM_Shallow}.}.
+The current list implementation, discussed in \refsec{sec:lists-with-tail-pointers}, which is used for the refinement of polynomials $\iexp{sllist\_polynomial}$, does not define a default value.
+It is hence not possible to directly instantiate $\iexp{dflt\_option\_private}$ for $\iexp{ls\_assn}$ without changing its definition.
+For pointers however, it holds that $\iexp{dflt} = \iexp{null}$ and it is possible to check if a pointer $p$ is $\iexp{null}$ using Isabelle-LLVM's $\iexp{ll\_ptrcmp\_eq}$\footnote{Defined in theory \isaname{Isabelle_LLVM.LLVM_Shallow}.}.
 I therefore define a refinement assertion $\iexp{box\_assn} \dbcolon (\tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}) \rightarrow \tv{a} \rightarrow \tv{b} \app \iexp{ptr} \rightarrow \iexp{assn}$ that simply wraps arbitrary data types in a pointer by
 \begin{gather*}
 	\iexp{box\_assn} \app A = \lambda a \app p. \app \exists ai. \app A \app a \app ai \app \ast p\mapsto ai
 \end{gather*}
-\todo{why do we need box assn?}
 where $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ is an existing refinement assertion.
 It is then straightforward to use $\iexp{box\_assn}$ as a generic implementation for optionals, where for $a \dbcolon \tv{a}$, $\iexp{Some} \app a$ with $A \app a \app ai$ is refined by a pointer $p \dbcolon \tv{b} \app \iexp{ptr}$ with $p \mapsto ai$ and $\iexp{None}$ is refined by the null pointer.
 $\iexp{box\_assn} \app A$ can then be used to instantiate $\iexp{dflt\_option\_private}$ even if the refinement assertion $A$ itself does not define an $\iexp{is\_dflt}$ check.
@@ -406,13 +408,13 @@ where $\iexp{narray\_assn} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a} \
 $li \dbcolon 64 \app \iexp{word}$ is the array's length, $ci \dbcolon 64 \app \iexp{word}$ is the allocated capacity and $ai \dbcolon \tv{a} \app \iexp{ptr}$ is a pointer to the actual array.
 Note that $xs' \dbcolon \tv{a} \app \iexp{list}$ is an auxiliary list that allows reasoning about the allocated space exceeding the array's length.
 
-There are only two differences, compared to the original $\iexp{arl\_assn}$; firstly, the width of length and capacity is fixed to 64 bits.
+There are only two differences, compared to the original $\iexp{arl\_assn}$; first, the width of length and capacity is fixed to 64 bits.
 This makes proofs simpler but makes the implementation less generic, compared to the original $\iexp{arl\_assn}$ for which the bit-width is generic (with a lower bound of 5).
-Secondly, $\iexp{iarl\_assn}$ also explicitly asserts that the allocated cells beyond the current length are initialized with $\iexp{dflt}$.
-Allocations in Isabelle-LLVM are done through a c-function \inlinecode{isabelle_llvm_calloc} which is a wrapper around \iexp{calloc} which ensures that allocated data is zero-initialized.
+Second, $\iexp{iarl\_assn}$ also explicitly asserts that the allocated cells beyond the current length are initialized with $\iexp{dflt}$.
 Since all allocations go through \inlinecode{isabelle_llvm_calloc}, all arrays in Isabelle-LLVM are initialized with $\iexp{dflt}$, but $\iexp{arl\_assn}$ does not carry this information.
 For the purpose of carrying the option type, given by $\iexp{box\_assn}$, it is required that newly allocated space explicitly has value $\iexp{dflt}$, which would be impossible to prove (despite being true) if $\iexp{arl\_assn}$ was used.
 As $\iexp{iarl\_assn}$ only extends $\iexp{arl\_assn}$ by information required for proofs, but otherwise uses the same underlying representation, operations already defined on $\iexp{arl\_assn}$ (in particular accessing or updating elements and initializing or resizing the array) can be reused and corresponding correctness proofs carry over to $\iexp{iarl\_assn}$ easily.
+Note that in Pastèque, arrays only grow and never shrink which would require explicitly setting cells to $\iexp{dflt}$ again.
 
 To finally obtain a refinement target for lists of optionals, I define $\iexp{pmap\_assn} \dbcolon \tv{a} \app \iexp{option} \app \iexp{list} \rightarrow (64 \app \iexp{word} \app \times \app 64 \app \iexp{word} \app \times \app \tv{b} \app \iexp{ptr}) \rightarrow \iexp{assn}$ as follows
 \begin{gather*}
@@ -421,31 +423,33 @@ To finally obtain a refinement target for lists of optionals, I define $\iexp{pm
 This uses the auxiliary $\iexp{list\_aux}$ assertion as defined in \refsec{sec:refinement-assertion-for-lists}.
 
 All operations from the high-level list of optionals implementation are then implemented on $\iexp{llM}$ level.
-\isabellecodeextern[linerange=379-392,label=algo:pmap_update-implementation,caption={
-			Implementation of the update function on partial maps at $\iexp{llM}$ level (actual Isabelle source code).
-		}]{isabelle/IsaFoL-Pasteque-LLVM/PAC_Checker_LLVM/LLVM_DS_Partial_Map.thy}
-As an example, the update function is implemented as shown in \refalgo{algo:pmap_update-implementation}:
-$\iexp{ll\_icmp\_ult} \app \iexp{ki} \app \iexp{l}$ returns the 1-bit machine word $\iexp{0x1}$ (which corresponds to $\iexp{True}$) if the given key $\iexp{ki}$ is less than the length $\iexp{l}$ of the array.
+\isabellecodeextern[linerange=140-153,label=algo:pmap_update-implementation,caption={
+			Implementation of the update function on partial maps on $\iexp{llM}$ level.
+		}]{isabelle-code/LLVM_Basics.thy}
+
+As an example, the update function is implemented as shown in \refalgo{algo:pmap_update-implementation}, where $\tv{a} \app \iexp{pmap} \equiv (64 \app \iexp{word} \times 64 \app \iexp{word} \times \tv{b} \app \iexp{ptr})$ is the type of partial maps on $\iexp{llM}$ level as specified by $\iexp{pmap\_assn}$.
+In $\iexp{pmap\_update}$, $\iexp{ll\_icmp\_ult} \app \iexp{ki} \app \iexp{l}$ returns the 1-bit machine word $\iexp{0x1}$ (which corresponds to $\iexp{True}$) if the given key $\iexp{ki}$ is less than the length $\iexp{l}$ of the array.
 If the given key is allocated already, the previous element at position $\iexp{ki}$ is freed and the new given value is inserted.
 If the given key is not yet allocated, the array is grown if needed before the given element is inserted.
 Note that $\iexp{arl\_len}$, $\iexp{arl\_nth}$ and $\iexp{arl\_upd}$ are existing functions from Isabelle-LLVM's $\iexp{arl\_assn}$ implementation, while $\iexp{iarl\_resize}$, which grows the array, is part of my $\iexp{iarl\_assn}$ extension.
 
 I then prove a Hoare-triple
 \begin{gather*}
-	\{\iexp{sn64\_assn} \app k \app ki \app \ast \app A \app a \app ai \app \iexp{pmap\_assn} \app xs \app ai \app \ast \app \uparrow(k + 1 < 2^{63}-1)\} \\
+	\{\iexp{sn64\_assn} \app k \app ki \app \ast \app A \app a \app ai \app \ast \app \iexp{pmap\_assn} \app xs \app ai \app \ast \app \uparrow(k + 1 < 2^{63}-1)\} \\
 	(\iexp{pmap\_update} \app ki \app vi \app ai)\\
 	\{\lambda r. \app \iexp{pmap\_assn} \app (\iexp{opt\_list\_update} \app k \app v \app xs) \app r\}
 \end{gather*}
 The triple can be read as follows:
-If $ki \dbcolon 64 \app \iexp{word}$ refines a key $k \dbcolon \iexp{nat}$, which fits into a signed 64-bit integer, $ai \dbcolon \tv{b}$ refines $a \dbcolon \tv{a}$ (as specified by refinement assertion $A$) and $ai \dbcolon 64 \app \iexp{word} \times 64 \app \iexp{word} \times \tv{b} \app \iexp{ptr}$ (which is an $\iexp{llM}$ level array) refines $xs \dbcolon \tv{a} \app \iexp{option} \app \iexp{list}$ (as specified by $\iexp{pmap\_assn}$), then, after executing $\iexp{pmap\_update} \app ki \app vi \app ai$, the result refines the result of the high-level implementation $\iexp{opt\_list\_update} \app k \app v \app xs$.
+If $ki \dbcolon 64 \app \iexp{word}$ refines a key $k \dbcolon \iexp{nat}$, which fits into a signed 64-bit integer, $ai \dbcolon \tv{b}$ refines $a \dbcolon \tv{a}$ (as specified by refinement assertion $A$) and $ai \dbcolon 64 \app \iexp{word} \times 64 \app \iexp{word} \times \tv{b} \app \iexp{ptr}$ refines $xs \dbcolon \tv{a} \app \iexp{option} \app \iexp{list}$ (as specified by $\iexp{pmap\_assn}$), then, after executing $\iexp{pmap\_update} \app ki \app vi \app ai$, the result refines the result of the high-level implementation $\iexp{opt\_list\_update} \app k \app v \app xs$.
 Note that the array takes ownership of the given value, so if the caller wants to keep the value, they must first copy it.
 
 Through this Hoare-triple and the correctness proof of $\iexp{opt\_list\_update}$ in \refsec{sec:partial-map-by-list-of-optionals}, I define a refinement chain $\iexp{pmap\_update} \rightsquigarrow \iexp{opt\_list\_update} \rightsquigarrow (\lambda k \app v \app m. \app m(k\mapsto v))$ which is then picked up by sepref for each map update operation in the high-level Pastèque implementation.
+Note that the precondition $k+1 < 2^{63} - 1$ adds an upper bound to the possible keys which does not directly follow from $\iexp{si64\_assn}$ as the latter would allow for values up to $2^{63}-1$.
 
 Other operations on the maps are implemented in a similar manner and also have a corresponding Hoare-triple for proving refinement of the higher-level list of optionals implementation.
 For the lookup function, I choose to require $A$ to instantiate $\iexp{copyable\_assn}$ such that retrieved elements are copied out of the array while the array keeps ownership of the original elements.
 For Pastèque, I had originally considered this to be a reasonable choice as a stored polynomial might be retrieved multiple times.
-However, I later decided to avoid this copy through a workaround which is described in \ref{sec:avoiding-polynomial-deep-copies}.
+However, I later decided to avoid this copy through a workaround described in \ref{sec:avoiding-polynomial-deep-copies}.
 
 \subsection{Hashsets}\label{sec:hashsets}
 
@@ -457,14 +461,14 @@ I refine $\mathscr{V}$ by a custom hashset implementation following a two-step r
 
 For this subsection I assume $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ to be a refinement assertion that instantiates $\iexp{eq\_assn}$ and $\iexp{hashable\_assn}$.
 In Pastèque I only use hashsets to store strings, but the implementation is generic and can store any type that supports an equality check and provides a hash function.
-For the hash function on strings, I implement a FNV-1a hash with values taken from \cite{noll_fnv}, extending characters to 64-bit integers.
+For the hash function on strings, I implement a FNV-1a hash with values taken from \cite{noll_fnv}, sign-extending (8-bit) characters to 64-bit integers.
 
 As a first step, I refine the abstract $\tv{a} \app \iexp{set}$ type by the (still abstract) type $\tv{a} \app \iexp{hs\_abs} :\equiv \tv{a} \app \iexp{list} \app \iexp{list} \times \iexp{nat}$.
 The inner lists represent the buckets and the natural number represents the number of elements in the hashset which is used to detect when resizing and rehashing should be carried out.
 I define an invariant on the abstract hashsets, given by
 \begin{align*}
-	\iexp{lshs\_invar} \app & (xss,l) := \app xss \neq \iexp{[\app]}                                                                                                                                           \\
-	                        & \land (\forall i < \iexp{length} \app xss. \app \forall x \in \iexp{set} \app (xss \app \iexp{!} \app i). \app \iexp{lshs\_bucket\_of} \app (\iexp{length} \app xss) \app x = i)
+	&\iexp{lshs\_invar} \app (xss,l) := \app xss \neq \iexp{[\app]}                                                                                                                                           \\
+	                        &\land (\forall i < \iexp{length} \app xss. \app \forall x \in \iexp{set} \app (xss \app \iexp{!} \app i). \app \iexp{lshs\_bucket\_of} \app (\iexp{length} \app xss) \app x = i)
 \end{align*}
 where $\iexp{lshs\_bucket\_of} \app n \app x := \iexp{unat} \app (\iexp{ahash} \app x) \app \text{mod} \app n$.
 Note that the invariant does not make any statement about $l$, which is a deliberate choice; in principle, the invariant could enforce $l = \iexp{length} \app (\iexp{concat} \app xss)$ (where $\iexp{concat} \dbcolon \tv{a} \app \iexp{list} \app \iexp{list} \rightarrow \tv{a} \app \iexp{list}$ flattens a given nested list) as $l$ is used to track the number of contained elements.
@@ -494,8 +498,7 @@ for which I show
 meaning that after resizing, a hashset still contains the same elements as before.
 
 \subsubsection{Low-level Hashset implementation}\label{sec:low-level-hashset-implementation}
-To implement hashsets on $\iexp{llM}$ level, I use linked lists to represent the buckets, i.e., the inner lists of $\tv{a} \app \iexp{hs\_abs}$, and I use an array%
-\footnote{Concretely, I use $\iexp{nao\_assn}$ from theory \isaname{Isabelle_LLVM.Array_of_Array_List}.} to represent the outer list.
+To implement hashsets on $\iexp{llM}$ level, I use linked lists to represent the buckets, i.e., the inner lists of $\tv{a} \app \iexp{hs\_abs}$, and I use an array to represent the outer list.
 Using an array for the outer list allows for $\mathcal{O}(1)$ access to buckets and is thus the natural choice for hashsets.
 The number of elements $l$ in the hashset is refined by a 64-bit signed integer which, as stated in \refsec{sec:high-level-hashsets}, means that $l$ can only store the number of contained elements up to $2^{63}-1$.
 
@@ -505,16 +508,16 @@ The refinement relation for $\iexp{hs\_abs}$ is then defined by
 	                                                         & \ast \app \iexp{sn64\_assn} \app (\iexp{length} \app xss) \app ni                                            \\
 	                                                         & \ast \app \iexp{nao\_assn} \app (\iexp{ls\_assn} \app A) \app (\lambda x. \app \iexp{None}) \app xss \app ai
 \end{align*}
-where $\iexp{nao\_assn} \dbcolon (\tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}) \rightarrow (\iexp{nat} \rightarrow \tv{b} \app \iexp{option}) \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{b} \app \iexp{ptr} \rightarrow \iexp{assn}$ from Isabelle-LLVM, for a given refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ that specifies refinement of the inner elements, specifies refinement of a given list by an array.
+where $\iexp{nao\_assn} \dbcolon (\tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}) \rightarrow (\iexp{nat} \rightarrow \tv{b} \app \iexp{option}) \rightarrow \tv{a} \app \iexp{list} \rightarrow \tv{b} \app \iexp{ptr} \rightarrow \iexp{assn}$ from Isabelle-LLVM, for a given refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ that specifies refinement of the inner elements, specifies refinement of a given list by an array\footnote{$\iexp{nao\_assn}$ is defined in theory \isaname{Isabelle_LLVM.Array_of_Array_List}.}.
 Compared to other refinement assertions for arrays in Isabelle-LLVM, $\iexp{nao\_assn}$ does not require the refinement assertion on the inner elements, $A$, to be pure.
 
 With the hashing function $\iexp{ahash\_impl}$, whose existence is guaranteed by $A$ being required to instantiate $\iexp{hashable\_assn}$, it is straightforward to refine $\iexp{lshs\_bucket\_of}$ and thus $\iexp{lshs\_member}$ to $\iexp{llM}$ level.
 For the refinement of the $\iexp{lshs\_insert}$ operation, I also implement automatic resizing and rehashing such that, after inserting a new element, the hashset is resized and rehashed if
 \begin{itemize}
 	\item The number of buckets $n$ is less than or equal to $\iexp{min} \app (2^{63}-1) \app l$, and
-	\item $n$ is strictly less than $n' := \text{if } n < 2^{62} \text{ then } 2n \text{ else } n$.
+	\item $n$ is strictly less than $(n' := \text{if } n < 2^{62} \text{ then } 2n \text{ else } n)$.
 \end{itemize}
-Intuitively, if the load factor is $\ge 1$, then the number of buckets is doubled, but doubling stops once the number of buckets reaches $2^{62}$.
+Intuitively, if the load factor is $\ge 1$, then the number of buckets is doubled, but doubling stops once the number of buckets is $\geq 2^{62}$.
 
 I compose the refinement assertion $\iexp{hs\_assn}$ with the relation $\iexp{lshs\_rel}$ to obtain a refinement chain $\iexp{hs\_assn'} \dbcolon \tv{a} \app \iexp{set} \rightarrow (64 \app \iexp{word} \times \tv{b} \app \iexp{node} \app \iexp{ptr} \app \iexp{ptr} \times 64 \app \iexp{word}) \rightarrow \iexp{assn}$ alongside refinement lemmas.
 \begin{align*}
@@ -543,14 +546,20 @@ The abstract partial map $\tv{k} \rightharpoonup \tv{v}$ is refined by the (stil
 Other than with the hashsets, the inner lists of $(\tv{k}, \tv{v}) \app \iexp{hm\_abs}$ hold tuples of type $\tv{k} \times \tv{v}$, i.e. each entry stores a key alongside its associated value.
 An invariant on the intermediate hashmap representation is given by
 \begin{align*}
-	\iexp{lshm\_invar} := & \lambda (xss, l). \app xss \neq \iexp{[\app]} \land (\forall i < \iexp{length} \app xss.                                            \\
-	                      & \iexp{distinct} (\iexp{map} \app \iexp{fst} (xss \app \iexp{!} \app i)) \land                                                       \\
-	                      & \forall (k,v) \in \iexp{set} \app (xss \app \iexp{!} \app i). \app \iexp{lshm\_bucket\_of} \app (\iexp{length} \app xss) \app k = i \\
-	                      & )
+	\iexp{lshm\_invar} := \lambda (&xss, l). \app xss \neq \iexp{[\app]} \land \\
+	                       (\forall i < \iexp{length} \app xss. \app &\iexp{distinct} (\iexp{map} \app \iexp{fst} (xss \app \iexp{!} \app i)) \land \\
+	                      & \forall (k,v) \in \iexp{set} \app (xss \app \iexp{!} \app i). \app \iexp{lshm\_bucket\_of} \app (\iexp{length} \app xss) \app k = i)
 \end{align*}
 where $\iexp{distinct} \dbcolon \tv{a} \app \iexp{list} \rightarrow \iexp{bool}$ returns true iff the given list contains only distinct elements and $\iexp{fst} \dbcolon (\tv{a} \times \tv{b}) \rightarrow \tv{a}$ returns the first element of a given tuple.
 $\iexp{lshm\_bucket\_of} \dbcolon \iexp{nat} \rightarrow \tv{k} \rightarrow \iexp{nat}$ is given by $\iexp{lshm\_bucket\_of} \app n \app k = \iexp{unat} \app (\iexp{ahash} \app k) \app \iexp{mod} \app n$, analogously to $\iexp{lshs\_bucket\_of}$ in \refsec{sec:high-level-hashsets}.
-An abstraction function $\iexp{lshm\_}\alpha \dbcolon (\tv{k},\tv{v})\app \iexp{hm\_abs} \rightarrow \tv{k} \rightharpoonup \tv{v}$ is given by
+Intuitively, the invariant $\iexp{lshm\_invar} \dbcolon (\tv{k} \times \tv{v}) \app \iexp{list} \app \iexp{list} \times \iexp{nat}$ states that:
+\begin{itemize}
+    \item The outer list of buckets must not be empty.
+    \item For all buckets, keys must be distinct and the hash of the keys must be the bucket's index in the outer list.
+\end{itemize}
+Like for the invariant for the hashsets buckets, $\iexp{lshs\_invar}$, $\iexp{lshm\_invar}$ does not mention the load $l \dbcolon \iexp{nat}$ to avoid and upper bound on the number of contained elements.
+
+An abstraction function $\iexp{lshm\_}\alpha \dbcolon (\tv{k},\tv{v})\app \iexp{hm\_abs} \rightarrow (\tv{k} \rightharpoonup \tv{v})$ is given by
 \begin{align*}
 	\iexp{lshm\_}\alpha := \lambda (xss,l) \app k. \app \iexp{map\_of} \app (xss \app \iexp{!} \app \iexp{lshm\_bucket\_of} \app (\iexp{length} \app xss) \app k) \app k
 \end{align*}
@@ -564,22 +573,22 @@ where $\iexp{map\_of} \dbcolon (\tv{a} \times \tv{b}) \app \iexp{list} \rightarr
 \end{gather*}
 A refinement relation $\iexp{lshm\_rel} \dbcolon ((\tv{k},\tv{v}) \app \iexp{hm\_abs} \times (\tv{k} \rightharpoonup \tv{v})) \app \iexp{set}$ is given by
 \begin{gather*}
-	(h,s) \in \iexp{lshm\_rel} \Leftrightarrow s = \iexp{lshm\_}\alpha \app h \land \iexp{lshm\_invar} \app h
+	(hm,m) \in \iexp{lshm\_rel} \Leftrightarrow m = \iexp{lshm\_}\alpha \app hm \land \iexp{lshm\_invar} \app hm
 \end{gather*}
 I then implement the following functions for the abstract hashmaps:
 \begin{itemize}
 	\item   $\iexp{lshm\_update} \dbcolon \tv{k} \rightarrow \tv{v} \rightarrow (\tv{k},\tv{v}) \app \iexp{hm\_abs} \rightarrow (\tv{k},\tv{v}) \app \iexp{hm\_abs}$ with a correctness lemma
 	      \begin{gather*}
-		      (h,s) \in \iexp{lshm\_rel} \Rightarrow (\iexp{lshm\_update} \app k \app v \app h, s(k\mapsto v)) \in \iexp{lshm\_rel}
+		      (hm,m) \in \iexp{lshm\_rel} \Rightarrow (\iexp{lshm\_update} \app k \app v \app hm, m(k\mapsto v)) \in \iexp{lshm\_rel}
 	      \end{gather*}
 	      where $\iexp{lshm\_update}$ also increments the element counter, if the given key is not yet present in the hashmap.
 	\item   $\iexp{lshm\_contains\_key} \dbcolon \tv{k} \rightarrow (\tv{k},\tv{v}) \app \iexp{hm\_abs} \rightarrow \iexp{bool}$ with a correctness lemma
 	      \begin{gather*}
-		      (h,s) \in \iexp{lshm\_rel} \Rightarrow (\iexp{lshm\_contains\_key} \app k \app h \Leftrightarrow k \in \iexp{dom} \app s)
+		      (hm,m) \in \iexp{lshm\_rel} \Rightarrow (\iexp{lshm\_contains\_key} \app k \app hm \Leftrightarrow k \in \iexp{dom} \app m)
 	      \end{gather*}
 	\item   $\iexp{lshm\_lookup} \dbcolon \tv{k} \rightarrow (\tv{k},\tv{v}) \app \iexp{hm\_abs} \rightarrow \tv{v} \app \iexp{option}$ with a correctness lemma
 	      \begin{gather*}
-		      (h,s) \in \iexp{lshm\_rel} \Rightarrow \iexp{lshm\_lookup} \app k \app h = s \app k
+		      (hm,m) \in \iexp{lshm\_rel} \Rightarrow \iexp{lshm\_lookup} \app k \app hm = m \app k
 	      \end{gather*}
 \end{itemize}
 
@@ -588,7 +597,7 @@ I then implement the following functions for the abstract hashmaps:
 As for the hashsets (cf. \refsec{sec:low-level-hashset-implementation}), I use linked lists (cf. \refsec{sec:refinement-assertion-for-lists}) to represent the buckets, i.e., the inner lists of $(\tv{k},\tv{v}) \app \iexp{hm\_abs}$.
 For the outer list of buckets I use Isabelle-LLVM's $\iexp{arl\_assn}$ (cf. \refsec{sec:partial-map-by-list-of-optionals}), which provides the resizing machinery required for rehashing.
 
-For abstract entries of type $\tv{k} \times \tv{v}$, I define a refinement assertion\footnote{This presentation is simplified, the actual assertion $\iexp{boxed\_buckets\_assn}$ in theory \isaname{LLVM_DS_Hash_Map} wraps the values in a box.}
+For abstract entries of type $\tv{k} \times \tv{v}$, I define a refinement assertion\footnote{This presentation is simplified, the actual assertion $\iexp{boxed\_buckets\_assn}$ in theory \isaname{LLVM_DS_Hash_Map} wraps the values by $\iexp{box\_assn}$.}
 \begin{gather*}
 	\iexp{entry\_assn} := \lambda (k,v) \app (ki,vi). \app K \app k \app ki \app \ast \app V \app v \app vi
 \end{gather*}
@@ -597,7 +606,7 @@ which states that for a key-value pair, the assertions $K$ and $V$ hold for the 
 Refinement of $(\tv{k},\tv{v}) \app \iexp{hm\_abs}$ is achieved by a refinement assertion
 $\iexp{hm\_assn} \dbcolon (\tv{k},\tv{v}) \app \iexp{hm\_abs} \rightarrow ((64 \app \iexp{word} \times 64 \app \iexp{word} \times (\tv{ki} \times \tv{vi}) \app \iexp{node} \app \iexp{ptr}) \times 64 \app \iexp{word}) \rightarrow \iexp{assn}$
 given by\footnote{
-	This presentation is also simplified, in the actual $\iexp{hm\_assn''}$ assertion in theory \isaname{LLVM_DS_Hash_Map}, the buckets are wrapped in the auxiliary $\iexp{oelem\_assn}$ assertion from theory \isaname{Isabelle_LLVM.ProtoEOArray} to enable reasoning about nonexistent buckets, which is required in particular for proving correct the deep-freeing implementation.
+	This presentation is also simplified, in the actual $\iexp{hm\_assn''}$ assertion in theory \isaname{LLVM_DS_Hash_Map}, the buckets are wrapped in the auxiliary $\iexp{oelem\_assn}$ assertion from Isabelle-LLVM's \isaname{Isabelle_LLVM.ProtoEOArray} theory to enable reasoning about nonexistent buckets, which is required in particular for proving correct the deep-freeing implementation.
 }
 \begin{align*}
 	\iexp{hm\_assn} := \lambda (xss,l) \app (ali,li). \app \exists bsi. \app
@@ -606,8 +615,6 @@ given by\footnote{
 	 & \ast \app \iexp{sn64\_assn} \app l \app li
 \end{align*}
 where $bsi \dbcolon ((\tv{ki} \times \tv{vi}) \app \iexp{node}) \app \iexp{list}$ is an auxiliary list of buckets, $ali \dbcolon 64 \app \iexp{word} \times 64 \app \iexp{word} \times (\tv{ki} \times \tv{vi}) \app \iexp{node} \app \iexp{ptr}$ is the array list holding the bucket pointers and $li \dbcolon 64 \app \iexp{word}$ refines the number of elements $l$.
-
 $\iexp{list\_aux}$, as defined in \refsec{sec:refinement-assertion-for-lists}, relates the auxiliary list $bsi$ element-wise to the abstract buckets $xss$, where each bucket is refined by a linked list of entries.
 Unlike $\iexp{hs\_assn}$ in \refsec{sec:low-level-hashset-implementation}, $\iexp{hm\_assn}$ does not saturate the element counter, because $\iexp{lshm\_update}$ already caps the abstract counter at $2^{63}-1$.
-
-Similarly to the preceding sections \refsec{sec:partial-maps} and \refsec{sec:hashmaps}, I refine the intermediate functions $\iexp{lshm\_lookup}$ and $\iexp{lshm\_update}$ to $\iexp{llM}$ level and compose the refinement assertion $\iexp{hm\_assn}$ with the $\iexp{lshm\_rel}$ relation to obtain a full refinement chain for the high level, abstract update and lookup functions.
+Similarly to the preceding sections \refsec{sec:partial-maps} and \refsec{sec:hashmaps}, I refine the intermediate functions $\iexp{lshm\_lookup}$ and $\iexp{lshm\_update}$ to $\iexp{llM}$ level and compose the refinement assertion $\iexp{hm\_assn}$ with the refinement relation $\iexp{lshm\_rel}$ to obtain a full refinement chain.

@@ -3,16 +3,18 @@
 
 \subsection*{Theories of the Isabelle-LLVM Port}\label{sec:appendix-theories}
 
-% Column "Origin":
-%   AFP    = mirror-afp-2025-1/thys/PAC_Checker
-%   IsaFoL = IsaFoL/PAC_Checker2
-%   new    = no theory of the same name in either
-% Rows follow the grouping of the ROOT file of PAC_Checker_LLVM.
+Table~\ref{tab:appendix-theories} gives a comprehensive list of all theories in the \isaname{PAC_Checker_LLVM} session, I developed for this thesis.
+The original theories, developed by Fleury \cite{pasteque}, stem from either the original \isaname{PAC_Checker} session published in the archive of formal proofs (AFP) \cite{PAC_Checker-AFP} or the newer \isaname{PAC_Checker2} theory which includes the shared variables optimization and is published in the IsaFoL repository \cite{isafol}.
+
+Since the existing \isaname{PAC_Checker} and \isaname{PAC_Checker2} build on Sepref with the Imperative-HOL backend, which can not be used simultaneously with Isabelle-LLVM due to name clashes, I have copied all theories into the new \isaname{PAC_Checker_LLVM} session and adjusted imports where necessary.
+
 {\small\singlespacing
 \begin{longtable}{@{}l l >{\raggedright\arraybackslash}p{0.45\textwidth}@{}}
 \caption[Theories of the Isabelle-LLVM port of Pasteque]{
 Theories of the session \isaname{PAC_Checker_LLVM} containing the Isabelle-LLVM migration of Pastèque.
-The column \emph{Origin} names the session that contains the theory this one was ported from: AFP refers to the original Pastèque implementation \isaname{PAC_Checker} published in the Isabelle archive of formal proofs AFP \cite{PAC_Checker-AFP}, IsaFoL refers to the newer Pastèque implementation \isaname{PAC_Checker2} in IsaFoL \cite{isafol}, and \enquote{new} marks a new theory which existed in neither version of Pastèque.}\label{tab:appendix-theories}\\
+The \textit{Origin} column names the session that the theory was ported from: AFP refers to the original Pastèque implementation \isaname{PAC_Checker} published in the Isabelle archive of formal proofs AFP \cite{PAC_Checker-AFP}, IsaFoL refers to the newer Pastèque implementation \isaname{PAC_Checker2} in IsaFoL \cite{isafol}, and \enquote{new} marks a new theory which existed in neither version of Pastèque.
+The table was initially generated through Claude Code and then edited manually.
+}\label{tab:appendix-theories}\\
 \toprule
 Theory & Origin & Changes or purpose \\
 \midrule
@@ -45,18 +47,18 @@ Theory & Origin & Changes or purpose \\
 \isaname{PAC_Checker_Relation} & AFP & Largely rewritten: removed the \isaname{String.literal} representation and the assertions for monomials, polynomials, and steps (now in \isaname{PAC_Polynomials_Assn} and \isaname{PAC_Step_Assn}); kept the term order; added \isaname{mnl_le_impl}. \\
 \addlinespace
 \multicolumn{3}{@{}l}{\emph{Data structures}} \\
-\isaname{LLVM_DS_Copying_List} & new & Copying list \isaname{cl_assn}: a singly linked list whose head operation copies the element instead of destroying the list; includes non-destructive folds with an explicit environment, because LLVM has no closures. \\
-\isaname{LLVM_DS_Partial_Map} & new & Partial map from 64-bit words to values with possibly non-pure refinement assertions over an initialised array list (\isaname{pmap_assn}); boxing (\isaname{box_assn}) to store such values. \\
-\isaname{LLVM_DS_Hash_Set} & new & Hash set (\isaname{hs_assn}) of elements with possibly non-pure refinement assertions, with copying-list buckets and resizing. \\
-\isaname{LLVM_DS_Hash_Map} & new & Hash map with copying-list buckets of key and boxed value; reuses the bucket machinery of the hash set. \\
-\isaname{LLVM_DS_Char} & new & Refinement of \isaname{char} to 8-bit words, linear order and comparisons on characters, FNV-1a hashing. \\
+\isaname{LLVM_DS_Copying_List} & new & Linked list implementation discussed in \refsec{sec:lists-with-tail-pointers}.\\
+\isaname{LLVM_DS_Partial_Map} & new & Partial map implementation discussed in \refsec{sec:partial-maps}.\\
+\isaname{LLVM_DS_Hash_Set} & new & Hashset implementation discussed in \refsec{sec:hashsets}.\\
+\isaname{LLVM_DS_Hash_Map} & new & Hashmap implementation discussed in \refsec{sec:hashmaps}.\\
+\isaname{LLVM_DS_Char} & new & Refinement of \isaname{char} to 8-bit words, linear order and comparisons on characters, FNV-1a hashing of individual characters. \\
 \isaname{LLVM_DS_String} & new & List-based (\isaname{strl_assn}) and array-based (\isaname{stra_assn}) strings with hashing, equality, lexicographic order, and conversion from list to array. \\
 \isaname{LLVM_ASCII_String} & new & Parsing of decimal ASCII strings into signed big integers and printing of big integers to strings. \\
-\isaname{LLVM_List_Sorting} & new & Generic bottom-up merge sort over copying lists; replaces \isaname{WB_Sort} of the AFP. \\
-\isaname{LLVM_Interleaving_Fold} & new & Fold over two copying lists at once (\isaname{ifoldl}, \isaname{cl_ifoldl}) that advances the left, right, or both lists per step; used for merging without copying. Not listed in \isaname{ROOT}; imported. \\
+\isaname{LLVM_List_Sorting} & new & Generic bottom-up merge sort over lists as implemented in \isaname{LLVM_DS_Copying_List}. Replaces \isaname{WB_Sort} of the AFP. \\
+\isaname{LLVM_Interleaving_Fold} & new & Interleaving fold discussed in \refsec{sec:interleaving-fold}. \\
 \isaname{PAC_Polynomials_Assn} & new & Assertions for monomials, coefficients, and polynomials over copying lists, list-based strings, and big integers; copy, free, comparison, and printing. \\
-\isaname{PAC_Polynomials_Assn_Array} & new & Variant of \isaname{PAC_Polynomials_Assn} with array-based strings, as produced by the C parser; normalisation of polynomials. Not listed in \isaname{ROOT}; imported. \\
-\isaname{LLVM_DS_Char_Literals} & new & Constant table that lets Sepref synthesise character literals (printable ASCII and newline). \\
+\isaname{PAC_Polynomials_Assn_Array} & new & Variant of \isaname{PAC_Polynomials_Assn} with array-based strings, as produced by the C parser; normalization of polynomials. \\
+\isaname{LLVM_DS_Char_Literals} & new & Constant table that lets Sepref synthesise character literals (generated with Claude Code). \\
 \addlinespace
 \multicolumn{3}{@{}l}{\emph{Polynomial layer}} \\
 \isaname{PAC_Polynomials} & AFP & Unchanged. \\

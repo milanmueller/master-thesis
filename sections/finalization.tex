@@ -33,15 +33,16 @@ To compute $r' := r + p$, I create a fused addition operation that first moves t
 It is then possible to prove that $A$ has the same state after the fused operation as before.
 
 \subsection{Left-Consuming Interleaving Fold}\label{sec:left-consuming-interleaving-fold}
-The interleaving fold, introduced in \refsec{sec:left-consuming-interleaving-fold} in the presented form allows for a simultaneous read only walk on two linked lists.
+The interleaving fold, introduced in \refsec{sec:interleaving-fold} in the presented form allows for a simultaneous read only walk on two linked lists.
 In the actual Pastèque implementation, the linear combination steps do not combine two existing polynomials from the table of input polynomials, but rather update an accumulator polynomial by each given summand (which is computed using polynomials from the table).
 Using the original interleaving fold constructs a new polynomial for each summand (as sketched out in the pseudo code \refalgo{algo:polynomial-move}) which means that the previous accumulator must be freed manually.
 To avoid this manual (deep) free operation, I implement a variant of the interleaving fold that only keeps its right input list intact and frees the respective node of the left input list in each iteration.
 
 \subsection{A new Error Path}\label{sec:a-new-error-path}
-The partial map implementation from \ref{sec:partial-maps} effectively introduces an upper bound of $2^{63}-2$ on the indices of polynomials.
-The reason is that indices are represented by signed 64-bit integers which introduce an upper bound $2^{63}-1$ and, in addition, when a given index $i$ is outside the current length of the outer array, the array is resized to length $i+1$ meaning that $i$ can be at most $2^{63}-2$.
-As this limitation was not present with the Standard ML backend, I create a new error message for when an index is too large.
-It should be noted that none of the benchmark instances, discussed in \refsec{sec:evaluation}, has triggered that.
+The partial map implementation from \ref{sec:partial-maps} effectively introduces an upper bound of $2^{63}-2$ on the indices of polynomials in the update operation as discussed in \refsec{sec:low-level-refinement-of-lists-of-optionals}.
+An upper bound of $2^{63}-1$ directly follows directly from $\iexp{si64\_assn}$ meaning it is effectively encoded on the refinement assertion level.
+The $2^{63}-2$ upper bound on the map update however is not encoded by the $\iexp{pmap\_assn}$ partial map refinement assertion, so I add a runtime check and a new error message for the polynomial index of exactly $2^{63}-1$.
+
+It should be noted that none of the benchmark instances, discussed in \refsec{sec:evaluation}, has triggered this case.
 The largest observed index in the "sparrc-512" instance is 6013954 so well below $2^{23}$.
-An experimental modification an input file to use $2^{63}-1$ as an index has triggered the new error path in the LLVM backend and has led to a runtime exception in the Standard ML backend.
+An experimental modification an input file to use $2^{63}-1$ as an index has triggered the new error path in the LLVM backend and has led to a runtime exception in the Standard ML backend which does not have the explicit runtime check.

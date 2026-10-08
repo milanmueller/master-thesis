@@ -136,4 +136,20 @@ sepref_def take_test' is \<open>uncurry mop_list_take\<close>
       \<rightarrow>\<^sub>a al_assn' TYPE(64) (snat_assn' TYPE(64))\<close>
   by sepref
 
+definition 
+pmap_update :: \<open>64 word \<Rightarrow> 'a \<Rightarrow> 'a pmap \<Rightarrow> 'a pmap llM\<close> where:
+  \<open>pmap_update ki vi ai \<equiv> doM {
+    l \<leftarrow> arl_len ai;
+    b \<leftarrow> ll_icmp_ult ki l;     \<comment> \<open>is key in bounds?\<close>
+    llc_if b (doM {
+      prev \<leftarrow> arl_nth ai ki;   \<comment> \<open>Get current element at `ki`\<close>
+      free_option afree prev;  \<comment> \<open>Deallocate current element\<close>
+      arl_upd ai ki vi         \<comment> \<open>Insert vi element at `ki`\<close>
+    }) (doM {
+      k1 \<leftarrow> ll_add ki 1;       \<comment> \<open>Increment `ki`\<close>
+      ai \<leftarrow> iarl_resize k1 ai; \<comment> \<open>Grow Array to `ki`\<close>
+      arl_upd ai ki vi         \<comment> \<open>Insert vi at `ki`\<close>
+    })
+  }\<close>
+
 end

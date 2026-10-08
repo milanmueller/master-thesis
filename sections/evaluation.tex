@@ -2,7 +2,7 @@
 
 This section discusses the evaluation of the migrated Pastèque implementation with the LLVM backend in comparison to the original Pastèque implementation targeting Standard ML \cite{pac-2024} and the efficient Pacheck \cite{pac-2024} checker written in C++.
 
-For the Standard ML backend, Pastèque offers a \inlinecode{uloop} flag with which the outer main loop is replaced by an untrusted version where parsing and checking are interleaved, improving runtime and reducing memory usage.
+For the Standard ML backend, Pastèque offers a \inlinecode{uloop} flag with which the outer main loop is replaced by an untrusted version where parsing and checking are interleaved, improving runtime and reducing memory usage \cite{pac-2024}.
 As the LLVM backend behaves like the default version of the Standard ML backend (without the \inlinecode{uloop} flag) with parsing and checking being entirely separate steps, I do not use the \inlinecode{uloop} flag in any benchmark.
 It should be noted that a \inlinecode{uloop} variant could also be implemented for the LLVM backend, but it would also increase the amount of trusted code to include an outer, unverified main loop.
 

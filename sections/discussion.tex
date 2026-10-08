@@ -1,17 +1,17 @@
-\section{Discussion}\label{sec:discussion}
+\section{Discussion and Conclusion}\label{sec:discussion}
 
-This subsection first discusses some potential future improvements to the Isabelle-LLVM based Pastèque implementation in Subsection \refsec{sec:future-development}.
+This section first discusses some potential future improvements to the Isabelle-LLVM based Pastèque implementation in Subsection \refsec{sec:future-development}.
 Subsections \refsec{sec:ai-usage-discussion} and \refsec{sec:takeaways} then close the thesis by a discussion on the use of generative AI tools and my subjective experience of working with Isabelle and Isabelle-LLVM.
 
 \subsection{Further Improvements to Pastèque}\label{sec:future-development}
-This section discusses some potential improvements to the Isabelle-LLVM migration which might further improve its performance and/or code quality.
+This subsection discusses some unordered potential improvements to the Isabelle-LLVM migration which might further improve its performance and/or code quality.
 
 Using the currently developed fractional separation logic for Isabelle-LLVM \cite{isabelle-llvm-fractional} in Pastèque might obsolete my custom workarounds of (interleaving) fold-based read only operations on lists (cf. \refsec{sec:non-destructive-list-access-using-fold}, \refsec{sec:interleaving-fold}) and the fused addition (cf. \refsec{sec:avoiding-polynomial-deep-copies}) while also making it possible to further avoid deep-copy operations.
 
 Another optimization, which could already be carried out without fractional separation logic, might be to represent to terms in monomials by arrays instead of lists, as is currently the case.
 This optimization might speed up comparison between terms, allowing to shortcut comparison when array lengths are unequal and would certainly reduce the total number of allocations.
 
-Furthermore, the current design of partial maps (cf. \ref{sec:partial-maps}) wraps the contained elements (in case of Pastèque polynomials) by a pointer to obtain the null pointer as a representation of empty buckets.
+Furthermore, the current design of partial maps (cf. \refsec{sec:low-level-refinement-of-lists-of-optionals}) wraps the contained elements (in case of Pastèque polynomials) by a pointer to obtain the null pointer as a representation of empty buckets.
 The contained polynomials are already represented by a pointer (which is the refinement target of the outer list), so effectively this introduces a double pointer dereference on lookup.
 It might be possible to instead define the null pointer as the explicit refinement target of the $\iexp{None}$ case of the high-level $\iexp{slist\_polynomial} \app \iexp{option}$ type to save the additional pointer dereference.
 
@@ -21,7 +21,7 @@ However, one would have to formally define a semantic for the given input files 
 
 \subsection{AI-Assisted Proof Development}\label{sec:ai-usage-discussion}
 When starting to work on this thesis, I initially set a goal of not using any generative AI tools for Isabelle proofs or implementation.
-For the initial work of extending the multiple precision integer arithmetic library, discussed in \refsec{sec:multiple-precision-integers}, I had followed that goal and did non use generative AI tools \footnote{For the final implementation of conversion between integer and string, I did use AI to write parts of the proofs.}.
+For the initial work of extending the multiple precision integer arithmetic library, discussed in \refsec{sec:multiple-precision-integers}, I had followed that goal and did not use generative AI tools \footnote{For the final implementation of conversion between integer and string, I did use AI to write parts of the proofs.}.
 Once I moved onto the Isabelle-LLVM migration and realized that I would have to implement fundamental low-level data structures, discussed in \refsec{sec:low-level-datatypes-in-isabelle-llvm}, I gave up on the goal of not using AI tools after failing to proof correct even simple fundamental operations by myself.
 I then started to use the tool Claude Code by Anthropic, using different versions of the language models "Opus", "Sonnet" and "Fable", by copying proof goals into Claude Code and task it to analyze the goal and draft initial proofs, which I would then copy back into the actual Isabelle theories.
 Often, the generated proofs were not accepted by the Isabelle kernel directly and I could use Isabelle's built in proof automation, in particular sledgehammer, to discharge failing steps in the proof.
