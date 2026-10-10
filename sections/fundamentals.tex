@@ -52,7 +52,7 @@ A PAC checker is given as input:
 	\item A list of \textit{proof steps}. A proof step is one of the following:
 	      \begin{itemize}
 		      \item A deletion step $\text{Del} (i)$, where $i \in \mathbb{N}$, or
-		      \item an extension step $\text{Ext} (i, x, p)$, where $i \in \mathbb{N}$, $x \not\in \mathscr{V}_0$ and $p \in \mathbb{Z}[\mathscr{V}]$, where $\mathscr{V}_0$ is the initial set of variables, or
+		      \item an extension step $\text{Ext} (i, x, p)$, where $i \in \mathbb{N}$, $x$ is a fresh variable (i.e. not in the set of variables of the gate constraints) and $p \in \mathbb{Z}[\mathscr{V}]$, or
 		      \item a linear combination step $\text{LinComb} (i, r, [(i_1, q_1),  \dots, (i_n, q_n)])$, where
 		            $i \in \mathbb{N}$, $r \in  \mathbb{Z}[\mathscr{V}]$, and for all $1 \le j \le n$ $i_j \in \mathbb{N}$ and $q_j \in \mathbb{Z}[\mathscr{V}]$.
 	      \end{itemize}
@@ -307,7 +307,7 @@ The first assertion in the loop body of \refalgo{algo:sum-imperative-bound} ensu
 This assertion is mostly required for technical reasons, as it is directly implied by the loop guard.
 The second assertion then ensures that the accumulator does not overflow, which also implies an upper bound on the sum of the elements in the given list.
 With these assertions, the \inlinecode{sepref} tool can then synthesize a program $\iexp{sum\_impl} \dbcolon 64 \app \iexp{word} \times 64 \app \iexp{word} \app \iexp{ptr} \rightarrow 64 \app \iexp{word} \app \iexp{llM}$, shown in \refalgo{algo:sum-imperative-refined}.
-\isabellecodeextern[linerange=101-112,label=algo:sum-imperative-refined,caption={
+\isabellecodeextern[linerange=101-114,label=algo:sum-imperative-refined,caption={
 			$\iexp{llM}$-level implementation of \refalgo{algo:sum-imperative-bound}, synthesized by \inlinecode{sepref}.
 		}]{isabelle-code/LLVM_Basics.thy}
 The type signature of $\iexp{sum\_impl}$ implies the concrete datatypes used: The list is implemented by an array of 64-bit (signed) integers, the sum is implemented by a 64-bit (signed) integer.
@@ -319,14 +319,16 @@ In this example, one could also choose to, e.g., implement the abstract list by 
 For both these functions, the array implementation also specifies corresponding correctness lemmas which are required for proving the overall correctness of $\iexp{sum\_impl}$.
 
 Note that the original $\iexp{sum}$ program from \refalgo{algo:sum-imperative} could not be synthesized by \inlinecode{sepref} as in the concrete implementation $\iexp{sum\_impl}$, the accumulator could overflow, leading to a different end result compared to the abstract $\iexp{sum}$ which uses unbounded natural numbers.
+
 More concretely, in addition to synthesized $\iexp{llM}$ programs, \inlinecode{sepref} also automatically proves \textit{refinement lemmas} that serve as a correctness proof for the synthesized program.
-For the $\iexp{sum\_impl}$ example, a simplified lemma, using Hoare-triple notation, of the corresponding refinement lemma is given by
+For the $\iexp{sum\_impl}$ example, a simplified lemma, using Hoare-triple notation, of the corresponding refinement lemma is given by\footnote{The actual refinement lemma also contains the precondition that $\iexp{sum'}$ does not fail which, in this case, implicitly means that the sum does not overflow which would violate the $\iexp{ASSERT}$ statements.}
 \begin{gather*}
-	\{(\iexp{array\_assn} \app \iexp{sn64\_assn}) \app xs \app xsi \app \ast \app \uparrow ((\iexp{foldl} \app (+) \app 0) \app xs < \iexp{max\_snat} \app 64)\}\\
+	\{(\iexp{array\_assn} \app \iexp{sn64\_assn}) \app xs \app xsi\}\\
 	(\iexp{sum\_impl} \app xsi) \\
-	\{\lambda r. \app \iexp{sn64\_assn} \app (\iexp{sum'} \app xs) \app r\}
+	\{\lambda ri. \app (\iexp{array\_assn} \app \iexp{sn64\_assn}) \app xs \app xsi \\
+	\ast \app \exists r. \app (\iexp{sn64\_assn} \app r \app ri \app \ast \uparrow(\iexp{RETURN} \app r \leq \iexp{sum'} \app xs))\}
 \end{gather*}
-where $\iexp{array\_assn} \app \iexp{sn64\_assn} \dbcolon \iexp{nat} \app \iexp{list} \rightarrow 64 \app \iexp{word} \times 64 \app \iexp{word} \app \iexp{ptr} \rightarrow \iexp{assn}$ is a refinement assertion specifying refinement of lists of natural numbers by arrays of 64-bit signed integers and $\iexp{sn64\_assn} \dbcolon \iexp{nat} \rightarrow 64 \app \iexp{word} \app \iexp{assn}$ specifies refinement of natural numbers by signed 64-bit integers.
+where $\iexp{array\_assn} \app \iexp{sn64\_assn} \dbcolon \iexp{nat} \app \iexp{list} \rightarrow 64 \app \iexp{word} \times 64 \app \iexp{word} \app \iexp{ptr} \rightarrow \iexp{assn}$ is a refinement assertion specifying refinement of lists of natural numbers by arrays of 64-bit signed integers and $\iexp{sn64\_assn} \dbcolon \iexp{nat} \rightarrow 64 \app \iexp{word} \rightarrow \iexp{assn}$ specifies refinement of natural numbers by signed 64-bit integers.
 
 As a final step, the $\iexp{llM}$-level program $\iexp{sum\_impl}$ in \refalgo{algo:sum-imperative-refined} can then be exported by Isabelle-LLVM's code generator to obtain compilable LLVM code.
 The code generator can also generate header files so the exported functions can be called from C programs.
@@ -393,8 +395,8 @@ To represent polynomials, Pastèque defines
 For instance, a polynomial $3xy + 2x + y$ is represented by
 $[([\iexp{"x"}], 2), ([\iexp{"x"}, \iexp{"y"}], 3), ([\iexp{"y"}], 1)]$ in Pastèque.
 
-The map of polynomials $P$, as defined in \ref{sec:practical-algebraic-calculus}, is represented by a partial map $\iexp{A} \dbcolon \iexp{nat} \rightharpoonup \iexp{polynomial}$.\footnote{Partial maps $m \dbcolon \tv{a} \rightharpoonup \tv{b}$ in Isabelle/HOL are total functions $f_m \dbcolon \tv{a} \rightarrow \tv{b} \app \iexp{option}$, where $\forall a \dbcolon \tv{a}. \app a \in \iexp{dom} \app m \Rightarrow \exists b \dbcolon \tv{b}. f_m \app a = \iexp{Some} \app b$, while $\forall a \dbcolon \tv{a}. \app a \not\in \iexp{dom} \app m. f_m \app a = \iexp{None}$.}
-The specification, called $f$ in \ref{sec:practical-algebraic-calculus}, is represented by a polynomial $\iexp{spec} \dbcolon \iexp{polynomial}$.
+The map of polynomials $P$, as defined in \refsec{sec:practical-algebraic-calculus}, is represented by a partial map $\iexp{A} \dbcolon \iexp{nat} \rightharpoonup \iexp{polynomial}$.\footnote{Partial maps $m \dbcolon \tv{a} \rightharpoonup \tv{b}$ in Isabelle/HOL are total functions $f_m \dbcolon \tv{a} \rightarrow \tv{b} \app \iexp{option}$, where $\forall a \dbcolon \tv{a}. \app a \in \iexp{dom} \app m \Rightarrow \exists b \dbcolon \tv{b}. f_m \app a = \iexp{Some} \app b$, while $\forall a \dbcolon \tv{a}. \app a \not\in \iexp{dom} \app m. f_m \app a = \iexp{None}$.}
+The specification, called $f$ in \refsec{sec:practical-algebraic-calculus}, is represented by a polynomial $\iexp{spec} \dbcolon \iexp{polynomial}$.
 Proof steps are represented through an algebraic datatype\footnote{
 	This presentation is simplified, the actual $\iexp{pac\_step}$ definition in theory \isaname{LPAC_Checker_Specification} is parametric over the datatypes of variables, polynomials indices and polynomials.
 }
@@ -403,7 +405,7 @@ Proof steps are represented through an algebraic datatype\footnote{
 	                   & \mid \iexp{Ext} \app \iexp{nat} \app \iexp{string} \app \iexp{polynomial}                                           \\
 	                   & \mid \iexp{Del} \app \iexp{nat}
 \end{align*}
-which directly models the notion of proof steps from \ref{sec:practical-algebraic-calculus}.
+which directly models the notion of proof steps from \refsec{sec:practical-algebraic-calculus}.
 
 Throughout execution, all polynomials are normalized and sorted with respect to a lexicographic order on the monomials' terms, allowing for an efficient addition of polynomials.
 As an example, consider two unsorted polynomials
@@ -455,12 +457,12 @@ Furthermore, I implement conversion between numbers and strings which is require
 
 Secondly, the state representation defined above implies a need for container data types which are not directly available in Isabelle-LLVM:
 \begin{itemize}
-    \item I extend the existing linked list implementation to obtain a nestable list implementation which is discussed in \ref{sec:lists-with-tail-pointers}.
+    \item I extend the existing linked list implementation to obtain a nestable list implementation which is discussed in \refsec{sec:lists-with-tail-pointers}.
     \item I compose and extend existing data structures to implement a partial map, yielding a refinement target for the map of stored polynomials $\iexp{A}$.
         The partial map implementation is discussed in \refsec{sec:partial-maps}.
     \item To refine the set of variables $\mathscr{V}$, I implement hashsets and define a simple hash function for strings.
     \item I refine $\iexp{VN}$ by a custom hashmap implementation, reusing the hash function from the hashset of strings.
 \end{itemize}
 
-Some finalizing work on the Isabelle-LLVM migration of Pastèque is discussed in \ref{sec:finalization-of-llvm-migration}.
+Some finalizing work on the Isabelle-LLVM migration of Pastèque is discussed in \refsec{sec:finalization-of-llvm-migration}.
 Table ~\ref{tab:appendix-theories} in the appendix presents a comprehensive list of all theories and some notes on the performed changes to each theory.

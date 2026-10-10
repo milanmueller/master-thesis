@@ -14,7 +14,7 @@ I use the current version of the AMulet tool by Kaufmann \cite{amulet2} which de
 The resulting certificates are then checked by Pastèque with both the LLVM and Standard ML backend and by Pacheck.
 I measure wall-clock time and peak resident set size (RSS) for all checkers using GNU time \cite{gnutime}.
 Benchmarks are run on a machine with an AMD Ryzen 5 7500F CPU and 32 GB of RAM.
-Each benchmark is run ten times, the shown measurements are the respective mean values over all five runs.
+Each benchmark is run ten times, the shown measurements are the respective mean values over all ten runs.
 
 \input{evaluation/main/results/table.tex}
 Table~\ref{tab:checker-comparison} shows the resulting average measurements.
@@ -29,7 +29,7 @@ Between the LLVM backend and the Standard ML backend, the variant with either lo
 	\label{fig:checker-comparison}
 \end{figure}
 Figure~\ref{fig:checker-comparison} shows the same average values for wall clock time and peak RSS in a line chart, where the x-axis contains all benchmarks, ordered by wall clock time for Pastèque with the LLVM backend.
-The average values show that, for smaller instances, the LLVM backend is faster and consumes less memory (both by about a factor 2) while for the large 512-bit instances, the Standard ML backend is faster and also consumes less memory in the "sparrc-512" benchmark.
+The average values show that, for smaller instances, the LLVM backend is about 1.5 to 2 times faster and consumes less memory while for the large 512-bit instances, the Standard ML backend is faster and also consumes less memory in the "sparrc-512" benchmark.
 Pacheck, as expected, is the fastest checker and consumes the least memory for every benchmark.
 
 % \subsection{Evaluating Phases of Pastèque}\label{sec:pasteque-breakdown}

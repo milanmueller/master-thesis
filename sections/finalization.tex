@@ -24,7 +24,7 @@ Importantly, this has no effect on the LLVM code generation and thus does not af
 As discussed in \refsec{sec:partial-maps}, I use a custom partial map implementation to store a lookup table of polynomials which is referenced in arithmetic operations defined by the input proof steps.
 I originally designed the lookup function of the partial maps so that polynomials were cloned on retrieval and the partial map is kept intact afterwards.
 Early tests have shown however that this decision had a more significant impact on the Pastèques performance than I had anticipated.
-To improve performance, I have implemented a workaround to allow for a retrieved polynomial out of the map, instead of cloning it.
+To improve performance, I have implemented a workaround to allow for moving a retrieved polynomial out of the map, instead of cloning it.
 \pseudocodeextern[label=algo:polynomial-move,caption={
 			Moving a polynomial out of the partial map $A$ for the duration of an arithmetic operation and moving it back afterwards, instead of cloning it on retrieval.
 		}]{fused-add.pseudo}
@@ -39,10 +39,10 @@ Using the original interleaving fold constructs a new polynomial for each summan
 To avoid this manual (deep) free operation, I implement a variant of the interleaving fold that only keeps its right input list intact and frees the respective node of the left input list in each iteration.
 
 \subsection{A new Error Path}\label{sec:a-new-error-path}
-The partial map implementation from \ref{sec:partial-maps} effectively introduces an upper bound of $2^{63}-2$ on the indices of polynomials in the update operation as discussed in \refsec{sec:low-level-refinement-of-lists-of-optionals}.
-An upper bound of $2^{63}-1$ directly follows directly from $\iexp{si64\_assn}$ meaning it is effectively encoded on the refinement assertion level.
+The partial map implementation from \refsec{sec:partial-maps} effectively introduces an upper bound of $2^{63}-2$ on the indices of polynomials in the update operation as discussed in \refsec{sec:low-level-refinement-of-lists-of-optionals}.
+An upper bound of $2^{63}-1$ directly follows from $\iexp{sn64\_assn}$ meaning it is effectively encoded on the refinement assertion level.
 The $2^{63}-2$ upper bound on the map update however is not encoded by the $\iexp{pmap\_assn}$ partial map refinement assertion, so I add a runtime check and a new error message for the polynomial index of exactly $2^{63}-1$.
 
 It should be noted that none of the benchmark instances, discussed in \refsec{sec:evaluation}, has triggered this case.
 The largest observed index in the "sparrc-512" instance is 6013954 so well below $2^{23}$.
-An experimental modification an input file to use $2^{63}-1$ as an index has triggered the new error path in the LLVM backend and has led to a runtime exception in the Standard ML backend which does not have the explicit runtime check.
+An experimental modification of an input file to use $2^{63}-1$ as an index has triggered the new error path in the LLVM backend and has led to a runtime exception in the Standard ML backend which does not have the explicit runtime check.

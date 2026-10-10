@@ -1,13 +1,13 @@
 \section{Multiple Precision Integers}\label{sec:multiple-precision-integers}
 
-This section introduces the native Isabelle-LLVM library by Spinei and Lammich \cite{spinei_isabelle_big_integer}.
+This section introduces the native Isabelle-LLVM library by Spinei with contributions by Lammich \cite{spinei_isabelle_big_integer}.
 It then describes the extensions I have made to use the library for Pastèque.
 
 \subsection{Native Arbitrary Precision Integers for Isabelle-LLVM}\label{sec:native-arbitrary-precision-integers-for-isabelle-llvm}
 
 The native precision integer library models natural numbers by lists of 64-bit machine words.
 Individual 64-bit machine words are referred to as \textit{limbs}.
-It defines an abstraction function $\iexp{big\_int\_}\alpha \dbcolon 64 \app \iexp{word} \app \iexp{list} \rightarrow \iexp{nat}$, recursively defined as
+An abstraction function $\iexp{big\_int\_}\alpha \dbcolon 64 \app \iexp{word} \app \iexp{list} \rightarrow \iexp{nat}$ is recursively defined as
 \begin{gather*}
 	\iexp{big\_int\_}\alpha \app xs =
 	\begin{cases}
@@ -18,14 +18,14 @@ It defines an abstraction function $\iexp{big\_int\_}\alpha \dbcolon 64 \app \ie
 where $\iexp{unat} \dbcolon \tv{l} \app \iexp{word} \rightarrow \iexp{nat}$ is the natural number encoded by an (unsigned) machine word of bit-width $\tv{l}$.
 
 The library also defines an invariant $\iexp{big\_int\_invar} \dbcolon 64 \app \iexp{word} \app \iexp{list} \rightarrow \iexp{bool}$ with $\iexp{big\_int\_invar} \app xs = (xs = [ \app ] \lor \iexp{last} \app xs \neq 0)$, where $\iexp{last} \dbcolon \tv{a} \app \iexp{list} \rightarrow \tv{a}$ yields the last element of a list.
-In particular $\iexp{last} \app xs \neq 0$ implies that $xs$ is non empty.
+Note that $\iexp{last} \app xs \neq 0$ implies $xs$ to be non empty.
 
-A relation $\iexp{big\_int\_rel} \dbcolon (64 \app \iexp{word} \app \iexp{list}, \iexp{nat}) \app \iexp{set}$ is then defined such that $(ws,n) \in \iexp{big\_int\_rel} \Leftrightarrow n = \iexp{big\_int\_}\alpha \app ws \land \iexp{big\_int\_invar} \app ws$.
+A relation $\iexp{big\_int\_rel} \dbcolon (64 \app \iexp{word} \app \iexp{list} \times \iexp{nat}) \app \iexp{set}$ is then defined such that $(ws,n) \in \iexp{big\_int\_rel} \Leftrightarrow n = \iexp{big\_int\_}\alpha \app ws \land \iexp{big\_int\_invar} \app ws$.
 Note that the invariant $\iexp{big\_int\_invar}$ forces a unique representation; the lists $[\iexp{0x1},\iexp{0x0},\iexp{0x0},\iexp{0x0}]$ and $[\iexp{0x1}]$ both evaluate to $1$ under $\iexp{big\_int\_}\alpha$, but only $[\iexp{0x1}]$ satisfies the invariant.
 Also, $[ \app ]$ is the unique representation of $0$.
 
 Relations like $\iexp{big\_int\_rel}$, which relate concrete values (in this case lists of 64-bit machine words) to abstract values (in this case natural numbers), based on an abstraction function (here $\iexp{big\_int\_}\alpha$) and an invariant constraining the allowed concrete values (here $\iexp{big\_int\_invar}$) are commonly used in the refinement framework.
-I refer to such relations as \textit{refinement relations} as they have a similar purpose as the refinement assertions introduced in \refsec{sec:isabelle-llvm}.
+I refer to such relations as \textit{refinement relations} since they have a similar purpose as the refinement assertions introduced in \refsec{sec:isabelle-llvm}.
 Other than refinement assertions however, refinement relations do not require the concrete values to be representable in LLVM.
 The concrete values of a refinement relation, in this case $64 \app \iexp{word} \app \iexp{list}$ can serve as an intermediate abstraction between the final $\iexp{llM}$-level representation, which in case of the multiple precision library is an array of 64-bit integers refining $64 \app \iexp{word} \app \iexp{list}$, and the abstract type, in this case $\iexp{nat}$.
 Refinement assertions and refinement relations can be composed to obtain a full refinement assertion defining refinement of the high level HOL-type (in this case $\iexp{nat}$) and the LLVM-representable final refinement target (in this case arrays of unsigned 64-bit integers).
@@ -38,15 +38,15 @@ Spinei implements addition, subtraction and multiplication operations for the 64
 \end{gather*}
 where $\iexp{big\_int\_add} \dbcolon 64 \app \iexp{word} \app \iexp{list} \rightarrow 64 \app \iexp{word} \app \iexp{list} \rightarrow 64 \app \iexp{word} \app \iexp{list}$ is the addition implementation.
 The other operations have analogous correctness proofs.
-The library contains a work-in-progress implementation of Karatsuba multiplication and a completed school book multiplication.
+The library contains a work-in-progress implementation of Karatsuba multiplication \cite{karatsuba} and a completed school book multiplication.
 For Pastèque, I use the school book multiplication.
 
-The sepref tool the synthesizes an $\iexp{llM}$-level refinement of the $\iexp{nres}$-level arithmetic functions like $\iexp{big\_int\_add}$ .
-This introduces a mostly theoretical upper bound on the length of the arrays, as the length of arrays are stored in a (signed) 64-bit integer meaning that numbers $\geq (2^{64})^{63}$ can not be represented.
+The sepref tool then synthesizes an $\iexp{llM}$-level refinement of the $\iexp{nres}$-level arithmetic functions like $\iexp{big\_int\_add}$.
+This introduces a theoretical upper bound on the length of the arrays, as the length of arrays are stored in a (signed) 64-bit integer meaning that numbers $\geq (2^{64})^{2^{63}-1}$ can not be represented.
 In addition and multiplication operations, this bound can be exceeded theoretically.
 Ideally, a dynamic runtime check would abort the program at runtime, if the upper bound is exceeded.
-At the time of writing this thesis, this is not supported in Isabelle-LLVM but it is planned to add this feature to Isabelle-LLVM in the future.
-To still obtain a usable multiple precision integer implementation without a dynamic overflow check, the library assumes that operations do not overflow using Isabelles \inlinecode{sorry}.
+At the time of writing this thesis, this is not supported in Isabelle-LLVM yet (it is planned to add this feature to Isabelle-LLVM in the future).
+To still obtain a usable multiple precision integer implementation without a dynamic overflow check, the library assumes that operations do not overflow using Isabelle's \inlinecode{sorry}.
 This is the only position in the library, and in the Isabelle-LLVM port of Pastèque, where \inlinecode{sorry} is used.
 
 \subsection{Signed Arbitrary Precision Integers}\label{sec:signed-arbitrary-precision-integers}
@@ -68,7 +68,7 @@ I also define an invariant $\iexp{signed\_big\_int\_invar} \dbcolon (64 \app \ie
 	\iexp{signed\_big\_int\_invar} \app (ws,\sigma) = \iexp{big\_int\_invar} \app ws \land (ws=[ \app ] \Rightarrow \lnot \sigma)
 \end{gather*}
 which forces a unique representation of 0, since $\iexp{signed\_big\_int\_invar} \app ([ \app ],\iexp{False}) = \iexp{True}$, while $\iexp{signed\_big\_int\_invar} \app ([ \app ], \iexp{True}) = \iexp{False}$.
-I then define a relation $\iexp{signed\_big\_int\_rel} \dbcolon ((64 \app \iexp{word} \app \iexp{list} \times \iexp{bool}), \iexp{int}) \app \iexp{set}$ with
+I then define a relation $\iexp{signed\_big\_int\_rel} \dbcolon ((64 \app \iexp{word} \app \iexp{list} \times \iexp{bool}) \times \iexp{int}) \app \iexp{set}$ with
 \begin{gather*}
 	((ws,\sigma),i) \in \iexp{signed\_big\_int\_rel} \\
 	\Leftrightarrow i = \iexp{signed\_big\_int\_}\alpha (ws,\sigma) \land \iexp{signed\_big\_int\_invar} (ws,\sigma)
@@ -82,11 +82,11 @@ Addition of two inputs $(ws_1,\sigma_1), (ws_2,\sigma_2)$ is achieved by
 	 & = \begin{cases}
 		     (\iexp{big\_int\_add} \app ws_1 \app ws_2,\iexp{False}) & \text{, if $\lnot \sigma_1 \land \lnot \sigma_2$}                                                              \\
 		     (\iexp{big\_int\_add} \app ws_1 \app ws_2,\iexp{True})  & \text{, if $\sigma_1 \land \sigma_2$}                                                                          \\
-		     (\iexp{big\_int\_sub} \app ws_1 \app ws_2,\sigma_1)     & \text{, if $\sigma_1 \neq \sigma_2 \land$ \parbox[t]{7cm}{$(\iexp{length} \app ws_1 > \iexp{length} \app ws_2$ \\$\lor \iexp{length} \app ws_1 = \iexp{length} \app ws_2 \land \iexp{last} \app ws_1 \geq \iexp{last} \app ws_2)$}} \\
+		     (\iexp{big\_int\_sub} \app ws_1 \app ws_2,\sigma_1)     & \text{, if $\iexp{big\_int\_leq} \app ws_2 \app ws_1$} \\
 		     (\iexp{big\_int\_sub} \app ws_2 \app ws_1,\sigma_2)     & \text{, otherwise}
 	     \end{cases}
 \end{align*}
-where $\iexp{big\_int\_sub}$ is the subtraction implementation from the library.
+where $\iexp{big\_int\_sub}$ is the subtraction implementation from the library and $\iexp{big\_int\_leq} \app ws_2 \app ws_1$ is the implementation of $\leq$ for lists of limbs.
 Multiplication is implemented by
 \begin{gather*}
 	\iexp{signed\_big\_int\_mult} \app (ws_1,\sigma_1) \app (ws_2,\sigma_2) = (\iexp{big\_int\_mult} \app ws_1 \app ws_2, \sigma_1 \iexp{XOR} \sigma_2)
@@ -114,7 +114,7 @@ The digits $"0"-"9"$ have ASCII codes $48-57$; I define conversion from Isabelle
 	\iexp{char\_uval} \app c = (\iexp{of\_char} \app c) - 48
 \end{gather*}
 where $\iexp{of\_char} \dbcolon \iexp{char} \rightarrow \iexp{nat}$ converts a character to its ASCII code.
-I also define an invariant $\iexp{is\_ascii\_char} \dbcolon \iexp{char} \rightarrow \iexp{bool}$ by
+I also define an invariant $\iexp{is\_ascii\_char} \dbcolon \iexp{char} \rightarrow \iexp{bool}$\footnote{In the actual theory \isaname{LLVM_ASCII_String}, the invariant is named $\iexp{is\_ascii\_unum}$.} by
 \begin{gather*}
 	\iexp{is\_ascii\_char} \app c = 48 \leq (\iexp{of\_char} \app c) \land (\iexp{of\_char} \app c) \leq 57.
 \end{gather*}
@@ -131,7 +131,7 @@ An invariant for ASCII string representing natural numbers is given by $\iexp{is
 \begin{gather*}
 	\iexp{is\_ascii\_unum\_str} \app cs = (cs \neq [ \app ] \land \forall c \in \iexp{set} \app cs. \app \iexp{is\_ascii\_char} \app c)
 \end{gather*}
-The relation $\iexp{ascii\_str\_nat\_rel} \dbcolon (\iexp{string},\iexp{nat}) \app \iexp{set}$ is then defined with
+The relation $\iexp{ascii\_str\_nat\_rel} \dbcolon (\iexp{string} \times \iexp{nat}) \app \iexp{set}$ is then defined with
 \begin{gather*}
 	(cs,n) \in \iexp{ascii\_str\_nat\_rel} \Leftrightarrow n = \iexp{str\_uval} \app cs \land \iexp{is\_ascii\_unum\_str} \app cs.
 \end{gather*}
@@ -140,7 +140,7 @@ The final conversion function $\iexp{str\_sval} \dbcolon \iexp{string} \rightarr
 \begin{gather*}
 	\iexp{str\_sval} \app cs =
 	\begin{cases}
-		- \iexp{int} \app (\iexp{str\_uval} \app cs') & \text{, if $cs = c \iexp{\#} cs' \land c = 45$} \\
+		- \iexp{int} \app (\iexp{str\_uval} \app cs') & \text{, if $cs = c \iexp{\#} cs' \land (\iexp{of\_char} \app c) = 45$} \\
 		\iexp{int} \app   (\iexp{str\_uval} \app cs)  & \text{, otherwise.}
 	\end{cases}
 \end{gather*}
@@ -148,29 +148,29 @@ An invariant for ASCII string representations of integers is given by $\iexp{is\
 \begin{gather*}
 	\iexp{is\_ascii\_snum\_str} \app cs =
 	\begin{cases}
-		\iexp{is\_ascii\_unum\_str} cs' & \text{, if $cs = c \iexp{\#} cs' \land c = 45$} \\
+		\iexp{is\_ascii\_unum\_str} cs' & \text{, if $cs = c \iexp{\#} cs' \land (\iexp{of\_char} \app c) = 45$} \\
 		\iexp{is\_ascii\_unum\_str} cs  & \text{, otherwise.}
 	\end{cases}
 \end{gather*}
-The final relation $\iexp{ascii\_str\_int\_rel} \dbcolon (\iexp{string},\iexp{int}) \app \iexp{set}$, which is used in the correctness proofs of the string to multiple precision integer conversion (parsing), is then given by
+The final relation $\iexp{ascii\_str\_int\_rel} \dbcolon (\iexp{string} \times \iexp{int}) \app \iexp{set}$, which is used in the correctness proofs of the string to multiple precision integer conversion (parsing), is then given by
 \begin{gather*}
 	(cs,i) \in \iexp{ascii\_str\_int\_rel} \Leftrightarrow i = \iexp{str\_sval} cs \land \iexp{is\_ascii\_snum\_str} cs.
 \end{gather*}
 
-Conversely, I define a relation $\iexp{int\_ascii\_str\_rel} \dbcolon (\iexp{int}, \iexp{string}) \app \iexp{set}$ for verifying the multiple precision integer to string conversion (printing).
+Conversely, I define a relation $\iexp{int\_ascii\_str\_rel} \dbcolon (\iexp{int} \times \iexp{string}) \app \iexp{set}$ for verifying the multiple precision integer to string conversion (printing).
 Unlike $\iexp{ascii\_str\_int\_rel}$, $\iexp{int\_ascii\_str\_rel}$ does not require defining an invariant on the integers, as every integer must be representable by a string, while not every string can be converted to an integer.
 The invariant $\iexp{is\_ascii\_snum\_str}$ is satisfied exactly by strings which can be parsed to an integer.
 
-Conversion from natural numbers to strings is implemented by $\iexp{chars\_of\_nat} \dbcolon \iexp{int} \rightarrow \iexp{string}$ with
+Conversion from natural numbers to strings is implemented by $\iexp{chars\_of\_nat} \dbcolon \iexp{nat} \rightarrow \iexp{string}$ with
 \begin{gather*}
 	\iexp{chars\_of\_nat} \app n =
 	\begin{cases}
 		[\iexp{char\_of} (n + 48)]                                                                                                    & \text{, if $n<10$} \\
-		\iexp{chars\_of\_nat} (\lfloor \frac{n}{10} \rfloor) @ [\iexp{char\_of} \app (n \text{ mod } 10) + 48] & \text{, otherwise}
+		\iexp{chars\_of\_nat} (\lfloor \frac{n}{10} \rfloor) @ [\iexp{char\_of} \app (n \text{ mod } 10 + 48)] & \text{, otherwise}
 	\end{cases}
 \end{gather*}
 where $\iexp{char\_of} \dbcolon \iexp{nat} \rightarrow \iexp{char}$ converts a natural number $n$ to the character with ASCII code $n \text{ mod } 256$.
-Extending to conversion from integers to strings is achieved by $\iexp{chars\_of\_int} \dbcolon \iexp{int} \rightarrow \iexp{nat}$ where
+Extending to conversion from integers to strings is achieved by $\iexp{chars\_of\_int} \dbcolon \iexp{int} \rightarrow \iexp{string}$ where
 \begin{gather*}
 	\iexp{chars\_of\_int} \app i =
 	\begin{cases}
@@ -179,11 +179,11 @@ Extending to conversion from integers to strings is achieved by $\iexp{chars\_of
 	\end{cases}
 \end{gather*}
 The function $\iexp{abs} \dbcolon \iexp{int} \rightarrow \iexp{int}$ returns the absolute value of a given integer.
-The relation $\iexp{int\_ascii\_str\_rel} \dbcolon (\iexp{int}, \iexp{string}) \app \iexp{set}$ is then given by
+The relation $\iexp{int\_ascii\_str\_rel} \dbcolon (\iexp{int} \times \iexp{string}) \app \iexp{set}$ is then given by
 \begin{gather*}
 	(i,cs) \in \iexp{int\_ascii\_str\_rel} \Leftrightarrow cs = \iexp{chars\_of\_int} \app i
 \end{gather*}
-As a corollary, I prove that $\iexp{int\_ascii\_str\_rel} \circ \iexp{ascii\_str\_int\_rel} = \iexp{Id}$, where $\circ \dbcolon (\tv{a},\tv{b}) \app \iexp{set} \rightarrow (\tv{b},\tv{c}) \app \iexp{set} \rightarrow (\tv{a},\tv{c}) \app \iexp{set}$ is the composition of two relations and $\iexp{Id} \dbcolon (\tv{a},\tv{a}) \app \iexp{set}$ is the identity relation.
+As a corollary, I prove that $\iexp{int\_ascii\_str\_rel} \circ \iexp{ascii\_str\_int\_rel} = \iexp{Id}$, where $\circ \dbcolon (\tv{a} \times \tv{b}) \app \iexp{set} \rightarrow (\tv{b} \times \tv{c}) \app \iexp{set} \rightarrow (\tv{a} \times \tv{c}) \app \iexp{set}$ is the composition of two relations and $\iexp{Id} \dbcolon (\tv{a} \times \tv{a}) \app \iexp{set}$ is the identity relation.
 Note that the inverse does not hold, i.e. $\iexp{ascii\_str\_int\_rel} \circ \iexp{int\_ascii\_str\_rel} \neq \iexp{Id}$, because $\iexp{ascii\_str\_int\_rel}$ is not injective as the strings $\iexp{"01"}$ and $\iexp{"1"}$ are both mapped to $1$.
 
 Note that the definition of $\iexp{chars\_of\_nat}$ indicates the approach I chose to implement conversion of integer to string: a given number is continuously divided by 10 (with remainder) until the result is representable by a single digit; the resulting string is then constructed from the collected remainders and final digit.
@@ -197,6 +197,7 @@ Isabelle-LLVM does not define a refinement target for $\iexp{char}$, so a custom
 The high level $\iexp{char}$ type is defined by eight booleans, i.e. $\iexp{char} = \iexp{Char} \app (\iexp{digit0} \dbcolon \iexp{bool}) \app \dots \app (\iexp{digit7} \dbcolon \iexp{bool})$, so the natural refinement target is $8 \app \iexp{word}$.
 I use the existing refinement assertion $\iexp{un8\_assn} \dbcolon \iexp{nat} \rightarrow 8 \app \iexp{word} \rightarrow \iexp{assn}$\footnote{I simplify the name here, the actual refinement assertion is $\iexp{unat\_assn' TYPE(8)}$.}, refining natural numbers $< 256$ by 8-bit machine words and compose it with the existing $\iexp{char\_of} \dbcolon \iexp{nat} \rightarrow \iexp{char}$ function to obtain $\iexp{char\_assn} \dbcolon \iexp{char} \rightarrow 8 \app \iexp{word} \rightarrow \iexp{assn}$.
 I then use the list implementation, discussed in \refsec{sec:lists-with-tail-pointers}, to obtain a refinement assertion $\iexp{strl\_assn}$ for strings.
+\todo{Maybe mention the alternative stra\_assn in the finalization section?}
 
 Implementing conversion between strings and integers amounts to refining the functions $\iexp{chars\_of\_int}$ and $\iexp{str\_sval}$.
 For $\iexp{str\_sval}$ this is straightforward by use of the $\iexp{foldl}$ implementation for lists in LLVM which is discussed in \refsec{sec:non-destructive-list-access-using-fold}.
@@ -204,11 +205,10 @@ Refinement of $\iexp{chars\_of\_int}$ is more involved as it requires division o
 In particular, for a given unsigned multiple precision integer $n$, the implementation must compute $\lfloor \frac{n}{10} \rfloor $ and $n \text{ mod } 10$.
 
 The division is implemented by classic schoolbook division.
-The core of the division is implemented by a function $\iexp{bi\_div\_by\_w64}$, a simplified version of which is shown in \refalgo{algo:bi-div-by-w64}.
+The core of the division is implemented by a function $\iexp{bi\_div\_by\_w64}$, a simplified version of which\footnote{the actual definition in theory \isaname{LLVM_ASCII_String} also includes an invariant required for correctness and $\iexp{ASSERT}$ statements required for refinement to $\iexp{llM}$.} is shown in \refalgo{algo:bi-div-by-w64}, where $\iexp{big\_int} \equiv 64 \app \iexp{word} \app \iexp{list}$.
 \isabellecodeextern[linerange=12-28,label=algo:bi-div-by-w64,caption={
 			Core algorithm for dividing multiple precision numbers by a given 64-bit integer.
 		}]{isabelle-code/BigIntString_Simplified.thy}
-Note that $\iexp{big\_int} \equiv 64 \app \iexp{word} \app \iexp{list}$.
 The helper function $\iexp{divmod2by1}$ is shown in \refalgo{algo:divmod2by1}.
 \isabellecodeextern[linerange=6-9,label=algo:divmod2by1,caption={
 			Helper function dividing a 128-bit integer by a 64-bit integer.
@@ -216,6 +216,19 @@ The helper function $\iexp{divmod2by1}$ is shown in \refalgo{algo:divmod2by1}.
 The reason that $\iexp{divmod2by1}$ is a separate function lies in the multiplication of $\iexp{hi}$ by $2^{64}$.
 The limbs in the list are 64-bit integers which cannot express $\iexp{hi} \cdot 2^{64}$.
 To still implement $\iexp{divmod2by1}$, the inputs $\iexp{hi}$ and $\iexp{lo}$ are upcast to a 128-bit integer before the division and modulo operations are performed.
-Note that throughout the execution of $\iexp{bi\_div\_by\_w64}$ it holds that $\iexp{r} < \iexp{l}$ which implies $\iexp{cur} \app \iexp{div} \app \iexp{d} < 2^{64}$, meaning that $\iexp{cur} \app \iexp{div} \app \iexp{d}$ can be downcast to a 64-bit integer without its value being changed.
-\todo{more elaborate explanation for why this is true.}
-As $\iexp{cur} \app \iexp{mod} \app \iexp{d} < 2^{64}$ is always fulfilled (since $\iexp{d} < 2^{64}$), it can also be downcast to a 64-bit integer without issues.
+Note that throughout the execution of $\iexp{bi\_div\_by\_w64}$ it holds that $\iexp{r} < \iexp{l}$ which implies $\iexp{cur} \app \iexp{div} \app \iexp{unat} \app \iexp{l} < 2^{64}$ in the call to $\iexp{divmod2by1}$:
+\begin{itemize}
+    \item $\iexp{r}$ is initialized with $0$.
+    \item After a call to $\iexp{divmod2by1}$, $\iexp{r}$ is updated to $\iexp{cur} \app \iexp{mod} \app \iexp{unat} \app \iexp{l} < \iexp{unat} \app \iexp{l} \Rightarrow \iexp{unat} \app \iexp{r} + 1 \leq \iexp{unat} \app \iexp{l}$.
+    \item Thus,
+    \begin{align*}
+        \left \lfloor \frac{\iexp{cur}}{\iexp{unat} \app \iexp{l}} \right \rfloor =
+        &\left \lfloor \frac{(\iexp{unat} \app \iexp{r})\cdot2^{64} + \iexp{unat} \app \iexp{bii}}{\iexp{unat} \app \iexp{l}} \right \rfloor \\
+        &\leq \frac{(\iexp{unat} \app \iexp{r})\cdot2^{64} + \iexp{unat} \app \iexp{bii}}{\iexp{unat} \app \iexp{l}} \\
+        &<\frac{(\iexp{unat} \app \iexp{r} + 1)\cdot2^{64}}{\iexp{unat} \app \iexp{l}} \\
+        &\leq 2^{64}.
+    \end{align*}
+\end{itemize}
+
+This means that $\iexp{cur} \app \iexp{div} \app \iexp{unat} \app \iexp{l}$ can be downcast to a 64-bit integer without its value being changed.
+As $\iexp{cur} \app \iexp{mod} \app \iexp{unat} \app \iexp{l} < 2^{64}$ is always fulfilled (since $\iexp{l} < 2^{64}$), it can also be downcast to a 64-bit integer without issues.

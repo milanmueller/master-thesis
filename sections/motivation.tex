@@ -6,12 +6,12 @@ Being complex programs, such solvers are prone to have bugs leading to incorrect
 This is not merely a theoretical argument as fuzz testing solvers from the SAT competition 2007 showed errors in multiple competing solvers \cite{sat-fuzzing-2007} and fuzz testing SMT solvers has shown similar inconsistencies \cite{smt-fuzzing,smt-fuzzing-2020}.
 Especially when SAT or SMT solvers are used as part of a larger verification effort, for instance when SMT solvers are used as an oracle by a deductive verifier, an unsound answer by the solver silently invalidates the entire verification process.
 To increase trust in a SAT solver's result, proof formats like DRAT \cite{DRAT} have emerged as a means to enable validation of the solver's deduction independently by a third-party proof checker.
-With this approach however, overall trust largely depends the correctness of the proof checker which itself might have bugs, motivating the formal verification of the proof checker.
+With this approach however, overall trust largely depends on the correctness of the proof checker which itself might have bugs, motivating the formal verification of the proof checker.
 In case of SAT, this idea has manifested in the GRAT toolchain \cite{Lammich2020} and \inlinecode{cake_lpr} \cite{cake-lpr}, for instance, both of which are formally verified and are used in the 2026 SAT competition's main track to validate results \cite{satcomp2026output}.
 
 One application of automated reasoning tools is the verification of hardware designs.
 Correctness of such designs is crucial to manufacturers since fabricating and shipping faulty designs comes at immense cost, as was shown in the famous Intel FDIV-bug \cite{fdiv, fdiv-cost}.
-For arithmetic circuits in particular, SAT solvers were shown to be successfully used to verify hardware adders.
+For arithmetic circuits in particular, SAT solvers were shown to be successfully used to verify hardware adders\cite{Vampire2019:SAT_Computer_Algebra_Multipliers}.
 For multiplication circuits however, their scaling towards larger inputs makes them infeasible as a (standalone) verification tool \cite{Vampire2019:SAT_Computer_Algebra_Multipliers, Kaufmann-column-wise-verification}.
 Similarly, BDD-based approaches were shown to be unable to verify multiplier circuits beyond 64-bit integers \cite{bdd-bound}.
 This thesis follows a line of work by Kaufmann et al. \cite{kaufmann-phd-thesis, amulet2, pac-2024} which applies an algebraic approach in combination with SAT to the verification of multiplier circuits.
@@ -21,22 +21,22 @@ Checking a proof certificate in PAC format can be done either by use of the Pach
 
 Sepref allows its users to define imperative programs in Isabelle and enables verification of such programs using separation logic in conjunction with a refinement approach, allowing for step-wise concretization of initially abstract, idealized algorithms, while also automating large portions of corresponding correctness proofs.
 The verified programs can be exported to Standard ML code which is compiled using MLton \cite{mlton, weeks-mlton-2006} yielding an executable program.
-Contrary to the mentioned SAT and SMT approaches, proof automation in Sepref is not trusted to be correct.
+Contrary to the mentioned SAT and SMT solvers, proof automation in Sepref is not trusted to be correct.
 Instead, each proof step is checked by Isabelle's small core reduction engine (kernel) which would reject unsound proofs.
 Compared to efficient languages like C++ with manual memory management however, programs written in Standard ML tend to be slower.
 The newer Isabelle-LLVM framework \cite{isabelle-llvm}, also by Lammich, employs the same step-wise refinement approach but targets a shallow embedding of LLVM instead of Standard ML.
 Compared to Standard ML, generated LLVM code allows for manual memory management while giving similar, if not stronger correctness guarantees due to the wide adoption, for instance in the Apple ecosystem \cite{acm2012llvm}, and extensive testing and partial verification of the LLVM compiler tools \cite{alive2, Csmith}.
 
-The formally verified SAT solver IsaSAT by Fleury \cite{isasat-sml} was initially implemented with Sepref and then migrated to Isabelle-LLVM which led to a performance increase by a factor of two in tests \cite{isabelle-llvm}.
+The formally verified SAT solver IsaSAT by Fleury \cite{isasat-sml} was initially implemented with Sepref and then migrated to Isabelle-LLVM which led to a performance increase by a factor of two in tests \cite{isasat-llvm}.
 This observation motivates the migration of the PAC checker Pastèque to Isabelle-LLVM, which is the objective of this thesis.
 
-I use a custom library for multiple precision integer arithmetic in Isabelle-LLVM, developed by Spinei \cite{spinei_isabelle_big_integer}, and extend existing data structures to migrate Pastèque to Isabelle-LLVM.
+I use a custom library for multiple precision integer arithmetic in Isabelle-LLVM, developed by Spinei \cite{spinei_isabelle_big_integer} with contributions by Lammich, and extend existing data structures to migrate Pastèque to Isabelle-LLVM.
 I then evaluate the migrated version against the original Standard ML version.
 All code written for this thesis is made publicly available\footnote{
 	The code is made available in the following repositories:
 	\begin{enumerate}
-		\item \href{https://github.com/milanmueller/master-thesis}{https://github.com/milanmueller/master-thesis} contains the thesis' source code,
-		\item \href{https://github.com/milanmueller/IsabelleBigInteger/tree/main}{https://github.com/milanmueller/IsabelleBigInteger/tree/main} contains my contributions to the multiple precision integer implementation, forked from the original repository by Spinei and Lammich \cite{spinei_isabelle_big_integer},
-		\item \href{https://github.com/milanmueller/IsaFoL/tree/llvm-migrate}{https://github.com/milanmueller/IsaFoL/tree/llvm-migrate} contains the LLVM migration of Pastèque (forked from the original IsaFoL \cite{isafol} repository).
+		\item \exturl{https://github.com/milanmueller/master-thesis} contains the thesis' source code,
+		\item \exturl{https://github.com/milanmueller/IsabelleBigInteger/tree/main} contains my contributions to the multiple precision integer implementation, forked from Spinei's original repository \cite{spinei_isabelle_big_integer},
+		\item \exturl{https://github.com/milanmueller/IsaFoL/tree/llvm-migrate} contains the LLVM migration of Pastèque (forked from the original IsaFoL \cite{isafol} repository).
 	\end{enumerate}
 }.

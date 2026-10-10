@@ -4,8 +4,8 @@ begin
 
 definition 
 divmod2by1 :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> (64 word \<times> 64 word)\<close> where
-  \<open>divmod2by1 hi lo d \<equiv> let cur = unat hi * (2^64) + unat lo in 
-    (of_nat (cur div unat d), of_nat (cur mod unat d))\<close>
+  \<open>divmod2by1 r bii l \<equiv> let cur = unat r * (2^64) + unat bii in 
+    (of_nat (cur div unat l), of_nat (cur mod unat l))\<close>
 
 definition 
 bi_div_by_w64 :: \<open>big_int \<Rightarrow> 64 word \<Rightarrow> (big_int \<times> 64 word) nres\<close> where

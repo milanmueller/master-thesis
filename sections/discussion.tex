@@ -1,19 +1,19 @@
 \section{Discussion and Conclusion}\label{sec:discussion}
 
-This section first discusses some potential future improvements to the Isabelle-LLVM based Pastèque implementation in Subsection \refsec{sec:future-development}.
-Subsections \refsec{sec:ai-usage-discussion} and \refsec{sec:takeaways} then close the thesis by a discussion on the use of generative AI tools and my subjective experience of working with Isabelle and Isabelle-LLVM.
+This section first discusses some potential future improvements to the Isabelle-LLVM based Pastèque implementation in \refsec{sec:future-development}.
+\refsec{sec:ai-usage-discussion} and \refsec{sec:takeaways} then close the thesis by a discussion on the use of generative AI tools and my subjective experience of working with Isabelle and Isabelle-LLVM.
 
 \subsection{Further Improvements to Pastèque}\label{sec:future-development}
 This subsection discusses some unordered potential improvements to the Isabelle-LLVM migration which might further improve its performance and/or code quality.
 
 Using the currently developed fractional separation logic for Isabelle-LLVM \cite{isabelle-llvm-fractional} in Pastèque might obsolete my custom workarounds of (interleaving) fold-based read only operations on lists (cf. \refsec{sec:non-destructive-list-access-using-fold}, \refsec{sec:interleaving-fold}) and the fused addition (cf. \refsec{sec:avoiding-polynomial-deep-copies}) while also making it possible to further avoid deep-copy operations.
 
-Another optimization, which could already be carried out without fractional separation logic, might be to represent to terms in monomials by arrays instead of lists, as is currently the case.
+Another optimization, which could already be carried out without fractional separation logic, might be to represent terms in monomials by arrays instead of lists, as is currently the case.
 This optimization might speed up comparison between terms, allowing to shortcut comparison when array lengths are unequal and would certainly reduce the total number of allocations.
 
-Furthermore, the current design of partial maps (cf. \refsec{sec:low-level-refinement-of-lists-of-optionals}) wraps the contained elements (in case of Pastèque polynomials) by a pointer to obtain the null pointer as a representation of empty buckets.
+Furthermore, the current design of partial maps (cf. \refsec{sec:low-level-refinement-of-lists-of-optionals}) wraps the contained elements (in case of Pastèque polynomials) by a pointer to obtain the null pointer as a representation of empty slots.
 The contained polynomials are already represented by a pointer (which is the refinement target of the outer list), so effectively this introduces a double pointer dereference on lookup.
-It might be possible to instead define the null pointer as the explicit refinement target of the $\iexp{None}$ case of the high-level $\iexp{slist\_polynomial} \app \iexp{option}$ type to save the additional pointer dereference.
+It might be possible to instead define the null pointer as the explicit refinement target of the $\iexp{None}$ case of the high-level $\iexp{sllist\_polynomial} \app \iexp{option}$ type to save the additional pointer dereference.
 
 Another possible change to Pastèque would be to move parsing to the Isabelle side such that the C side only handles IO and hands the files directly as strings to the verified LLVM code.
 While it is unlikely that this change would improve performance, it would reduce the amount of trusted parsing code and allow for a verified parsing process.
@@ -30,15 +30,15 @@ Some parts of the final theories, in particular the theory $\iexp{LLVM\_DS\_Char
 Compared to using a web-based chat interface, using a local installation of an "agentic" tool like Claude Code has the advantage that the tool will use command line tools like \inlinecode{grep} to add relevant definitions from the Isabelle-LLVM library to its context window which, in my experience, improves the quality of its outputs significantly and makes it a viable tool for this use case.
 
 \subsection{Working with Isabelle-LLVM}\label{sec:takeaways}
-While some particular low-level optimizations like bit-stuffing or pointer arithmetic are not possible in Isabelle-LLVM, it still moves moves the formally verified approach significantly closer to high-performance languages by enabling simultaneous development and verification of imperative programs with manual memory management while also allowing for elegant correctness proofs through its step-wise refinement approach.
+While some particular low-level optimizations like bit-stuffing are not possible in Isabelle-LLVM, it still moves the formally verified approach significantly closer to high-performance languages by enabling simultaneous development and verification of imperative programs with manual memory management while also allowing for elegant correctness proofs through its step-wise refinement approach.
 
 I am convinced that my work on the Pastèque migration to Isabelle-LLVM is not representative of Isabelle-LLVM's full potential regarding efficiency and that it would be possible to improve the LLVM migration to supersede the performance of the Standard ML implementation of Pastèque in 512-bit instances aswell.
 
-My personal biggest struggles of working with Isabelle-LLVM mostly stem from lack of introductory documentation, ie. a "beginner tutorial" specific to Isabelle-LLVM, extending the quickstart guide of the imperative refinement framework \cite{Refine_Imperative_HOL-AFP} with information on how to work with $\iexp{llM}$-level functions directly.
+My personal biggest struggles of working with Isabelle-LLVM mostly stem from lack of introductory documentation, i.e., a "beginner tutorial" specific to Isabelle-LLVM, extending the quickstart guide of the imperative refinement framework \cite{Refine_Imperative_HOL-AFP} with information on how to work with $\iexp{llM}$-level functions directly.
 Another hurdle is intrinsic to its approach of being implemented as proof methods for Isabelle; when refining functions with \inlinecode{sepref} or proving $\iexp{llM}$-level theorems with \inlinecode{vcg}, there are no error messages when something does not go as expected.
 Instead, the tools provide feedback through unresolved goal states which are often lengthy and contain symbols and definitions from the underlying separation logic, which are usually hidden from the user when writing theorems.
 To productively work with Isabelle-LLVM, it takes significant amounts of time to obtain enough intuition to interpret the returned goal states.
 In particular the \inlinecode{vcg} tool might run into unprovable goal states as a result of over eager simplifications by the user which I often could not detect.
 I had to resort to using Claude Code to overcome such situations, which I originally wanted to avoid.
 
-With that being said, I found Isabelle-LLVMs interactive approach to formal verification of complex software, and working with Isabelle in general to be immensely insightful, being a hands-on combination of theory and practice that I have not seen anywhere else.
+With that being said, I found Isabelle-LLVM's interactive approach to formal verification of complex software, and working with Isabelle in general to be immensely insightful, being a hands-on combination of theory and practice that I have not seen anywhere else.

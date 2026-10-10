@@ -36,6 +36,8 @@
 \newcommand{\hcont}[1]{\phantom{#1{}}}
 \usepackage{siunitx}
 \usepackage{hyperref}
+\usepackage[normalem]{ulem} % \uline allows line breaks inside underlined text
+\newcommand{\exturl}[1]{\href{#1}{\textcolor{NavyBlue}{\uline{\nolinkurl{#1}}}}} % underlined, coloured external link
 \usepackage[all]{hypcap} % to show the full figure when clicking on it's reference
 \usepackage{cleveref} % for \cref/\Cref smart references
 \newcommand{\refsec}[1]{\S\ref{#1}} % section reference prefixed with a section-sign
@@ -437,6 +439,7 @@ literate=
 \addbibresource{references/motivation.bib}
 \addbibresource{references/fundamentals.bib}
 \addbibresource{references/methodology.bib}
+\addbibresource{references/multiprecision.bib}
 \addbibresource{references/datatypes.bib}
 \addbibresource{references/evaluation.bib}
 \addbibresource{references/discussion.bib}

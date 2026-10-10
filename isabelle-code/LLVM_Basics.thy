@@ -137,7 +137,7 @@ sepref_def take_test' is \<open>uncurry mop_list_take\<close>
   by sepref
 
 definition 
-pmap_update :: \<open>64 word \<Rightarrow> 'a \<Rightarrow> 'a pmap \<Rightarrow> 'a pmap llM\<close> where:
+pmap_update :: \<open>64 word \<Rightarrow> 'a \<Rightarrow> 'a pmap \<Rightarrow> 'a pmap llM\<close> where
   \<open>pmap_update ki vi ai \<equiv> doM {
     l \<leftarrow> arl_len ai;
     b \<leftarrow> ll_icmp_ult ki l;     \<comment> \<open>is key in bounds?\<close>
