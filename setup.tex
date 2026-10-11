@@ -47,24 +47,6 @@
 \usepackage{tikz}
 \usetikzlibrary{circuits.logic.US, positioning, calc}
 \usepackage{eso-pic}
-% \AddToShipoutPictureBG {%
-%   \AtPageLowerLeft {%
-%     \raisebox{0.35\paperheight}{%
-%       \hspace{1cm}%
-%       \rotatebox[origin=l]{45}{%
-%       \textcolor{gray!10}{%
-%         \fontsize{30}{36}\selectfont\bfseries
-%         \begin{tabular}{@{}l@{}}
-%           Very early draft! \\
-%           Information might be wrong,\\
-%           references might be incomplete.\\
-%           Wording is most likely suboptimal
-%         \end{tabular}%
-%       }%
-%     }%
-%   }%
-%   }%
-% }
 \usepackage[labelfont=bf, labelsep=colon, format=hang]{caption} % Make image captions nicer
 \usepackage{booktabs} % nicer tables
 \usepackage{longtable} % tables spanning multiple pages (appendix)
@@ -85,19 +67,19 @@
 \lstdefinelanguage{Isabelle}{%
 keywords=[1]{theory,begin,end,imports,keywords},
 keywords=[2]{fun,datatype,type_synonym,record,
-		abbreviation,notation,class,instance,locale,context,interpretation,
+		abbreviation,notation,class,instance,context,interpretation,
 		sublocale,global_interpretation,inductive,coinductive,
 		primrec,primcorec,typedef,setup,declare,
 		lemma,theorem,corollary,proposition,conjecture,example,
 		value,export_code},
-keywords=[3]{proof,qed,by,done,sorry,apply,
+keywords=[3]{proof,qed,by,done,apply,
 		have,show,assume,obtain,let,fix,
 		from,with,using,unfolding,
 		also,finally,ultimately,next,case,then,hence,thus,and,where},
 keywords=[4]{auto,simp,blast,force,fastforce,clarify,clarsimp,
 		rule,erule,drule,frule,intro,elim,
 		induction,induct,cases,
-		subst,unfold,arith,omega,linarith,algebra,metis,meson,smt,transfer},
+		subst,unfold,arith,omega,linarith,algebra,metis,meson,transfer},
 sensitive=true,
 morecomment=[s]{(*}{*)},
 morecomment=[l]{--},

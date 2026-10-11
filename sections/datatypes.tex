@@ -32,7 +32,7 @@ This idea is somewhat similar to the concept of typeclasses in, e.g., Haskell bu
 \end{itemize}
 
 With these definitions, deep free, deep copy or a lexicographic order on lists can be implemented generically, using $\iexp{afree}$, $\iexp{acopy}$, $\iexp{aeq}$ and $\iexp{alt}$ for element-wise freeing, copying or comparisons.
-In particular, if some datatype $\tv{a}$ supports freeing and copying (i.e. it instantiates $\iexp{freeable\_assn}$ and $\iexp{copyable\_assn}$), then a list of elements of type $\tv{a}$ can itself also instantiate $\iexp{freeable\_assn}$ and $\iexp{copyable\_assn}$.
+In particular, if some datatype $\tv{a}$ supports freeing and copying (i.e. its refinement relation instantiates $\iexp{freeable\_assn}$ and $\iexp{copyable\_assn}$), then a list of elements of type $\tv{a}$ can itself also instantiate $\iexp{freeable\_assn}$ and $\iexp{copyable\_assn}$.
 This allows for convenient nesting of data structures without having to reimplement functions at each level of nesting.
 
 \subsection{Linked Lists with Tail Pointers}\label{sec:lists-with-tail-pointers}
@@ -349,7 +349,7 @@ I discuss lookup and update here, the other functions are implemented in a simil
 			      \iexp{None}             & \text{, otherwise}
 		      \end{cases}
 	      \end{gather*}
-	      In the next section, the list is eventually refined by an array, so $ol \app \iexp{!} \app k$ has $\mathcal{O}(1)$ runtime.
+	      In the next section, the list is eventually refined by an array, so $ol \app \iexp{!} \app k$ has $\mathcal{O}(1)$ runtime complexity.
 	\item The update function, $\iexp{opt\_list\_update} \dbcolon \iexp{nat} \rightarrow \tv{a} \rightarrow \tv{a} \app \iexp{option} \app \iexp{list} \rightarrow \tv{a} \app \iexp{option} \app \iexp{list}$, for given key $k$, value $v$ and list $ol$ of optionals is implemented by
 	      \begin{gather*}
 		      \iexp{opt\_list\_update} \app k \app v \app ol = (ol \app \iexp{@} \app \iexp{None}^{(k + 1 - \iexp{length} \app ol)})[k:=\iexp{Some} \app v]
@@ -394,7 +394,7 @@ $\iexp{box\_assn} \app A$ can then be used to instantiate $\iexp{dflt\_option\_p
 For the remainder of this subsection, I assume $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ to be a refinement assertion that instantiates $\iexp{dflt\_option\_private}$ (which in the Pastèque implementation is always achieved through the $\iexp{box\_assn}$ wrapper).
 
 I refine the outer list of the high level $\tv{a} \app \iexp{option} \app \iexp{list}$ using a variation of Isabelle-LLVM's $\iexp{arl\_assn}$\footnote{Defined in theory \isaname{Isabelle_LLVM.LLVM_DS_Array_List}.}.
-$\iexp{arl\_assn}$ refines lists by arrays and stores the array's length and capacity (which might be greater than the length).
+$\iexp{arl\_assn}$ refines lists by arrays and stores the array's length and capacity.
 The variation of $\iexp{arl\_assn}$ I use is defined by $\iexp{iarl\_assn} \dbcolon \tv{a} \app \iexp{list} \rightarrow (64 \app \iexp{word} \app \times \app 64 \app \iexp{word} \app \times \app \tv{a} \app \iexp{ptr}) \rightarrow \iexp{assn}$ as follows:\footnote{The notation given here is slightly simplified, the actual assertion is defined in theory \isaname{LLVM_DS_Partial_Map}.}
 \begin{align*}
 	\iexp{iarl\_assn}   & \app xs \app (li,ci,ai) =                                                                                                                                     \\
@@ -413,13 +413,14 @@ Second, $\iexp{iarl\_assn}$ also explicitly asserts that the allocated cells bey
 Since all allocations go through \inlinecode{isabelle_llvm_calloc}, all arrays in Isabelle-LLVM are initialized with $\iexp{dflt}$, but $\iexp{arl\_assn}$ does not carry this information.
 For the purpose of carrying the option type, given by $\iexp{box\_assn}$, it is required that newly allocated space explicitly has value $\iexp{dflt}$, which would be impossible to prove (despite being true) if $\iexp{arl\_assn}$ was used.
 As $\iexp{iarl\_assn}$ only extends $\iexp{arl\_assn}$ by information required for proofs, but otherwise uses the same underlying representation, operations already defined on $\iexp{arl\_assn}$ (in particular accessing or updating elements and initializing or resizing the array) can be reused and corresponding correctness proofs carry over to $\iexp{iarl\_assn}$ easily.
-Note that in Pastèque, arrays only grow and never shrink which would require explicitly setting cells to $\iexp{dflt}$ again.
+Note that in Pastèque, the array only grows and never shrinks which would require explicitly setting cells to $\iexp{dflt}$ again.
 
 To finally obtain a refinement target for lists of optionals, I define $\iexp{pmap\_assn} \dbcolon \tv{a} \app \iexp{option} \app \iexp{list} \rightarrow (64 \app \iexp{word} \app \times \app 64 \app \iexp{word} \app \times \app \tv{b} \app \iexp{ptr}) \rightarrow \iexp{assn}$ as follows
 \begin{gather*}
 	\iexp{pmap\_assn} = \lambda xs \app p. \app \exists xsi. \app \iexp{iarl\_assn} \app xsi \app p \app \ast \app (\iexp{list\_aux} \app A\iexp{.option\_assn}) \app xs \app xsi
 \end{gather*}
 This uses the auxiliary $\iexp{list\_aux}$ assertion as defined in \refsec{sec:refinement-assertion-for-lists}.
+$A\iexp{.option\_assn}$ is the refinement assertion for refining $\tv{a} \app \iexp{option}$ which exists because $A$ instantiates $\iexp{dflt\_option\_private}$.
 
 All operations from the high-level list of optionals implementation are then implemented on $\iexp{llM}$ level.
 \isabellecodeextern[linerange=140-153,label=algo:pmap_update-implementation,caption={
@@ -439,7 +440,7 @@ I then prove a Hoare-triple
 	\{\lambda r. \app \iexp{pmap\_assn} \app (\iexp{opt\_list\_update} \app k \app v \app xs) \app r\}
 \end{gather*}
 The triple can be read as follows:
-If $ki \dbcolon 64 \app \iexp{word}$ refines a key $k \dbcolon \iexp{nat}$, which fits into a signed 64-bit integer, $vi \dbcolon \tv{b}$ refines $v \dbcolon \tv{a}$ (as specified by refinement assertion $A$) and $ai \dbcolon 64 \app \iexp{word} \times 64 \app \iexp{word} \times \tv{b} \app \iexp{ptr}$ refines $xs \dbcolon \tv{a} \app \iexp{option} \app \iexp{list}$ (as specified by $\iexp{pmap\_assn}$), then, after executing $\iexp{pmap\_update} \app ki \app vi \app ai$, the result refines the result of the high-level implementation $\iexp{opt\_list\_update} \app k \app v \app xs$.
+If $ki \dbcolon 64 \app \iexp{word}$ refines a key $k \dbcolon \iexp{nat}$ and $k+1$ fits into a signed 64-bit integer, $vi \dbcolon \tv{b}$ refines $v \dbcolon \tv{a}$ (as specified by refinement assertion $A$) and $ai \dbcolon 64 \app \iexp{word} \times 64 \app \iexp{word} \times \tv{b} \app \iexp{ptr}$ refines $xs \dbcolon \tv{a} \app \iexp{option} \app \iexp{list}$ (as specified by $\iexp{pmap\_assn}$), then, after executing $\iexp{pmap\_update} \app ki \app vi \app ai$, the result refines the result of the high-level implementation $\iexp{opt\_list\_update} \app k \app v \app xs$.
 Note that the array takes ownership of the given value, so if the caller wants to keep the value, they must first copy it.
 
 Through this Hoare-triple and the correctness proof of $\iexp{opt\_list\_update}$ in \refsec{sec:partial-map-by-list-of-optionals}, I define a refinement chain $\iexp{pmap\_update} \rightsquigarrow \iexp{opt\_list\_update} \rightsquigarrow (\lambda k \app v \app m. \app m(k\mapsto v))$ which is then picked up by sepref for each map update operation in the high-level Pastèque implementation.

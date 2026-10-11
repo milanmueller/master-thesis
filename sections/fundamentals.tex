@@ -247,12 +247,12 @@ The following definitions and terminology depend on the memory model and are onl
 	\item An \textit{assertion} is a function $f \dbcolon \iexp{mem} \rightarrow \iexp{bool}$ used to make statements about the state of memory.
 	      I use the type synonym $\iexp{assn} := \iexp{mem} \rightarrow \iexp{bool}$ as type annotation for assertions.
 	\item The separating conjunction operator $\ast \dbcolon \iexp{assn} \rightarrow \iexp{assn} \rightarrow \iexp{assn}$ allows for combination of assertions.
-	      If $A \dbcolon \iexp{assn}$ and $B \dbcolon \iexp{assn}$ are assertions, then $A \ast B$ is an assertion that evaluates to $\iexp{True}$ for a given state $h \dbcolon \iexp{mem}$, iff. there exists a decomposition $h = x + y$ such that $x \#\# y$ (i.e. $x$ and $y$ are disjoint) and $A \app x$ and $B \app y$.
+	      If $A \dbcolon \iexp{assn}$ and $B \dbcolon \iexp{assn}$ are assertions, then $A \ast B$ is an assertion that evaluates to $\iexp{True}$ for a given state $h \dbcolon \iexp{mem}$, iff there exists a decomposition $h = x + y$ such that $x \#\# y$ (i.e. $x$ and $y$ are disjoint) and $A \app x$ and $B \app y$.
 	\item Some datatypes can be represented in LLVM.
 	      In particular, the type $w \app \iexp{word}$, of machine words with width $w$, where $w$ is one of $1,8,64,128$, is representable in LLVM and is used throughout the thesis.
 	      Note that other bit-widths are also representable, but are not used in the thesis.
 	\item $\tv{a} \app \iexp{ptr}$ is the type of pointers to values of type $\tv{a}$.
-	      For $\mapsto \dbcolon \tv{a} \app \iexp{ptr} \rightarrow \tv{a} \rightarrow \iexp{assn}$, the assertion $(p \mapsto a) \sigma $ evaluates to $\iexp{True}$, iff. $p$ is a pointer to $a$ in state $\sigma$\footnote{$\mapsto$ is based on the assertion $\iexp{ll\_bpto}$, which is defined in the theory \isaname{Isabelle_LLVM.LLVM_DS_Block_Alloc}.}.
+	      For $\mapsto \dbcolon \tv{a} \app \iexp{ptr} \rightarrow \tv{a} \rightarrow \iexp{assn}$, the assertion $(p \mapsto a) \app \sigma$ evaluates to $\iexp{True}$, iff $p$ is a pointer to $a$ in state $\sigma$\footnote{$\mapsto$ is based on the assertion $\iexp{ll\_bpto}$, which is defined in the theory \isaname{Isabelle_LLVM.LLVM_DS_Block_Alloc}.}.
 	      Note that $p \mapsto a$ implicitly states exclusive ownership of the object $p$ points to, as no object can have multiple separate owners in the separation logic.
 	      \refsec{sec:ownership-in-isabelle-llvm} discusses this more thoroughly as this observation introduces the main challenge for the migration of Pastèque to Isabelle-LLVM.
 	\item Similarly to the $\iexp{nres}$ monad, Isabelle-LLVM uses a state-error-nondeterminism monad $\tv{a} \app \iexp{llM}$ to describe sequential LLVM programs with return type $\tv{a}$.
@@ -261,7 +261,7 @@ The following definitions and terminology depend on the memory model and are onl
 	      While I do not give a formal introduction of the $\iexp{llM}$ monad, \refalgo{algo:sum-imperative-refined} shows an example program expressed in $\iexp{llM}$.
 \end{itemize}
 
-$\iexp{emp}$ is an assertion that evaluates to $\iexp{True}$ iff the given state is $0$, i.e. $\iexp{emp} = \lambda s. s = 0$.
+$\iexp{emp}$ is an assertion that evaluates to $\iexp{True}$ iff the given state is $0$, i.e. $\iexp{emp} = \lambda s. \app s = 0$.
 To make assertions independent of the state of memory, a boolean value can be lifted to an assertion by $\uparrow \app \dbcolon \iexp{bool} \rightarrow \iexp{assn}$ where $\uparrow \app b = \lambda h. \iexp{emp} h \land b$.
 
 In Isabelle-LLVM, a \textit{refinement assertion} $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ is a function that produces an assertion for given values of type $\tv{a}$ and $\tv{b}$, where type $\tv{b}$ is representable in LLVM.
@@ -311,7 +311,7 @@ With these assertions, the \inlinecode{sepref} tool can then synthesize a progra
 			$\iexp{llM}$-level implementation of \refalgo{algo:sum-imperative-bound}, synthesized by \inlinecode{sepref}.
 		}]{isabelle-code/LLVM_Basics.thy}
 The type signature of $\iexp{sum\_impl}$ implies the concrete datatypes used: The list is implemented by an array of 64-bit (signed) integers, the sum is implemented by a 64-bit (signed) integer.
-In the tuple $64 \app \iexp{word} \times 64 \app \iexp{word} \app \iexp{ptr}$, the first element saves the length of the array, while the second element is a pointer to the actual data.
+In the tuple $64 \app \iexp{word} \times 64 \app \iexp{word} \app \iexp{ptr}$, the first element stores the length of the array, while the second element is a pointer to the actual data.
 The concrete datatype is a choice the user must make.
 In this example, one could also choose to, e.g., implement the abstract list by a linked list of 8-bit unsigned integers.
 
@@ -339,7 +339,7 @@ This subsection introduces the notion of pure refinement assertions and how Isab
 A refinement assertion $A \dbcolon \tv{a} \rightarrow \tv{b} \rightarrow \iexp{assn}$ is \textit{pure} if it holds that $\forall a \app b \app s. \app A \app a \app b \app s \Rightarrow s = 0$.
 Refinement assertions with stack allocated refinement targets, in particular machine words, are pure.
 The introduced refinement assertions $\iexp{si8\_assn}$ and $\iexp{sn64\_assn}$ are therefore examples of pure refinement assertions.
-Refinement targets of pure assertions can be trivially duplicated without requiring a custom defined copy implementation as such duplication corresponds to a single move instruction.
+Refinement targets of pure assertions can be trivially duplicated without requiring a custom defined copy implementation.
 For example, the earlier Hoare-triple from \refsec{sec:isabelle-llvm} can be strengthened to
 \begin{gather*}
 	\{\uparrow(a + b \le 127 \land -128 \le a + b) \ast \iexp{si8\_assn} \app a \app ai \ast \iexp{si8\_assn} \app b \app bi\} \\
@@ -361,9 +361,9 @@ for an implementation $\iexp{take\_impl}$ of $\iexp{take}$ such that the origina
 
 In a language like C, one might implement $\iexp{take\_impl}$ such that $xsi$ and $r$ both point to the same data in memory, but $r$ has length $ii$, while $xsi$ still has its original length.
 While this is efficient and has constant runtime complexity, in Isabelle-LLVM it is impossible to implement $\iexp{take\_impl}$ this way since, for a conjunct of refinement assertions, the respective assertions must hold for separate parts of memory.
-Intuitively, drawing an analogy to Rust's ownership model \cite[Ch. ~4]{rustbook2023}, each resource must have a unique owner.
+Intuitively, drawing an analogy to Rust's ownership model, each resource must have a unique owner.
 
-In recent developments, Isabelle-LLVM was extended to support fractional separation logic \cite{isabelle-llvm-fractional} which enables shared read-only access to an object and in this example might allow for using a shared, read-only prefix of $xsi$, but at the time of starting the work on this thesis, the extension was not yet published.
+In recent developments, Isabelle-LLVM was extended to support fractional separation logic \cite{isabelle-llvm-fractional} which enables shared read-only access to an object and in this example might allow for using a shared, read-only prefix of $xsi$, but at the time of starting the work on this thesis, the fractional separation logic for Isabelle-LLVM was not yet published.
 
 The actual implementation of the $\iexp{take}$ operation in Isabelle-LLVM therefore proves a different Hoare-triple
 \begin{gather*}
@@ -461,7 +461,9 @@ Secondly, the state representation defined above implies a need for container da
     \item I compose and extend existing data structures to implement a partial map, yielding a refinement target for the map of stored polynomials $\iexp{A}$.
         The partial map implementation is discussed in \refsec{sec:partial-maps}.
     \item To refine the set of variables $\mathscr{V}$, I implement hashsets and define a simple hash function for strings.
+          \refsec{sec:hashmaps} discusses the hashset implementation.
     \item I refine $\iexp{VN}$ by a custom hashmap implementation, reusing the hash function from the hashset of strings.
+          \refsec{sec:hashmaps} discusses the hashmap implementation.
 \end{itemize}
 
 Some finalizing work on the Isabelle-LLVM migration of Pastèque is discussed in \refsec{sec:finalization-of-llvm-migration}.

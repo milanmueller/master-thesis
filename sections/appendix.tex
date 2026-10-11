@@ -45,6 +45,7 @@ Theory & Origin & Changes or purpose \\
 \isaname{More_EOArray} & new & An extension to the \isaname{Isabelle_LLVM.EOArray} theory. \\
 \isaname{PAC_Map_Rel} & AFP & Ported to Isabelle-LLVM; removed the rewrite of key membership into an option-returning lookup; commented out the Imperative-HOL hash map. \\
 \isaname{PAC_Checker_Relation} & AFP & Largely rewritten: removed the \isaname{String.literal} representation and the assertions for monomials, polynomials, and steps (now in \isaname{PAC_Polynomials_Assn} and \isaname{PAC_Step_Assn}); kept the term order; added \isaname{mnl_le_impl}. \\
+\isaname{LPAC_Efficient_Checker_Correctness} & new & Full correctness theorem for the shared variable checker; moved out of \isaname{LPAC_Efficient_Checker_Synthesis}. \\
 \addlinespace
 \multicolumn{3}{@{}l}{\emph{Data structures}} \\
 \isaname{LLVM_DS_Copying_List} & new & Linked list implementation discussed in \refsec{sec:lists-with-tail-pointers}.\\
@@ -69,7 +70,7 @@ Theory & Origin & Changes or purpose \\
 \isaname{PAC_Checker} & AFP & Ported the step assertion to Isabelle-LLVM separation logic; adapted to the curried \isaname{add_poly_l}; adapted the overflow bound to \isaname{max_snat 64}. \\
 \isaname{PAC_Step_Assn} & new & Assertion for PAC steps as tagged products, with constructors, discriminators, destructors, and deallocation. \\
 \isaname{LPAC_Step_Assn} & new & Assertion for LPAC steps, analogous to \isaname{PAC_Step_Assn}; replaces \isaname{LPAC_Steps_Refine} of IsaFoL. \\
-\isaname{LPAC_Step_Assn_Array} & new & Variant of \isaname{LPAC_Step_Assn} with array-based strings. Not listed in \isaname{ROOT}; imported. \\
+\isaname{LPAC_Step_Assn_Array} & new & Variant of \isaname{LPAC_Step_Assn} with array-based strings. \\
 \isaname{LPAC_Checker} & IsaFoL & Replaced the Imperative-HOL step assertion by \isaname{LPAC_Step_Assn}; adapted to the curried \isaname{add_poly_l}. \\
 \isaname{LPAC_Checker_Error} & new & Synthesis of the LPAC error messages for both checkers and printing of shared polynomials; moved out of \isaname{LPAC_Checker_Synthesis} and \isaname{LPAC_Efficient_Checker_Synthesis}. \\
 \isaname{LPAC_Perfectly_Shared} & IsaFoL & Unchanged apart from imports. \\
@@ -79,13 +80,13 @@ Theory & Origin & Changes or purpose \\
 \isaname{LPAC_Version} & IsaFoL & Unchanged. \\
 \addlinespace
 \multicolumn{3}{@{}l}{\emph{Synthesis}} \\
-\isaname{PAC_Checker_Error} & new & Synthesis of the status type and the PAC error messages; moved out of \isaname{PAC_Checker_Synthesis} of the AFP. \\
+\isaname{PAC_Checker_Error} & new & Synthesis of the status type and the PAC error messages; moved out of \isaname{PAC_Checker_Synthesis}. \\
 \isaname{PAC_Checker_Init} & AFP & Reduced to the normalisation of input polynomials; replaced quicksort and \isaname{WB_Sort} by \isaname{LLVM_List_Sorting}. \\
-\isaname{PAC_Checker_Synthesis} & AFP & Restructured: hash set of strings for variables, partial map for polynomials, loop and fold refinements of polynomial arithmetic, new side condition \isaname{step_id_bounded}; removed code export; correctness theorem commented out. \\
+\isaname{PAC_Checker_Synthesis} & AFP & Restructured: hash set of strings for variables, partial map for polynomials, loop and fold refinements of polynomial arithmetic. Correctness theorem commented out (only the shared variant correctness theorem is ported, \isaname{PAC_Checker_Synthesis} does not include the upper bound check for polynomial indices). \\
 \isaname{LPAC_Checker_Init} & IsaFoL & Emptied; the sorting it contained is no longer needed. \\
 \isaname{LPAC_Efficient_Checker_Refinement} & new & Refinement layer of the efficient checker (nres programs and their refinement proofs, without Sepref); moved out of \isaname{LPAC_Efficient_Checker_Synthesis} and reworked for synthesis. \\
 \isaname{LPAC_Efficient_Checker_Synthesis} & IsaFoL & Reduced to Sepref synthesis of the efficient checker; added fused lookup and addition that avoids copying polynomials from the map. \\
-\isaname{LPAC_Checker_Synthesis} & IsaFoL & Rewritten for Isabelle-LLVM; added \isaname{step_id_bounded}; removed SML-specific code setup and code export. \\
+\isaname{LPAC_Checker_Synthesis} & IsaFoL & Rewritten for Isabelle-LLVM; removed SML-specific code setup and code export. \\
 \isaname{LPAC_Codegen} & new & Export of LLVM code and C header: builder functions for the C parser and the entry point \isaname{run_checker}; replaces \isaname{PAC_Checker_MLton}, \isaname{LPAC_Checker_MLton}, and \isaname{LPAC_Efficient_Checker_MLton}. \\
 \end{longtable}
 }

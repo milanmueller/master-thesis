@@ -31,7 +31,9 @@ The concrete values of a refinement relation, in this case $64 \app \iexp{word} 
 Refinement assertions and refinement relations can be composed to obtain a full refinement assertion defining refinement of the high level HOL-type (in this case $\iexp{nat}$) and the LLVM-representable final refinement target (in this case arrays of unsigned 64-bit integers).
 The multiple precision integer library for instance defines $\iexp{bi\_assn} \dbcolon \iexp{nat} \rightarrow 64 \app \iexp{word} \times 64 \app \iexp{word} \times 64 \app \iexp{word} \app \iexp{ptr} \rightarrow \iexp{assn}$ through a composition of an auxiliary refinement assertion $\iexp{bi\_aux\_assn} \dbcolon 64 \app \iexp{word} \app \iexp{list} \rightarrow 64 \app \iexp{word} \times 64 \app \iexp{word} \times 64 \app \iexp{word} \app \iexp{ptr} \rightarrow \iexp{assn}$ and $\iexp{big\_int\_rel}$, where $64 \app \iexp{word} \times 64 \app \iexp{word} \times 64 \app \iexp{word} \app \iexp{ptr}$ is the $\iexp{llM}$-level representation of a resizable array of 64-bit machine words (the first two entries carry the array's size and capacity).
 
-Spinei implements addition, subtraction and multiplication operations for the 64-bit word lists, including correctness proofs of the form
+Spinei implements addition, subtraction and multiplication operations for the 64-bit word lists, including correctness proofs of the form\footnote{
+    The presented lemma is slightly simplified, the actual correctness lemma, $\iexp{big\_int\_add\_correct}$ in theory \isaname{BigInt_LLVM.BigInt} uses $\iexp{RETURN}$ and $\iexp{conc\_fun}$ as the actual $\iexp{big\_int\_add}$ is defined in $\iexp{nres}$.
+}
 \begin{gather*}
 	(xs,n) \in \iexp{big\_int\_rel} \land (ys,m) \in \iexp{big\_int\_rel} \\
 	\Rightarrow (\iexp{big\_int\_add} \app xs \app ys, n + m) \in \iexp{big\_int\_rel}
@@ -41,7 +43,7 @@ The other operations have analogous correctness proofs.
 The library contains a work-in-progress implementation of Karatsuba multiplication \cite{karatsuba} and a completed school book multiplication.
 For Pastèque, I use the school book multiplication.
 
-The sepref tool then synthesizes an $\iexp{llM}$-level refinement of the $\iexp{nres}$-level arithmetic functions like $\iexp{big\_int\_add}$.
+The sepref tool then synthesizes an $\iexp{llM}$-level refinement of arithmetic functions like $\iexp{big\_int\_add}$.
 This introduces a theoretical upper bound on the length of the arrays, as the length of arrays are stored in a (signed) 64-bit integer meaning that numbers $\geq (2^{64})^{2^{63}-1}$ can not be represented.
 In addition and multiplication operations, this bound can be exceeded theoretically.
 Ideally, a dynamic runtime check would abort the program at runtime, if the upper bound is exceeded.
@@ -93,7 +95,9 @@ Multiplication is implemented by
 \end{gather*}
 where $\iexp{big\_int\_mult}$ is the multiplication implementation from the library.
 
-I then prove correctness analogously to the unsigned case; in case of addition for example, I prove
+I then prove correctness analogously to the unsigned case; in case of addition for example, I prove\footnote{
+    Like in the correctness lemma for $\iexp{big\_int\_add}$, this presentation is simplified as the actual implementation $\iexp{signed\_big\_int\_add}$ is expressed in $\iexp{nres}$.
+}
 \begin{gather*}
 	((ws_1,\sigma_1),i_1) \in \iexp{signed\_big\_int\_rel} \land ((ws_2,\sigma_2),i_2) \in \iexp{signed\_big\_int\_rel} \\
 	\Rightarrow (\iexp{signed\_big\_int\_add} \app (ws_1,\sigma_1) \app (ws_2,\sigma_2), i_1 + i_2) \in \iexp{signed\_big\_int\_rel}
@@ -197,7 +201,6 @@ Isabelle-LLVM does not define a refinement target for $\iexp{char}$, so a custom
 The high level $\iexp{char}$ type is defined by eight booleans, i.e. $\iexp{char} = \iexp{Char} \app (\iexp{digit0} \dbcolon \iexp{bool}) \app \dots \app (\iexp{digit7} \dbcolon \iexp{bool})$, so the natural refinement target is $8 \app \iexp{word}$.
 I use the existing refinement assertion $\iexp{un8\_assn} \dbcolon \iexp{nat} \rightarrow 8 \app \iexp{word} \rightarrow \iexp{assn}$\footnote{I simplify the name here, the actual refinement assertion is $\iexp{unat\_assn' TYPE(8)}$.}, refining natural numbers $< 256$ by 8-bit machine words and compose it with the existing $\iexp{char\_of} \dbcolon \iexp{nat} \rightarrow \iexp{char}$ function to obtain $\iexp{char\_assn} \dbcolon \iexp{char} \rightarrow 8 \app \iexp{word} \rightarrow \iexp{assn}$.
 I then use the list implementation, discussed in \refsec{sec:lists-with-tail-pointers}, to obtain a refinement assertion $\iexp{strl\_assn}$ for strings.
-\todo{Maybe mention the alternative stra\_assn in the finalization section?}
 
 Implementing conversion between strings and integers amounts to refining the functions $\iexp{chars\_of\_int}$ and $\iexp{str\_sval}$.
 For $\iexp{str\_sval}$ this is straightforward by use of the $\iexp{foldl}$ implementation for lists in LLVM which is discussed in \refsec{sec:non-destructive-list-access-using-fold}.
