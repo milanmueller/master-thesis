@@ -614,3 +614,49 @@ pages = {520–534},
 numpages = {15},
 keywords = {Binary decision diagrams, Branching programs, Integer multiplication, OBDDs}
 }
+@InProceedings{drat-trim,
+author="Wetzler, Nathan
+and Heule, Marijn J. H.
+and Hunt, Warren A.",
+editor="Sinz, Carsten
+and Egly, Uwe",
+title="DRAT-trim: Efficient Checking and Trimming Using Expressive Clausal Proofs",
+booktitle="Theory and Applications of Satisfiability Testing -- SAT 2014",
+year="2014",
+publisher="Springer International Publishing",
+address="Cham",
+pages="422--429",
+abstract="The DRAT-trim tool is a satisfiability proof checker based on the new DRAT proof format. Unlike its predecessor, DRUP-trim, all presently known SAT solving and preprocessing techniques can be validated using DRAT-trim. Checking time of a proof is comparable to the running time of the proof-producing solver. Memory usage is also similar to solving memory consumption, which overcomes a major hurdle of resolution-based proof checkers. The DRAT-trim tool can emit trimmed formulas, optimized proofs, and new TraceCheck{\thinspace}+{\thinspace} dependency graphs. We describe the output that is produced, what optimizations have been made to check RAT clauses, and potential applications of the tool.",
+isbn="978-3-319-09284-3"
+}
+@inproceedings{isabelle-llvm-sort,
+author = {Lammich, Peter},
+title = {Efficient Verified Implementation of Introsort and Pdqsort},
+year = {2020},
+isbn = {978-3-030-51053-4},
+publisher = {Springer-Verlag},
+address = {Berlin, Heidelberg},
+url = {https://doi.org/10.1007/978-3-030-51054-1_18},
+doi = {10.1007/978-3-030-51054-1_18},
+abstract = {Sorting algorithms are an important part of most standard libraries, and both, their correctness and efficiency is crucial for many applications.As generic sorting algorithm, the GNU C++ Standard Library implements the introsort algorithm, a combination of quicksort, heapsort, and insertion sort. The Boost C++ Libraries implement pdqsort, an extension of introsort that achieves linear runtime on inputs with certain patterns.We verify introsort and pdqsort in the Isabelle LLVM verification framework, closely following the state-of-the-art implementations from GNU and Boost. On an extensive benchmark set, our verified implementations perform on par with the originals.},
+booktitle = {Automated Reasoning: 10th International Joint Conference, IJCAR 2020, Paris, France, July 1–4, 2020, Proceedings, Part II},
+pages = {307–323},
+numpages = {17}
+}
+@article{introsort,
+author = {MUSSER, DAVID R.},
+title = {Introspective Sorting and Selection Algorithms},
+journal = {Software: Practice and Experience},
+volume = {27},
+number = {8},
+pages = {983-993},
+keywords = {quicksort, heapsort, sorting algorithms, introspective algorithms, hybrid algorithms, generic algorithms, STL},
+year = {1997}
+}
+@misc{boost-pdqsort,
+  author       = {Steven Ross and Francisco Tapia and Orson Peters},
+  title        = {{Boost.Sort}: pdqsort},
+  howpublished = {\url{https://www.boost.org/doc/libs/latest/libs/sort/doc/html/sort/single_thread/pdqsort.html}},
+  note         = {Boost C++ Libraries, Abschnitt 2.2. Accessed: 2026-10-12},
+  year         = {2017}
+}

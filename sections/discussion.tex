@@ -1,6 +1,7 @@
 \section{Discussion and Conclusion}\label{sec:discussion}
 
 This section first discusses some potential future improvements to the Isabelle-LLVM based Pastèque implementation in \refsec{sec:future-development}.
+\refsec{sec:pacheck-comparison} shows some differences between Pacheck and Pastèque and discusses whether approaches used in Pacheck could also be realized in Pastèque.
 \refsec{sec:ai-usage-discussion} and \refsec{sec:takeaways} then close the thesis by a discussion on the use of generative AI tools and my subjective experience of working with Isabelle and Isabelle-LLVM.
 
 \subsection{Further Improvements to Pastèque}\label{sec:future-development}
@@ -18,6 +19,66 @@ It might be possible to instead define the null pointer as the explicit refineme
 Another possible change to Pastèque would be to move parsing to the Isabelle side such that the C side only handles IO and hands the files directly as strings to the verified LLVM code.
 While it is unlikely that this change would improve performance, it would reduce the amount of trusted parsing code and allow for a verified parsing process.
 However, one would have to formally define a semantic for the given input files to obtain a meaningful correctness proof which is a non-trivial task.
+
+\subsection{Comparison to Pacheck}\label{sec:pacheck-comparison}
+The evaluation in \refsec{sec:evaluation} shows that Pacheck is faster than both variants of Pastèque.
+This subsection notes some differences of Pacheck, compared to Pastèque, and discusses whether a similar approach could possibly be used for Pastèque.
+
+Variables (i.e. strings) in Pacheck are unique; if a variable occurs in multiple terms, the terms will reference the same variable object.
+This is also implemented in Pastèque through the shared variable optimization, given by $\iexp{NV}$ and $\iexp{VN}$ (cf. \refsec{sec:methodology_high-level-representation-of-polynomials}).
+Like Pastèque, Pacheck implements terms as linked lists of variables.
+Other that in Pastèque however, terms are unique in Pacheck; if two terms have a common suffix, they will reference the same chain of nodes.
+In Pasteque, two terms would be two separate lists, as indicated in Figure~\ref{fig:pacheck-shared-suffix}.
+\begin{figure}[htbp]
+	\centering
+	\begin{tikzpicture}[
+			var/.style={draw, rectangle, minimum width=7mm, minimum height=7mm, font=\ttfamily, text height=1.5ex, text depth=.25ex},
+			heading/.style={text height=2ex, text depth=.25ex},
+			ptr/.style={->, >=stealth, thick},
+			node distance=6mm and 6mm,
+		]
+		% Pastèque: one separate list per term
+		\node[var] (pa) {a};
+		\node[var, right=of pa] (pb1) {b};
+		\node[var, right=of pb1] (pc1) {c};
+		\node[var, right=of pc1] (pd1) {d};
+		\node[var, below=of pa] (px) {x};
+		\node[var, right=of px] (pb2) {b};
+		\node[var, right=of pb2] (pc2) {c};
+		\node[var, right=of pc2] (pd2) {d};
+		\draw[ptr] (pa) -- (pb1);
+		\draw[ptr] (pb1) -- (pc1);
+		\draw[ptr] (pc1) -- (pd1);
+		\draw[ptr] (px) -- (pb2);
+		\draw[ptr] (pb2) -- (pc2);
+		\draw[ptr] (pc2) -- (pd2);
+		\node[heading, above=4mm] at ($(pa.north)!0.5!(pd1.north)$) {Pastèque};
+
+		% Pacheck: terms share their common suffix
+		\node[var, right=18mm of pd1] (ka) {a};
+		\node[var, right=of ka] (kb) {b};
+		\node[var, right=of kb] (kc) {c};
+		\node[var, right=of kc] (kd) {d};
+		\node[var, below=of ka] (kx) {x};
+		\draw[ptr] (ka) -- (kb);
+		\draw[ptr] (kb) -- (kc);
+		\draw[ptr] (kc) -- (kd);
+		\draw[ptr] (kx) -- (kb);
+		\node[heading, above=4mm] at ($(ka.north)!0.5!(kd.north)$) {Pacheck};
+	\end{tikzpicture}
+	\caption{Representation of the terms $abcd$ and $xbcd$ as linked lists of variables.
+		Pastèque stores both terms as separate lists, whereas in Pacheck the term $xbcd$ references the shared suffix $bcd$ of the term $abcd$.}
+	\label{fig:pacheck-shared-suffix}
+\end{figure}
+The same layout would not be possible in Pastèque as refinement assertions for the two linked lists could not reference the same suffix.
+Consequently, copying terms or monomials in Pacheck amounts to increasing their reference counter, in Pastèque, copying actually creates a copy of the respective object in memory.
+Checking equality of terms in Pacheck amounts to a pointer comparison, while in Pastèque, all pairs of variables are compared until an unequal pair is found.
+
+Pacheck interleaves parsing and checking, similar to the \inlinecode{uloop} option in Pastèque (which only exists for the Standard ML backend).
+If parsing was moved from C to Isabelle, it would be possible to also interleave parsing and checking in Pastèque while still fully verifying correctness.
+
+Lastly, Pacheck uses GMP \cite{gmp} for multiple precision arithmetic which is likely faster than the currently used custom multiple precision integer library by Spinei \cite{spinei_isabelle_big_integer} in the LLVM backend of Pastèque.
+As of now, it is unclear however how much of an impact this has on the performance difference between Pastèque and Pacheck.
 
 \subsection{AI-Assisted Proof Development}\label{sec:ai-usage-discussion}
 When starting to work on this thesis, I initially set a goal of not using any generative AI tools for Isabelle proofs or implementation.

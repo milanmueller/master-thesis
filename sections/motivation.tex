@@ -6,8 +6,8 @@ Being complex programs, such solvers are prone to have bugs leading to incorrect
 This is not merely a theoretical argument as fuzz testing solvers from the SAT competition 2007 showed errors in multiple competing solvers \cite{sat-fuzzing-2007} and fuzz testing SMT solvers has shown similar inconsistencies \cite{smt-fuzzing,smt-fuzzing-2020}.
 Especially when SAT or SMT solvers are used as part of a larger verification effort, for instance when SMT solvers are used as an oracle by a deductive verifier, an unsound answer by the solver silently invalidates the entire verification process.
 To increase trust in a SAT solver's result, proof formats like DRAT \cite{DRAT} have emerged as a means to enable validation of the solver's deduction independently by a third-party proof checker.
-With this approach however, overall trust largely depends on the correctness of the proof checker which itself might have bugs, motivating the formal verification of the proof checker.
-In case of SAT, this idea has manifested first in the GRAT toolchain \cite{Lammich2020} and \inlinecode{cake_lpr} \cite{cake-lpr}, for instance, both of which are formally verified and are used in the 2026 SAT competition's main track to validate results \cite{satcomp2026output}.
+With this approach however, overall trust largely depends on the correctness of the proof checker, which itself might have bugs (as was the case in \inlinecode{drat-trim} \cite{drat-trim} for instance \cite{Lammich2020}), motivating the formal verification of the proof checker.
+In the case of SAT, the idea of a formally verified proof checker has manifested first in the GRAT toolchain \cite{Lammich2020} and \inlinecode{cake_lpr} \cite{cake-lpr}, both of which are formally verified and are used in the 2026 SAT competition's main track to validate results \cite{satcomp2026output}.
 
 One application of automated reasoning tools is the verification of hardware designs.
 Correctness of such designs is crucial to manufacturers since fabricating and shipping faulty designs comes at immense cost, as was shown in the famous Intel FDIV-bug \cite{fdiv, fdiv-cost}.
@@ -24,8 +24,9 @@ The verified programs can be exported to Standard ML code which is compiled usin
 Contrary to the mentioned SAT and SMT solvers, proof automation in Sepref is not trusted to be correct.
 Instead, each proof step is checked by Isabelle's small core reduction engine (kernel) which would reject unsound proofs.
 Compared to efficient languages like C++ with manual memory management however, programs written in Standard ML tend to be slower.
-The newer Isabelle-LLVM framework \cite{isabelle-llvm}, also by Lammich, employs the same step-wise refinement approach but targets a shallow embedding of LLVM instead of Standard ML.
-Compared to Standard ML, generated LLVM code allows for manual memory management while giving similar, if not stronger correctness guarantees due to the wide adoption, for instance in the Apple ecosystem \cite{acm2012llvm}, and extensive testing and partial verification of the LLVM compiler tools \cite{alive2, Csmith}.
+The newer Isabelle-LLVM framework \cite{isabelle-llvm}, also by Lammich, employs the same step-wise refinement approach but targets a shallow embedding of LLVM instead of Standard ML, allowing for more efficient programs.
+Verified implementations of introsort \cite{introsort} and pdqsort in Isabelle-LLVM for instance were shown to perform on par with unverified C++ implementations in the GNU C++ Standard library and the Boost C++ libraries \cite{boost-pdqsort} respectively \cite{isabelle-llvm-sort}.
+Compared to Sepref with the Standard ML backend, Isabelle-LLVM gives similar, if not stronger correctness guarantees due to the wide adoption (for instance in the Apple ecosystem \cite{acm2012llvm}) and extensive testing and partial verification of the LLVM compiler tools \cite{alive2, Csmith}.
 
 The formally verified SAT solver IsaSAT by Fleury \cite{isasat-sml} was initially implemented with Sepref and then migrated to Isabelle-LLVM which led to a performance increase by a factor of two in tests \cite{isasat-llvm}.
 This observation motivates the migration of the PAC checker Pastèque to Isabelle-LLVM, which is the objective of this thesis.

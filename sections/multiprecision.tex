@@ -207,11 +207,11 @@ For $\iexp{str\_sval}$ this is straightforward by use of the $\iexp{foldl}$ impl
 Refinement of $\iexp{chars\_of\_int}$ is more involved as it requires division of multiple precision integers by 10.
 In particular, for a given unsigned multiple precision integer $n$, the implementation must compute $\lfloor \frac{n}{10} \rfloor $ and $n \text{ mod } 10$.
 
-The division is implemented by classic schoolbook division.
-The core of the division is implemented by a function $\iexp{bi\_div\_by\_w64}$, a simplified version of which\footnote{the actual definition in theory \isaname{LLVM_ASCII_String} also includes an invariant required for correctness and $\iexp{ASSERT}$ statements required for refinement to $\iexp{llM}$.} is shown in \refalgo{algo:bi-div-by-w64}, where $\iexp{big\_int} \equiv 64 \app \iexp{word} \app \iexp{list}$.
 \isabellecodeextern[linerange=12-28,label=algo:bi-div-by-w64,caption={
 			Core algorithm for dividing multiple precision numbers by a given 64-bit integer.
 		}]{isabelle-code/BigIntString_Simplified.thy}
+The division is implemented by classic schoolbook division.
+The core of the division is implemented by a function $\iexp{bi\_div\_by\_w64}$, a simplified version of which\footnote{the actual definition in theory \isaname{LLVM_ASCII_String} also includes an invariant required for correctness and $\iexp{ASSERT}$ statements required for refinement to $\iexp{llM}$.} is shown in \refalgo{algo:bi-div-by-w64}, where $\iexp{big\_int} \equiv 64 \app \iexp{word} \app \iexp{list}$.
 The helper function $\iexp{divmod2by1}$ is shown in \refalgo{algo:divmod2by1}.
 \isabellecodeextern[linerange=6-9,label=algo:divmod2by1,caption={
 			Helper function dividing a 128-bit integer by a 64-bit integer.
