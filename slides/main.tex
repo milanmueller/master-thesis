@@ -1,0 +1,492 @@
+\documentclass[aspectratio=169, 11pt]{beamer}
+
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\input{setup}
+
+% Bibliography: same sources as the thesis (see ../setup.tex)
+\usepackage[backend=bibtex,style=numeric,sorting=none]{biblatex}
+\addbibresource{../references/motivation.bib}
+\addbibresource{../references/fundamentals.bib}
+\addbibresource{../references/methodology.bib}
+\addbibresource{../references/multiprecision.bib}
+\addbibresource{../references/datatypes.bib}
+\addbibresource{../references/evaluation.bib}
+\addbibresource{../references/discussion.bib}
+\usepackage{tikz}
+\usetikzlibrary{circuits.logic.US, positioning, calc, shapes.multipart, arrows.meta}
+\newcommand{\tikzmark}[1]{\tikz[remember picture, overlay]\node[coordinate] (#1) {};}
+
+\usetheme{CambridgeUS}
+\setbeamertemplate{navigation symbols}{}
+
+% Colors from Corporate Design Uni Freiburg (same as ../setup.tex)
+
+\definecolor{cd_blue}{HTML}{344A9A}
+\definecolor{cd_black}{HTML}{000000}
+\definecolor{cd_white}{HTML}{FFFFFF}
+
+\definecolor{cd_background_blue_100_percent}{HTML}{344A9A}
+\definecolor{cd_background_blue_80_percent}{HTML}{5D6BAD}
+\definecolor{cd_background_blue_60_percent}{HTML}{868DC2}
+\definecolor{cd_background_blue_40_percent}{HTML}{AFB1D8}
+\definecolor{cd_background_blue_20_percent}{HTML}{D7D8EC}
+\definecolor{cd_background_dark_blue}{HTML}{00004a}
+\definecolor{cd_background_sand_100_percent}{HTML}{f6f1e3}
+\definecolor{cd_background_sand_50_percent}{HTML}{faf8f1}
+
+\definecolor{cd_additional_green_100_percent}{HTML}{00a082}
+\definecolor{cd_additional_green_80_percent}{HTML}{27b29b}
+\definecolor{cd_additional_green_60_percent}{HTML}{7bc6b4}
+\definecolor{cd_additional_green_40_percent}{HTML}{afdace}
+\definecolor{cd_additional_green_20_percent}{HTML}{daede7}
+\definecolor{cd_additional_brown_100_percent}{HTML}{8f6b30}
+\definecolor{cd_additional_brown_80_percent}{HTML}{a58959}
+\definecolor{cd_additional_brown_60_percent}{HTML}{bca683}
+\definecolor{cd_additional_brown_40_percent}{HTML}{d2c4ac}
+\definecolor{cd_additional_brown_20_percent}{HTML}{e9e1d6}
+\definecolor{cd_additional_yellow_100_percent}{HTML}{ffe863}
+\definecolor{cd_additional_yellow_80_percent}{HTML}{ffed82}
+\definecolor{cd_additional_yellow_60_percent}{HTML}{fff1a1}
+\definecolor{cd_additional_yellow_40_percent}{HTML}{fff6c1}
+\definecolor{cd_additional_yellow_20_percent}{HTML}{fffae0}
+\definecolor{cd_additional_pink_100_percent}{HTML}{f5c2ed}
+\definecolor{cd_additional_pink_80_percent}{HTML}{f7cef1}
+\definecolor{cd_additional_pink_60_percent}{HTML}{f9daf4}
+\definecolor{cd_additional_pink_40_percent}{HTML}{fbe7f8}
+\definecolor{cd_additional_pink_20_percent}{HTML}{fdf3fb}
+
+% Replace the dark red of the CambridgeUS (beaver) color theme with the CD colors
+
+\setbeamercolor{structure}{fg=cd_blue}
+\setbeamercolor{normal text}{fg=cd_black, bg=cd_white}
+\setbeamercolor{alerted text}{fg=cd_additional_green_100_percent}
+\setbeamercolor{section in toc}{fg=cd_black, bg=cd_white}
+
+\setbeamercolor*{palette primary}{fg=cd_white, bg=cd_background_blue_80_percent}
+\setbeamercolor*{palette secondary}{fg=cd_white, bg=cd_additional_green_100_percent}
+\setbeamercolor*{palette tertiary}{fg=cd_white, bg=cd_blue}
+\setbeamercolor*{palette quaternary}{fg=cd_white, bg=cd_blue}
+
+\setbeamercolor*{sidebar}{fg=cd_white, bg=cd_blue}
+\setbeamercolor*{palette sidebar primary}{fg=cd_black}
+\setbeamercolor*{palette sidebar secondary}{fg=cd_white}
+\setbeamercolor*{palette sidebar tertiary}{fg=cd_blue}
+\setbeamercolor*{palette sidebar quaternary}{fg=cd_background_blue_20_percent}
+
+\setbeamercolor{titlelike}{fg=cd_white, bg=cd_blue}
+\setbeamercolor{frametitle}{fg=cd_white, bg=cd_blue}
+\setbeamercolor{frametitle right}{bg=cd_additional_green_100_percent}
+
+\setbeamercolor{block title}{fg=cd_white, bg=cd_blue}
+\setbeamercolor{block body}{fg=cd_black, bg=cd_background_blue_20_percent}
+\setbeamercolor{block title alerted}{fg=cd_white, bg=cd_additional_green_100_percent}
+\setbeamercolor{block body alerted}{fg=cd_black, bg=cd_additional_green_20_percent}
+\setbeamercolor{block title example}{fg=cd_white, bg=cd_additional_brown_100_percent}
+\setbeamercolor{block body example}{fg=cd_black, bg=cd_additional_brown_20_percent}
+
+\title[Pastèque with Arbitrarily Large Integers]{Pastèque, the verified PAC Checker in Isabelle-LLVM with Arbitrarily Large Integers}
+\subtitle{Master's Thesis}
+\author{Milan Müller}
+\institute[Uni Freiburg]{Albert-Ludwigs-Universität Freiburg}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\section{The Practical Algebraic Calculus}
+
+\subsection{Motivation}
+
+\begin{frame}
+    \begin{itemize}
+        \item SAT can verify (large) adders
+        \item Does not scale for multipliers
+        \item BDDs also do not scale
+        \item $\rightsquigarrow$ use algebraic reasoning
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Example: OR from AND and NOT}
+    \setbeamercovered{invisible}
+    \centering
+    \begin{tikzpicture}[circuit logic US, node distance=0.8cm,
+        lbl/.style={font=\small, fill=white, inner sep=1pt}]
+        % inputs
+        \node (a) at (0, 1) {$a$};
+        \node (b) at (0, -1) {$b$};
+        % negation gates
+        \node[not gate, draw, anchor=input] (g1) at (1.2, 1) {};
+        \node[not gate, draw, anchor=input] (g2) at (1.2, -1) {};
+        % and gate
+        \node[and gate, draw, logic gate inputs=nn, anchor=input 1] (g3) at (3, 0.1) {};
+        % output negation
+        \node[not gate, draw, anchor=input] (g4) at (6, 0) {};
+        \node (s) at (9, 0) {$s$};
+
+        \draw (a) -- (g1.input);
+        \draw (b) -- (g2.input);
+        \draw (g1.output) -- node[lbl, above] {$n_1$} ++(0.6,0) |- (g3.input 1);
+        \draw (g2.output) -- node[lbl, below] {$n_2$} ++(0.6,0) |- (g3.input 2);
+        \draw (g3.output) -- node[lbl, above] {$n_3$} (g4.input);
+        \draw (g4.output) -- (s);
+
+    \end{tikzpicture}
+    \begin{alignat*}{6}
+        \tikzmark{tl1}0 &= -a + 1 - n_1   \qquad\qquad & \tikzmark{tl2}\uncover<2->{0} & \uncover<2->{{}= a^2 - a} \qquad\qquad & \uncover<2->{0} & \uncover<2->{{}= n_1^2 - n_1}\\
+        0 &= -b + 1 - n_2   \qquad\qquad & \uncover<2->{0} & \uncover<2->{{}= b^2 - b} \qquad\qquad & \uncover<2->{0} & \uncover<2->{{}= n_2^2 - n_2}\\
+        0 &= -n_3 + n_1 n_2\tikzmark{br1} \qquad\qquad & \uncover<2->{0} & \uncover<2->{{}= s^2 - s} \qquad\qquad & \uncover<2->{0} & \uncover<2->{{}= n_3^2 - n_3}\tikzmark{br2}\\
+        0 &= -n_3 + 1 - s\tikzmark{bl}   &   &            &   &
+    \end{alignat*}
+    \begin{tikzpicture}[remember picture, overlay, box/.style={thick, rounded corners}]
+        \coordinate (mid1) at ($(tl1)!.5!(br1)$);
+        \coordinate (mid2) at ($(tl2)!.5!(br2)$);
+        \draw<3->[box] ($(tl1)+(-6pt,13pt)$) rectangle ($(br1 |- bl)+(8pt,-7pt)$);
+        \node<3->[anchor=north] at ($(mid1 |- bl)+(0,-9pt)$) {$P$};
+        \draw<3->[box] ($(tl2)+(-6pt,13pt)$) rectangle ($(br2 |- bl)+(8pt,-7pt)$);
+        \node<3->[anchor=north] at ($(mid2 |- bl)+(0,-9pt)$) {$B(X)$};
+    \end{tikzpicture}
+\end{frame}
+
+\begin{frame}
+    \begin{itemize}
+        \item Roots $\sim$ gate-level semantics (possible assignments)
+        \item Consider ideal $\langle P \cup B(X) \rangle$
+        \item Specification $f :\equiv 0 = -s + a + b -ab$
+        \item Check: $f \mathrel{\overset{?}{\in}} \langle P \cup B(X) \rangle$
+        \item AMulet \cite{amulet2}: Decide ideal membership + PAC certificate \cite{pac-2018, pac-2024}
+        \item Pacheck/Pastèque \cite{pasteque}: Check certificate
+    \end{itemize}
+\end{frame}
+
+\subsection{Pastèque}
+
+\begin{frame}
+    \begin{itemize}
+        \item Isabelle: Machine checked formal proofs
+        \item Proof automation
+        \item Sepref \cite{sepref} / Isabelle-LLVM \cite{isabelle-llvm}: Step-wise refinement + separation logic
+        \item Pastèque implemented with Sepref $\rightarrow$ Standard ML code
+        \item Isabelle-LLVM $\rightarrow$ LLVM code
+    \end{itemize}
+\end{frame}
+
+\subsection{Pastèque Migration}
+\begin{frame}
+Required for Pastèque migration to Isabelle-LLVM:
+    \begin{itemize}
+        \item Multiple precision integer arithmetic: Existing library \cite{spinei_isabelle_big_integer} + extensions for signed integers
+        \item Parsing \& printing of (big) integers \item Data structures:
+        \begin{itemize}
+            \item Nestable lists
+            \item Partial maps
+            \item Hashsets
+            \item Hashmaps
+        \end{itemize}
+        \item New parser (in C)
+    \end{itemize}
+\end{frame}
+
+\section{Pastèque Migration to Isabelle-LLVM}
+
+\subsection{Ownership in Isabelle-LLVM}
+
+\begin{frame}
+    \begin{itemize}
+        \item Use Hoare-triples\footnote{This example is actually not provable.}
+        \begin{align*}
+            \ubr{2}{
+                \{
+                \ubr{3}{\iexp{sn64\_assn} \app a \app ai}{refinement assertion}
+                \app \uarr{4}{\ast}{separating conjunction} \app
+                \ubr{3}{\iexp{sn64\_assn} \app b \app bi}{refinement assertion}
+                \}
+            }{precondition}
+            \app
+            \ubr{2}{
+                (\iexp{add} \app ai \app bi)
+            }{program}
+            \app
+            \ubr{2}{
+                \{
+                \lambda r. \app
+                \ubr{3}{\iexp{sn64\_assn} \app (a + b) \app r}{refinement assertion}
+                \}
+            }{postcondition}
+            \ubrspace
+        \end{align*}
+        \item Want to keep $\iexp{ai}$ and $\iexp{bi}$:
+        \begin{align*}
+            \left\{
+            \begin{array}{l}
+                \iexp{sn64\_assn} \app a \app ai \app \ast \\
+                \iexp{sn64\_assn} \app b \app bi
+            \end{array}
+            \right\}
+            \app
+            (\iexp{add} \app ai \app bi)
+            \app
+            \left\{
+            \begin{array}{l}
+                \lambda r. \app \iexp{sn64\_assn} \app a \app ai \app \ast \\
+                \hphantom{\lambda r. \app} \iexp{sn64\_assn} \app b \app bi \app \ast \\
+                \hphantom{\lambda r. \app} \iexp{sn64\_assn} \app (a + b) \app r
+            \end{array}
+            \right\}
+        \end{align*}
+        \item Only works for \textit{pure} refinement assertions
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \begin{itemize}
+        \item Different story with heap allocated values:
+        \begin{align*}
+            \{\iexp{lssn64\_assn} \app (x \app \iexp{\#} \app xs) \app xsi\}
+            \app (\iexp{tl} \app xsi) \app
+            \{\lambda r. \app \iexp{lssn64\_assn} \app xs \app r\}
+        \end{align*}
+        \item Want to keep original list:
+        \begin{align*}
+            \left\{\iexp{lssn64\_assn} \app (x \app \iexp{\#} \app xs) \app xsi\right\}
+            \app (\iexp{tl} \app xsi) \app
+            \left\{
+            \begin{array}{l}
+                \lambda r. \app \iexp{lssn64\_assn} \app xs \app r \app \ast \\
+                \hphantom{\lambda r. \app} \iexp{lssn64\_assn} \app (x \app \iexp{\#} \app xs) \app xsi
+            \end{array}
+            \right\}
+        \end{align*}
+        \item Works in Standard ML, not in LLVM!
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Shared Tail vs. Deep Copy}
+    \tikzset{
+        cell/.style={draw, rectangle split, rectangle split parts=2,
+            rectangle split horizontal, minimum height=0.7cm, inner sep=3pt},
+        ptr/.style={-{Stealth[length=2mm]}},
+        var/.style={font=\small\ttfamily}
+    }
+    \begin{itemize}
+        \item Shared list:
+        \begin{center}
+        \begin{tikzpicture}[node distance=0.8cm]
+            \node[cell] (a1) {$x$\nodepart{second}\phantom{.}};
+            \node[cell, right=of a1] (a2) {$x_2$\nodepart{second}\phantom{.}};
+            \node[cell, right=of a2] (a3) {$x_3$\nodepart{second}\phantom{.}};
+            \node[right=0.6cm of a3] (anil) {$\bot$};
+            \draw[ptr] (a1.east) -- (a2.west);
+            \draw[ptr] (a2.east) -- (a3.west);
+            \draw[ptr] (a3.east) -- (anil);
+            \node[var, above=0.5cm of a1.north] (xsi) {xsi};
+            \node[var, above=0.5cm of a2.north] (r) {r};
+            \draw[ptr] (xsi) -- (a1.north);
+            \draw[ptr] (r) -- (a2.north);
+        \end{tikzpicture}
+        \end{center}
+        Violates separateness...
+    \item Deep copy:
+    \begin{center}
+    \begin{tikzpicture}[node distance=0.8cm]
+        \node[cell] (b1) {$x$\nodepart{second}\phantom{.}};
+        \node[cell, right=of b1] (b2) {$x_2$\nodepart{second}\phantom{.}};
+        \node[cell, right=of b2] (b3) {$x_3$\nodepart{second}\phantom{.}};
+        \node[right=0.6cm of b3] (bnil) {$\bot$};
+        \draw[ptr] (b1.east) -- (b2.west);
+        \draw[ptr] (b2.east) -- (b3.west);
+        \draw[ptr] (b3.east) -- (bnil);
+        \node[var, above=0.5cm of b1.north] (bxsi) {xsi};
+        \draw[ptr] (bxsi) -- (b1.north);
+    \end{tikzpicture}%
+    \hspace{2.5cm}%
+    \begin{tikzpicture}[node distance=0.8cm]
+        \node[cell] (c2) {$x_2$\nodepart{second}\phantom{.}};
+        \node[cell, right=of c2] (c3) {$x_3$\nodepart{second}\phantom{.}};
+        \node[right=0.6cm of c3] (cnil) {$\bot$};
+        \draw[ptr] (c2.east) -- (c3.west);
+        \draw[ptr] (c3.east) -- (cnil);
+        \node[var, above=0.5cm of c2.north] (cr) {r};
+        \draw[ptr] (cr) -- (c2.north);
+    \end{tikzpicture}
+    \end{center}
+    Possible, but expensive...
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\begin{isabellecode}[basicstyle=\ttfamily\scriptsize]
+sum xs = do {
+  (acc, xs) <- WHILEIT (% (acc, xs). xs ~= [])
+    (% (acc, xs). do {
+      -- { lssn64_assn xs xsi }
+      (x, xs') <- list_pop xs;
+      -- { %(x,xs'). sn64_assn x xi * lssn64_assn xs' xsi' }
+      acc' <- acc + x;
+      RETURN (acc', xs')
+    }) (0, xs);
+  RETURN r
+}
+\end{isabellecode}
+Original list is destroyed:
+\begin{align*}
+    \{\iexp{lssn64\_assn} \app xs \app xsi\}
+    \app (\iexp{sum} \app xsi) \app
+    \{\lambda r. \app \iexp{sn64\_assn} \app (\iexp{foldl} \app (\iexp{+}) \app 0 \app xs) \app r\}
+\end{align*}
+\end{frame}
+
+\begin{frame}
+    \begin{uncoverenv}<1->
+    Some observations:
+    \begin{itemize}
+        \item $\iexp{sum}$ does not mutate $xs$
+        \item Still, it destroys $xs$
+        \item $\rightarrow$ need read only list walk...
+    \end{itemize}
+    \end{uncoverenv}
+    \begin{uncoverenv}<2->
+    (My) solution/workaround:
+    \begin{itemize}
+        \item Reformulate $\iexp{sum'} := \iexp{foldl} \app (\iexp{+}) \app 0$, prove $\iexp{sum'} \equiv \iexp{sum}$
+        \item Inner function "$\iexp{+}$" keeps list elements
+        \item Implement $\iexp{foldl}$ on LLVM\footnote{more accurately, $\iexp{llM}$-level}-level
+        \item Prove: "If inner function keeps list elements, \iexp{foldl} will keep list"
+    \end{itemize}
+    \end{uncoverenv}
+    \begin{uncoverenv}<3->
+    Some notes:
+    \begin{itemize}
+        \item Fractional separation logic in Isabelle-LLVM \cite{isabelle-llvm-fractional} might solve this problem
+        \item Explicit reappending might have also worked...
+    \end{itemize}
+    \end{uncoverenv}
+\end{frame}
+
+\subsection{Fused Partial Map Operations}
+
+\begin{frame}[fragile]
+For partial maps, move element out, then move back:
+\begin{pseudocode}[basicstyle=\ttfamily\scriptsize]
+fused_add A i r = do {
+  p  <- lookup A i    // Move p out of A; A now maps i to None
+  r' <- add r p       // Read-only operation, does not change p
+  p  <- update A i p  // Move p back into A;
+                      // A is now in its initial state
+  return r'
+}
+\end{pseudocode}
+
+\vspace{-1ex}
+\begin{center}
+\begin{tikzpicture}[
+        acell/.style={draw, minimum size=0.55cm, inner sep=0pt, font=\small},
+        hole/.style={draw, dashed, minimum size=0.55cm, inner sep=0pt},
+        lbl/.style={font=\scriptsize, anchor=south},
+        ptr/.style={-{Stealth[length=2mm]}}
+    ]
+    % Column 1: initial state
+    \foreach \k/\t in {0/p_0, 1/p_1, 2/p, 3/p_3, 4/p_4} {
+        \node[acell] (a\k) at (0, -0.55*\k) {$\t$};
+    }
+    \node[lbl] at (0, 0.35) {initial};
+    \node[font=\scriptsize, anchor=east] at (-0.4, -1.1) {$i$};
+    % Column 2: p moved out, leaving a hole at position i
+    \foreach \k/\t in {0/p_0, 1/p_1, 3/p_3, 4/p_4} {
+        \node[acell] (b\k) at (3, -0.55*\k) {$\t$};
+    }
+    \node[hole] (b2) at (3, -1.1) {};
+    \node[font=\small] (pout) at (4.5, -1.1) {$p$};
+    \draw[ptr] (b2.east) -- (pout.west);
+    \node[lbl] at (3, 0.35) {\texttt{lookup}};
+    % Column 3: p moved back in
+    \foreach \k/\t in {0/p_0, 1/p_1, 2/p, 3/p_3, 4/p_4} {
+        \node[acell] (c\k) at (6, -0.55*\k) {$\t$};
+    }
+    \node[lbl] at (6, 0.35) {\texttt{update}};
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\section{Evaluation}
+
+\begin{frame}
+\begin{itemize}
+    \item Experimental data from original PAC website \cite{pacheck_pasteque}
+    \item Generate certificates with AMulet
+    \item Run all three checkers 10 times: Pacheck, Pastèque-SML and Pastèque-LLVM
+    \item Measure average wall clock time (wct) and resident set size (RSS)
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+    \footnotesize
+    \input{../evaluation/main/results/table.tex}
+\end{frame}
+
+\begin{frame}
+    \centering
+    \includegraphics[width=\textwidth,height=0.85\textheight,keepaspectratio]{../evaluation/main/results/plot.pdf}
+\end{frame}
+
+\section{Discussion}
+\begin{frame}
+How close can we get to Pacheck?
+\begin{center}
+\begin{tikzpicture}[
+	var/.style={draw, rectangle, minimum width=7mm, minimum height=7mm, font=\ttfamily, text height=1.5ex, text depth=.25ex},
+	heading/.style={text height=2ex, text depth=.25ex},
+	ptr/.style={->, >=stealth, thick},
+	node distance=6mm and 6mm,
+]
+% Pastèque: one separate list per term
+\node[var] (pa) {a};
+\node[var, right=of pa] (pb1) {b};
+\node[var, right=of pb1] (pc1) {c};
+\node[var, right=of pc1] (pd1) {d};
+\node[var, below=of pa] (px) {x};
+\node[var, right=of px] (pb2) {b};
+\node[var, right=of pb2] (pc2) {c};
+\node[var, right=of pc2] (pd2) {d};
+\draw[ptr] (pa) -- (pb1);
+\draw[ptr] (pb1) -- (pc1);
+\draw[ptr] (pc1) -- (pd1);
+\draw[ptr] (px) -- (pb2);
+\draw[ptr] (pb2) -- (pc2);
+\draw[ptr] (pc2) -- (pd2);
+\node[heading, above=4mm] at ($(pa.north)!0.5!(pd1.north)$) {Pastèque};
+
+% Pacheck: terms share their common suffix
+\node[var, right=18mm of pd1] (ka) {a};
+\node[var, right=of ka] (kb) {b};
+\node[var, right=of kb] (kc) {c};
+\node[var, right=of kc] (kd) {d};
+\node[var, below=of ka] (kx) {x};
+	\draw[ptr] (ka) -- (kb);
+	\draw[ptr] (kb) -- (kc);
+	\draw[ptr] (kc) -- (kd);
+	\draw[ptr] (kx) -- (kb);
+	\node[heading, above=4mm] at ($(ka.north)!0.5!(kd.north)$) {Pacheck};
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}
+    \begin{itemize}
+        \item blubblub
+    \end{itemize}
+\end{frame}
+
+\section{References}
+
+\begin{frame}[allowframebreaks]{References}
+    \printbibliography[heading=none]
+\end{frame}
+
+\end{document}
