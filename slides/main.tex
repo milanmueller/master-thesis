@@ -16,7 +16,21 @@
 \addbibresource{../references/datatypes.bib}
 \addbibresource{../references/evaluation.bib}
 \addbibresource{../references/discussion.bib}
+
+% Concise bibliography: keep author, title, venue, and year only
+\DeclareFieldFormat{labelnumberwidth}{\mkbibbrackets{#1}}
+\AtEveryBibitem{%
+  \clearfield{url}\clearfield{urldate}\clearfield{doi}\clearfield{isbn}\clearfield{issn}%
+  \clearfield{eprint}\clearfield{note}\clearfield{pages}\clearfield{series}%
+  \clearfield{volume}\clearfield{number}\clearfield{abstract}%
+  \clearlist{publisher}\clearlist{location}\clearlist{address}\clearlist{organization}%
+  \clearname{editor}}
+\setbeamerfont{bibliography entry author}{size=\scriptsize}
+\setbeamerfont{bibliography entry title}{size=\scriptsize}
+\setbeamerfont{bibliography entry location}{size=\scriptsize}
+\setbeamerfont{bibliography entry note}{size=\scriptsize}
 \usepackage{tikz}
+\usepackage{appendixnumberbeamer} % appendix frames are excluded from the total slide count
 \usetikzlibrary{circuits.logic.US, positioning, calc, shapes.multipart, arrows.meta}
 \newcommand{\tikzmark}[1]{\tikz[remember picture, overlay]\node[coordinate] (#1) {};}
 
@@ -221,7 +235,7 @@ Required for Pastèque migration to Isabelle-LLVM:
             }{postcondition}
             \ubrspace
         \end{align*}
-        \item Want to keep $\iexp{ai}$ and $\iexp{bi}$:
+        \item<5-> Want to keep $\iexp{ai}$ and $\iexp{bi}$:
         \begin{align*}
             \left\{
             \begin{array}{l}
@@ -240,7 +254,7 @@ Required for Pastèque migration to Isabelle-LLVM:
             \end{array}
             \right\}
         \end{align*}
-        \item Only works for \textit{pure} refinement assertions
+        \item<5-> Only works for \textit{pure} refinement assertions
     \end{itemize}
 \end{frame}
 
@@ -430,10 +444,25 @@ fused_add A i r = do {
     \input{../evaluation/main/results/table.tex}
 \end{frame}
 
-\begin{frame}
-    \centering
-    \includegraphics[width=\textwidth,height=0.85\textheight,keepaspectratio]{../evaluation/main/results/plot.pdf}
+\begin{frame}{Parser Fuzzing: Digits per Coefficient}
+    \begin{columns}[T]
+        \begin{column}{0.58\textwidth}
+            \includegraphics[width=\textwidth,height=0.75\textheight,keepaspectratio]{../evaluation/fuzzing/results/sweep-c.pdf}
+        \end{column}
+        \begin{column}{0.4\textwidth}
+            \begin{itemize}
+                \item Random input (invalid proof), evaluate parsers only
+                \item All coefficients have the same length
+                \item LLVM uses school-book multiplication, one multiplication per digit
+            \end{itemize}
+        \end{column}
+    \end{columns}
 \end{frame}
+
+% \begin{frame}
+%     \centering
+%     \includegraphics[width=\textwidth,height=0.85\textheight,keepaspectratio]{../evaluation/main/results/plot.pdf}
+% \end{frame}
 
 \section{Discussion}
 \begin{frame}
@@ -477,9 +506,24 @@ How close can we get to Pacheck?
 \end{center}
 \end{frame}
 
-\begin{frame}
+\begin{frame}{Possible Improvements}
     \begin{itemize}
-        \item blubblub
+        \item Use fractional separation logic
+        \item Terms by arrays (instead of lists)
+        \item Parsing: Karatsuba Multiplication + Chunks of digits
+        \item Move parsing to Isabelle side
+              $\rightsquigarrow$ interleave parsing and checking
+        \item Save additional pointer dereference in polynomial lookup map
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{AI Usage}
+    \begin{itemize}
+        \item Pictures in slides are AI generated
+        \item Initial work on (signed) multiple precision numbers: no AI
+        \item Low-level $\iexp{vcg}$ proofs - too hard (for me)
+        \item Hand written definitions, AI written proofs
+        \item Used Claude Code with models Opus, Sonnet and Fable
     \end{itemize}
 \end{frame}
 
@@ -488,5 +532,10 @@ How close can we get to Pacheck?
 \begin{frame}[allowframebreaks]{References}
     \printbibliography[heading=none]
 \end{frame}
+
+\appendix
+
+\section{Appendix}
+
 
 \end{document}
