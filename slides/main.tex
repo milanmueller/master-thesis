@@ -396,21 +396,21 @@ Original list is destroyed:
     \begin{uncoverenv}<2->
     (My) solution/workaround:
     \begin{itemize}
-        \item Reformulate $\iexp{sum'} := \iexp{foldl} \app (\iexp{+}) \app 0$, prove $\iexp{sum'} \equiv \iexp{sum}$
+        \item Reformulate $\iexp{sum'} := \iexp{foldl} \app (\iexp{+}) \app 0$, prove $\iexp{sum'} \equiv \iexp{sum}$ \footnote{Actually: $\iexp{RETURN} \app \circ \app \iexp{sum'} \equiv \iexp{sum}$}
         \item Inner function "$\iexp{+}$" keeps list elements
         \item Implement $\iexp{foldl}$ on LLVM\footnote{more accurately, $\iexp{llM}$-level}-level
         \item Prove: "If inner function keeps list elements, \iexp{foldl} will keep list"
     \end{itemize}
     \end{uncoverenv}
-    \begin{uncoverenv}<3->
-    Some notes:
-    \begin{itemize}
-        \item Fractional separation logic in Isabelle-LLVM \cite{isabelle-llvm-fractional} might solve this problem
-        \item Explicit reappending might have also worked...
-    \end{itemize}
-    \end{uncoverenv}
+    % \begin{uncoverenv}<3->
+    % Some notes:
+    % \begin{itemize}
+    %     \item Fractional separation logic in Isabelle-LLVM \cite{isabelle-llvm-fractional} might solve this problem
+    %     \item Explicit reappending might have also worked...
+    % \end{itemize}
+    % \end{uncoverenv}
     \spnote{
-        End: 23:00
+        End: 22:00
     }
 \end{frame}
 
@@ -458,7 +458,7 @@ Original list is destroyed:
 
 \begin{frame}{Possible Improvements}
     \begin{itemize}
-        \item Use fractional separation logic
+        \item Use fractional separation logic \cite{isabelle-llvm-fractional}
         \item Terms by arrays (instead of lists)
         \item Parsing: Karatsuba Multiplication + Chunks of digits
         \item Move parsing to Isabelle side
