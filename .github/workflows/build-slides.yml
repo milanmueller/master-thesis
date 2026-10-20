@@ -1,0 +1,65 @@
+name: Build Slides
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "slides/**"
+      - "references/**"
+      - "evaluation/**"
+      - ".github/workflows/build-slides.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "slides/**"
+      - "references/**"
+      - "evaluation/**"
+      - ".github/workflows/build-slides.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Verify files included by the slides exist
+      run: |
+        for f in evaluation/main/results/table.tex evaluation/fuzzing/results/sweep-c.pdf; do
+          if [ ! -f "$f" ]; then
+            echo "Error: $f not found in repository (generated PDFs are git-ignored, add with git add -f)"
+            exit 1
+          fi
+        done
+
+    - name: Install Tectonic
+      run: |
+        curl -fsSL https://drop-sh.fullyjustified.net | sh
+        mkdir -p $HOME/.local/bin
+        mv tectonic $HOME/.local/bin/
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+        $HOME/.local/bin/tectonic --version
+
+    - name: Compile slides (audience and speaker-notes versions)
+      run: bash slides/build.sh
+
+    - name: Upload audience slides
+      uses: actions/upload-artifact@v4
+      with:
+        name: slides-pdf
+        path: slides/main.pdf
+        retention-days: 90
+
+    - name: Upload slides with speaker notes
+      uses: actions/upload-artifact@v4
+      with:
+        name: slides-notes-pdf
+        path: slides/main-notes.pdf
+        retention-days: 90

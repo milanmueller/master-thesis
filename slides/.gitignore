@@ -1,0 +1,31 @@
+output/*
+indent.log
+.direnv
+*.log
+*.aux
+*.glo
+*.glg
+*.lof
+*.lot
+*.lol
+*.out
+*.pdf
+*.slg
+*.slo
+*.sls
+*.toc
+*.gls
+*.ist
+*-blx.bib
+*.bbl
+*.run.xml
+# Tectonic build directory (also holds generated Isabelle listing copies,
+# see scripts/prepare-isabelle-listings.sh)
+build/
+*.bak
+*.blg
+*.fls
+*.fdb_latexmk
+watch
+clean
+*.thy~

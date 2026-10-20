@@ -19,6 +19,7 @@ echo ""
 
 build() {
     tectonic --print main.tex 2>&1 | grep -v "note:"
+    tectonic --print main-notes.tex 2>&1 | grep -v "note:"
     if [ "${PIPESTATUS[0]}" -eq 0 ]; then
         echo -e "${GREEN}Build successful at $(date +%H:%M:%S)${NC}"
     else

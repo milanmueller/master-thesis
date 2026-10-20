@@ -17,9 +17,11 @@ echo -e "${GREEN}Starting slides compilation with Tectonic...${NC}"
 if [ "$1" == "--keep-intermediates" ]; then
     echo -e "${YELLOW}Keeping intermediate files for debugging...${NC}"
     tectonic -X compile --keep-intermediates --print main.tex
+    tectonic -X compile --keep-intermediates --print main-notes.tex
 else
     tectonic -X compile --print main.tex
+    tectonic -X compile --print main-notes.tex
 fi
 
 echo -e "${GREEN}Compilation completed successfully!${NC}"
-echo -e "${GREEN}Output: slides/main.pdf${NC}"
+echo -e "${GREEN}Output: slides/main.pdf (audience), slides/main-notes.pdf (pympress)${NC}"

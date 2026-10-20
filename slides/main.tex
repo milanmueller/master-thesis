@@ -7,6 +7,20 @@
 \usepackage{booktabs}
 \input{setup}
 
+
+% Speaker notes as PDF text annotations (shown in the pympress Annotations view).
+% Only emitted when built through main-notes.tex (see build.sh), so main.pdf stays clean.
+\ifdefined\withnotes
+  % pdfcomment loads datetime2, which changes the format of \today; restore the original
+  \let\origtoday\today
+  \usepackage{pdfcomment}
+  \let\today\origtoday
+  \newcommand{\spnote}[1]{\pdfcomment[icon=Note,color=yellow,opacity=1]{#1}}
+\else
+  \newcommand{\spnote}[1]{}
+\fi
+
+
 % Bibliography: same sources as the thesis (see ../setup.tex)
 \usepackage[backend=bibtex,style=numeric,sorting=none]{biblatex}
 \addbibresource{../references/motivation.bib}
@@ -118,14 +132,14 @@
 
 \subsection{Motivation}
 
-\begin{frame}
-    \begin{itemize}
-        \item SAT can verify (large) adders
-        \item Does not scale for multipliers
-        \item BDDs also do not scale
-        \item $\rightsquigarrow$ use algebraic reasoning
-    \end{itemize}
-\end{frame}
+% \begin{frame}
+%     \begin{itemize}
+%         \item SAT can verify (large) adders
+%         \item Does not scale for multipliers \cite{Kaufmann-column-wise-verification}
+%         \item BDDs also do not scale
+%         \item $\rightsquigarrow$ use algebraic reasoning
+%     \end{itemize}
+% \end{frame}
 
 \begin{frame}{Example: OR from AND and NOT}
     \setbeamercovered{invisible}
@@ -189,6 +203,9 @@
         \item Pastèque implemented with Sepref $\rightarrow$ Standard ML code
         \item Isabelle-LLVM $\rightarrow$ LLVM code
     \end{itemize}
+    \spnote{
+        End: 9:00
+    }
 \end{frame}
 
 \subsection{Pastèque Migration}
@@ -205,6 +222,9 @@ Required for Pastèque migration to Isabelle-LLVM:
         \end{itemize}
         \item New parser (in C)
     \end{itemize}
+    \spnote{
+        End: 12:00
+    }
 \end{frame}
 
 \section{Pastèque Migration to Isabelle-LLVM}
@@ -277,8 +297,10 @@ Required for Pastèque migration to Isabelle-LLVM:
             \end{array}
             \right\}
         \end{align*}
-        \item Works in Standard ML, not in LLVM!
     \end{itemize}
+    \spnote{
+        End: 18:00
+    }
 \end{frame}
 
 \begin{frame}{Shared Tail vs. Deep Copy}
@@ -354,6 +376,9 @@ Original list is destroyed:
     \app (\iexp{sum} \app xsi) \app
     \{\lambda r. \app \iexp{sn64\_assn} \app (\iexp{foldl} \app (\iexp{+}) \app 0 \app xs) \app r\}
 \end{align*}
+\spnote{
+    End: 20:00
+}
 \end{frame}
 
 \begin{frame}
@@ -381,6 +406,9 @@ Original list is destroyed:
         \item Explicit reappending might have also worked...
     \end{itemize}
     \end{uncoverenv}
+    \spnote{
+        End: 23:00
+    }
 \end{frame}
 
 \subsection{Fused Partial Map Operations}
@@ -426,6 +454,9 @@ fused_add A i r = do {
     \node[lbl] at (6, 0.35) {\texttt{update}};
 \end{tikzpicture}
 \end{center}
+\spnote{
+    End: 25:00
+}
 \end{frame}
 
 \section{Evaluation}
@@ -457,6 +488,9 @@ fused_add A i r = do {
             \end{itemize}
         \end{column}
     \end{columns}
+    \note{
+        End: 27:00
+    }
 \end{frame}
 
 % \begin{frame}
@@ -527,13 +561,13 @@ How close can we get to Pacheck?
     \end{itemize}
 \end{frame}
 
+\appendix
+
 \section{References}
 
 \begin{frame}[allowframebreaks]{References}
     \printbibliography[heading=none]
 \end{frame}
-
-\appendix
 
 \section{Appendix}
 
