@@ -191,6 +191,9 @@
         \item AMulet \cite{amulet2}: Decide ideal membership + PAC certificate \cite{pac-2018, pac-2024}
         \item Pacheck/Pastèque \cite{pasteque}: Check certificate
     \end{itemize}
+    \note{
+        End: 5:00 to 6:00
+    }
 \end{frame}
 
 \subsection{Pastèque}
@@ -411,7 +414,78 @@ Original list is destroyed:
     }
 \end{frame}
 
-\subsection{Fused Partial Map Operations}
+
+\section{Evaluation}
+
+\begin{frame}
+\begin{itemize}
+    \item Experimental data from original PAC website \cite{pacheck_pasteque}
+    \item Generate certificates with AMulet
+    \item Run all three checkers 10 times: Pacheck, Pastèque-SML and Pastèque-LLVM
+    \item Measure average wall clock time (wct) and resident set size (RSS)
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+    \footnotesize
+    \input{../evaluation/main/results/table.tex}
+\end{frame}
+
+\begin{frame}{Parser Fuzzing: Digits per Coefficient}
+    \begin{columns}[T]
+        \begin{column}{0.58\textwidth}
+            \includegraphics[width=\textwidth,height=0.75\textheight,keepaspectratio]{../evaluation/fuzzing/results/sweep-c.pdf}
+        \end{column}
+        \begin{column}{0.4\textwidth}
+            \begin{itemize}
+                \item Random input (invalid proof), evaluate parsers only
+                \item All coefficients have the same length
+                \item LLVM uses school-book multiplication, one multiplication per digit
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    \note{
+        End: 27:00
+    }
+\end{frame}
+
+% \begin{frame}
+%     \centering
+%     \includegraphics[width=\textwidth,height=0.85\textheight,keepaspectratio]{../evaluation/main/results/plot.pdf}
+% \end{frame}
+
+\section{Discussion}
+
+\begin{frame}{Possible Improvements}
+    \begin{itemize}
+        \item Use fractional separation logic
+        \item Terms by arrays (instead of lists)
+        \item Parsing: Karatsuba Multiplication + Chunks of digits
+        \item Move parsing to Isabelle side
+              $\rightsquigarrow$ interleave parsing and checking
+        \item Save additional pointer dereference in polynomial lookup map
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{AI Usage}
+    \begin{itemize}
+        \item Figures in slides are AI generated (except benchmark graph)
+        \item Initial work on (signed) multiple precision numbers: no AI
+        \item Low-level $\iexp{vcg}$ proofs - too hard (for me)
+        \item Hand written definitions, AI written proofs
+        \item Used Claude Code with models Opus, Sonnet and Fable
+    \end{itemize}
+\end{frame}
+
+\appendix
+
+\section{References}
+
+\begin{frame}[allowframebreaks]{References}
+    \printbibliography[heading=none]
+\end{frame}
+
+\section{Appendix}
 
 \begin{frame}[fragile]
 For partial maps, move element out, then move back:
@@ -454,51 +528,8 @@ fused_add A i r = do {
     \node[lbl] at (6, 0.35) {\texttt{update}};
 \end{tikzpicture}
 \end{center}
-\spnote{
-    End: 25:00
-}
 \end{frame}
 
-\section{Evaluation}
-
-\begin{frame}
-\begin{itemize}
-    \item Experimental data from original PAC website \cite{pacheck_pasteque}
-    \item Generate certificates with AMulet
-    \item Run all three checkers 10 times: Pacheck, Pastèque-SML and Pastèque-LLVM
-    \item Measure average wall clock time (wct) and resident set size (RSS)
-\end{itemize}
-\end{frame}
-
-\begin{frame}
-    \footnotesize
-    \input{../evaluation/main/results/table.tex}
-\end{frame}
-
-\begin{frame}{Parser Fuzzing: Digits per Coefficient}
-    \begin{columns}[T]
-        \begin{column}{0.58\textwidth}
-            \includegraphics[width=\textwidth,height=0.75\textheight,keepaspectratio]{../evaluation/fuzzing/results/sweep-c.pdf}
-        \end{column}
-        \begin{column}{0.4\textwidth}
-            \begin{itemize}
-                \item Random input (invalid proof), evaluate parsers only
-                \item All coefficients have the same length
-                \item LLVM uses school-book multiplication, one multiplication per digit
-            \end{itemize}
-        \end{column}
-    \end{columns}
-    \note{
-        End: 27:00
-    }
-\end{frame}
-
-% \begin{frame}
-%     \centering
-%     \includegraphics[width=\textwidth,height=0.85\textheight,keepaspectratio]{../evaluation/main/results/plot.pdf}
-% \end{frame}
-
-\section{Discussion}
 \begin{frame}
 How close can we get to Pacheck?
 \begin{center}
@@ -540,36 +571,22 @@ How close can we get to Pacheck?
 \end{center}
 \end{frame}
 
-\begin{frame}{Possible Improvements}
-    \begin{itemize}
-        \item Use fractional separation logic
-        \item Terms by arrays (instead of lists)
-        \item Parsing: Karatsuba Multiplication + Chunks of digits
-        \item Move parsing to Isabelle side
-              $\rightsquigarrow$ interleave parsing and checking
-        \item Save additional pointer dereference in polynomial lookup map
-    \end{itemize}
+\begin{frame}{PAC Proof for the Example Circuit}
+Proof found by Claude (Opus model), checked with Pastèque:
+\tcbset{pacfile/.style={isabellebox, listing options={style=pseudocodestyle, basicstyle=\ttfamily\small}}}
+\begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+        \texttt{ex.input}
+        \tcbinputlisting{pacfile, listing file=example-proof/ex.input}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+        \texttt{ex.target}
+        \tcbinputlisting{pacfile, listing file=example-proof/ex.target}
+    \end{column}
+\end{columns}
+\vspace{1ex}
+\texttt{ex.proof}
+\tcbinputlisting{pacfile, listing file=example-proof/ex.proof}
 \end{frame}
-
-\begin{frame}{AI Usage}
-    \begin{itemize}
-        \item Pictures in slides are AI generated
-        \item Initial work on (signed) multiple precision numbers: no AI
-        \item Low-level $\iexp{vcg}$ proofs - too hard (for me)
-        \item Hand written definitions, AI written proofs
-        \item Used Claude Code with models Opus, Sonnet and Fable
-    \end{itemize}
-\end{frame}
-
-\appendix
-
-\section{References}
-
-\begin{frame}[allowframebreaks]{References}
-    \printbibliography[heading=none]
-\end{frame}
-
-\section{Appendix}
-
 
 \end{document}
